@@ -1,0 +1,79 @@
+[
+  {
+    "user": {
+      "type": "player",
+      "name": "advaits",
+      "uniqueId": "77650ee0-db83-4d65-b6bf-9666041a461c"
+    },
+    "time": 1734757650845,
+    "type": "Profiler",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/k7KBkTBG6r"
+    }
+  },
+  {
+    "user": {
+      "type": "player",
+      "name": "advaits",
+      "uniqueId": "77650ee0-db83-4d65-b6bf-9666041a461c"
+    },
+    "time": 1734757450796,
+    "type": "Profiler",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/maR41m9TJB"
+    }
+  },
+  {
+    "user": {
+      "type": "player",
+      "name": "advaits",
+      "uniqueId": "77650ee0-db83-4d65-b6bf-9666041a461c"
+    },
+    "time": 1734755671329,
+    "type": "Profiler (live)",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/Ij8OlUJTXs"
+    }
+  },
+  {
+    "user": {
+      "type": "player",
+      "name": "advaits",
+      "uniqueId": "77650ee0-db83-4d65-b6bf-9666041a461c"
+    },
+    "time": 1734636422806,
+    "type": "Profiler (live)",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/FLhu6oRU1n"
+    }
+  },
+  {
+    "user": {
+      "type": "player",
+      "name": "advaits",
+      "uniqueId": "77650ee0-db83-4d65-b6bf-9666041a461c"
+    },
+    "time": 1734636052804,
+    "type": "Profiler (live)",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/JWmSRrAL0s"
+    }
+  },
+  {
+    "user": {
+      "type": "other",
+      "name": "CONSOLE"
+    },
+    "time": 1734634861760,
+    "type": "Profiler (live)",
+    "data": {
+      "type": "url",
+      "value": "https://spark.lucko.me/AnspvAqOnG"
+    }
+  }
+]

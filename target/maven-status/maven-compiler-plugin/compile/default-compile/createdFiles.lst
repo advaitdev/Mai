@@ -1,0 +1,13 @@
+me\advait\mai\npc\HumanoidUtil$TaskRunnable.class
+me\advait\mai\command\PatheticCommand$PlayerSession.class
+me\advait\mai\npc\HumanoidUtil.class
+me\advait\mai\npc\trait\pathfinder\PatheticUtil.class
+me\advait\mai\command\PatheticCommand.class
+me\advait\mai\npc\pathetic\SolidGroundFilter.class
+me\advait\mai\npc\trait\pathfinder\PatheticAgent.class
+me\advait\mai\npc\trait\HumanoidTrait.class
+me\advait\mai\util\Messages.class
+me\advait\mai\npc\trait\HumanoidStuckAction.class
+me\advait\mai\npc\pathetic\AntiDiagonalFilter.class
+me\advait\mai\listener\NavigationListener.class
+me\advait\mai\command\HDebugCommand.class

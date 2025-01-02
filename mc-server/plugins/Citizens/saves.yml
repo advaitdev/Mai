@@ -1,0 +1,34 @@
+# Citizens NPC Storage
+
+last-created-npc-id: 82
+npc:
+  '82':
+    metadata:
+      protected: false
+    name: Mai
+    uuid: e01ac814-0390-4777-9f45-3391136a7797
+    traits:
+      spawned: true
+      type: PLAYER
+      sentinel:
+        stats_ticksSpawned: 2297
+        stats_timesSpawned: 1
+        allIgnores:
+          targets:
+            '0': OWNER
+      skintrait:
+        skinName: WeNeedToGoDeeper
+      location:
+        bodyYaw: 0.0
+        world: world
+        x: 128.0
+        y: 67.0
+        z: -512.0
+        yaw: 0.0
+        pitch: 0.0
+    traitnames: scoreboardtrait,spawned,humanoid,type,inventory,sentinel,skintrait,location
+    navigator:
+      usenewpathfinder: true
+      speedmodifier: 1.0
+      avoidwater: false
+      usedefaultstuckaction: false

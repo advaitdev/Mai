@@ -1,0 +1,9 @@
+name: Mai
+version: '${project.version}'
+main: me.advait.mai.Mai
+api-version: '1.20'
+authors: [Advait]
+description: Creating an AI-powered world in Minecraft.
+commands:
+  pathetictest:
+    description: Pathetic API test command.

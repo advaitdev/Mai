@@ -1,0 +1,170 @@
+[21:00:10] [ServerMain/INFO]: [bootstrap] Running Java 22 (OpenJDK 64-Bit Server VM 22.0.2; Homebrew Homebrew) on Mac OS X 15.1.1 (aarch64)
+[21:00:10] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.4-15-master@bb76819 (2024-12-15T09:48:21Z) for Minecraft 1.21.4
+[21:00:11] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
+[21:00:11] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/Mai-1.0.10.jar'...
+[21:00:11] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/Mai-1.0.10.jar' in 452ms.
+[21:00:11] [ServerMain/INFO]: [PluginInitializerManager] Initialized 5 plugins
+[21:00:11] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (5):
+ - Citizens (2.0.37-SNAPSHOT (build 3658)), Mai (1.0.10), Sentinel (2.9.2-SNAPSHOT (build 527)), ViaBackwards (5.2.0), ViaVersion (5.2.0)
+[21:00:13] [ServerMain/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[21:00:13] [Yggdrasil Key Fetcher/ERROR]: Failed to request yggdrasil public key
+com.mojang.authlib.exceptions.MinecraftClientException: Failed to read from https://api.minecraftservices.com/publickeys due to api.minecraftservices.com
+	at com.mojang.authlib.minecraft.client.MinecraftClient.readInputStream(MinecraftClient.java:111) ~[authlib-6.0.57.jar:?]
+	at com.mojang.authlib.minecraft.client.MinecraftClient.get(MinecraftClient.java:56) ~[authlib-6.0.57.jar:?]
+	at com.mojang.authlib.yggdrasil.YggdrasilServicesKeyInfo.fetch(YggdrasilServicesKeyInfo.java:114) ~[authlib-6.0.57.jar:?]
+	at com.mojang.authlib.yggdrasil.YggdrasilServicesKeyInfo$1.run(YggdrasilServicesKeyInfo.java:89) ~[authlib-6.0.57.jar:?]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[?:?]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[?:?]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[?:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[?:?]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[?:?]
+	at java.base/java.lang.Thread.run(Thread.java:1570) ~[?:?]
+Caused by: java.net.UnknownHostException: api.minecraftservices.com
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:567) ~[?:?]
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327) ~[?:?]
+	at java.base/java.net.Socket.connect(Socket.java:752) ~[?:?]
+	at java.base/sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:304) ~[?:?]
+	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:178) ~[?:?]
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:531) ~[?:?]
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:636) ~[?:?]
+	at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:264) ~[?:?]
+	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:377) ~[?:?]
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:193) ~[?:?]
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1288) ~[?:?]
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1129) ~[?:?]
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:179) ~[?:?]
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1691) ~[?:?]
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1615) ~[?:?]
+	at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531) ~[?:?]
+	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307) ~[?:?]
+	at com.mojang.authlib.minecraft.client.MinecraftClient.readInputStream(MinecraftClient.java:82) ~[authlib-6.0.57.jar:?]
+	... 9 more
+[21:00:14] [ServerMain/INFO]: Loaded 1370 recipes
+[21:00:14] [ServerMain/INFO]: Loaded 1481 advancements
+[21:00:14] [ServerMain/INFO]: [MCTypeRegistry] Initialising converters for DataConverter...
+[21:00:14] [ServerMain/INFO]: [MCTypeRegistry] Finished initialising converters for DataConverter in 129.5ms
+[21:00:14] [Server thread/INFO]: Starting minecraft server version 1.21.4
+[21:00:14] [Server thread/INFO]: Loading properties
+[21:00:14] [Server thread/INFO]: This server is running Paper version 1.21.4-15-master@bb76819 (2024-12-15T09:48:21Z) (Implementing API version 1.21.4-R0.1-SNAPSHOT)
+[21:00:15] [Server thread/INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[21:00:15] [Server thread/INFO]: Server Ping Player Sample Count: 12
+[21:00:15] [Server thread/INFO]: Using 4 threads for Netty based IO
+[21:00:15] [Server thread/INFO]: [MoonriseCommon] Paper is using 2 worker threads, 1 I/O threads
+[21:00:15] [Server thread/INFO]: [ChunkTaskScheduler] Chunk system is using population gen parallelism: true
+[21:00:15] [Server thread/INFO]: Default game type: SURVIVAL
+[21:00:15] [Server thread/INFO]: Generating keypair
+[21:00:15] [Server thread/INFO]: Starting Minecraft server on *:25565
+[21:00:15] [Server thread/INFO]: Using default channel type
+[21:00:16] [Server thread/INFO]: Paper: Using libdeflate (macOS ARM64 / Apple Silicon) compression from Velocity.
+[21:00:16] [Server thread/INFO]: Paper: Using native (macOS ARM64 / Apple Silicon) cipher from Velocity.
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loading 5 libraries... please wait
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/ch/ethz/globis/phtree/phtree/2.8.1/phtree-2.8.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/org/joml/joml/1.10.8/joml-1.10.8.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/it/unimi/dsi/fastutil/8.5.15/fastutil-8.5.15.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-platform-bukkit/4.3.3/adventure-platform-bukkit-4.3.3.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-platform-api/4.3.3/adventure-platform-api-4.3.3.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-text-serializer-bungeecord/4.3.3/adventure-text-serializer-bungeecord-4.3.3.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-text-serializer-legacy/4.13.1/adventure-text-serializer-legacy-4.13.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-nbt/4.13.1/adventure-nbt-4.13.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/examination-api/1.3.0/examination-api-1.3.0.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/examination-string/1.3.0/examination-string-1.3.0.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-text-serializer-gson/4.13.1/adventure-text-serializer-gson-4.13.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-text-serializer-gson-legacy-impl/4.13.1/adventure-text-serializer-gson-legacy-impl-4.13.1.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-platform-facet/4.3.3/adventure-platform-facet-4.3.3.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-platform-viaversion/4.3.3/adventure-platform-viaversion-4.3.3.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-text-minimessage/4.17.0/adventure-text-minimessage-4.17.0.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-api/4.17.0/adventure-api-4.17.0.jar
+[21:00:16] [Server thread/INFO]: [SpigotLibraryLoader] [Citizens] Loaded library /Users/advait/Desktop/Mai/mc-server/libraries/net/kyori/adventure-key/4.17.0/adventure-key-4.17.0.jar
+[21:00:16] [Server thread/INFO]: [Citizens] Loading server plugin Citizens v2.0.37-SNAPSHOT (build 3658)
+[21:00:16] [Server thread/INFO]: [ViaVersion] Loading server plugin ViaVersion v5.2.0
+[21:00:16] [Server thread/INFO]: [ViaVersion] ViaVersion 5.2.0 is now loaded. Registering protocol transformers and injecting...
+[21:00:16] [Via-Mappingloader-0/INFO]: [ViaVersion] Loading block connection mappings ...
+[21:00:16] [Via-Mappingloader-0/INFO]: [ViaVersion] Using FastUtil Long2ObjectOpenHashMap for block connections
+[21:00:16] [Server thread/INFO]: [ViaBackwards] Loading translations...
+[21:00:16] [Server thread/INFO]: [ViaBackwards] Registering protocols...
+[21:00:17] [Server thread/INFO]: [Sentinel] Loading server plugin Sentinel v2.9.2-SNAPSHOT (build 527)
+[21:00:17] [Server thread/INFO]: [Mai] Loading server plugin Mai v1.0.10
+[21:00:17] [Server thread/INFO]: [ViaBackwards] Loading server plugin ViaBackwards v5.2.0
+[21:00:17] [Server thread/INFO]: Server permissions file permissions.yml is empty, ignoring it
+[21:00:17] [Server thread/WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[21:00:17] [Server thread/WARN]: The server will make no attempt to authenticate usernames. Beware.
+[21:00:17] [Server thread/WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[21:00:17] [Server thread/WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[21:00:17] [Server thread/INFO]: Preparing level "world"
+[21:00:17] [Server thread/INFO]: Preparing start region for dimension minecraft:overworld
+[21:00:17] [Server thread/INFO]: Preparing spawn area: 0%
+[21:00:17] [Server thread/INFO]: Time elapsed: 464 ms
+[21:00:17] [Server thread/INFO]: Preparing start region for dimension minecraft:the_nether
+[21:00:17] [Server thread/INFO]: Preparing spawn area: 0%
+[21:00:17] [Server thread/INFO]: Time elapsed: 78 ms
+[21:00:17] [Server thread/INFO]: Preparing start region for dimension minecraft:the_end
+[21:00:17] [Server thread/INFO]: Preparing spawn area: 0%
+[21:00:17] [Server thread/INFO]: Time elapsed: 38 ms
+[21:00:17] [Server thread/INFO]: [Citizens] Enabling Citizens v2.0.37-SNAPSHOT (build 3658)
+[21:00:18] [Server thread/INFO]: [Citizens] Using mojmapped server, avoiding server package checks
+[21:00:18] [Server thread/INFO]: [Citizens] Loaded 0 templates.
+[21:00:18] [Server thread/INFO]: [ViaVersion] Enabling ViaVersion v5.2.0
+[21:00:18] [Server thread/INFO]: [ViaVersion] ViaVersion detected server version: 1.21.4 (769)
+[21:00:18] [Server thread/INFO]: [Sentinel] Enabling Sentinel v2.9.2-SNAPSHOT (build 527)
+[21:00:18] [Server thread/INFO]: [Sentinel] Sentinel loading...
+[21:00:18] [Server thread/INFO]: [Sentinel] Running on java version: 22.0.2
+[21:00:18] [Server thread/INFO]: [Sentinel] Sentinel loaded on a fully supported Minecraft version. If you encounter any issues or need to ask a question, please join our Discord at https://discord.gg/Q6pZGSR and post in the '#sentinel' channel.
+[21:00:18] [Server thread/INFO]: [Sentinel] Sentinel loaded!
+[21:00:18] [Server thread/INFO]: [Mai] Enabling Mai v1.0.10
+[21:00:18] [Server thread/INFO]: [Mai] Citizens's registered traits: [net.citizensnpcs.api.trait.TraitInfo@2b3d3812, net.citizensnpcs.api.trait.TraitInfo@6fa4833, net.citizensnpcs.api.trait.TraitInfo@161a13bd, net.citizensnpcs.api.trait.TraitInfo@1e92cfd4, net.citizensnpcs.api.trait.TraitInfo@5c2d99bc, net.citizensnpcs.api.trait.TraitInfo@8c2f9da, net.citizensnpcs.api.trait.TraitInfo@4e838484, net.citizensnpcs.api.trait.TraitInfo@46e71eef, net.citizensnpcs.api.trait.TraitInfo@76378ff6, net.citizensnpcs.api.trait.TraitInfo@6924a4c3, net.citizensnpcs.api.trait.TraitInfo@3b51aac7, net.citizensnpcs.api.trait.TraitInfo@453fcb24, net.citizensnpcs.api.trait.TraitInfo@fbda44a, net.citizensnpcs.api.trait.TraitInfo@43f31bc2, net.citizensnpcs.api.trait.TraitInfo@75c286e9, net.citizensnpcs.api.trait.TraitInfo@4e9f059e, net.citizensnpcs.api.trait.TraitInfo@2ce267f3, net.citizensnpcs.api.trait.TraitInfo@771454a6, net.citizensnpcs.api.trait.TraitInfo@16806163, net.citizensnpcs.api.trait.TraitInfo@208525d8, net.citizensnpcs.api.trait.TraitInfo@1fe713c4, net.citizensnpcs.api.trait.TraitInfo@4a83c5fa, net.citizensnpcs.api.trait.TraitInfo@5f1d2eb0, net.citizensnpcs.api.trait.TraitInfo@563f7b6e, net.citizensnpcs.api.trait.TraitInfo@71613b5e, net.citizensnpcs.api.trait.TraitInfo@25198c9d, net.citizensnpcs.api.trait.TraitInfo@13475e20, net.citizensnpcs.api.trait.TraitInfo@3e0ea32d, net.citizensnpcs.api.trait.TraitInfo@46cdd479, net.citizensnpcs.api.trait.TraitInfo@2fd9c559, net.citizensnpcs.api.trait.TraitInfo@6c628dc, net.citizensnpcs.api.trait.TraitInfo@4d9ae4e2, net.citizensnpcs.api.trait.TraitInfo@65dc8f34, net.citizensnpcs.api.trait.TraitInfo@4ce6ddb, net.citizensnpcs.api.trait.TraitInfo@33f92556, net.citizensnpcs.api.trait.TraitInfo@295e7a3f, net.citizensnpcs.api.trait.TraitInfo@28fae50f, net.citizensnpcs.api.trait.TraitInfo@5f2de57e, net.citizensnpcs.api.trait.TraitInfo@2584b858, net.citizensnpcs.api.trait.TraitInfo@7f51a155, net.citizensnpcs.api.trait.TraitInfo@fcf12d, net.citizensnpcs.api.trait.TraitInfo@304af259, net.citizensnpcs.api.trait.TraitInfo@308cca70, net.citizensnpcs.api.trait.TraitInfo@42a58e3d, net.citizensnpcs.api.trait.TraitInfo@25b77add, net.citizensnpcs.api.trait.TraitInfo@42088c08, net.citizensnpcs.api.trait.TraitInfo@14010173, net.citizensnpcs.api.trait.TraitInfo@7a3bb1a8, net.citizensnpcs.api.trait.TraitInfo@64445da0, net.citizensnpcs.api.trait.TraitInfo@62aae5ec, net.citizensnpcs.api.trait.TraitInfo@7ebc7a53, net.citizensnpcs.api.trait.TraitInfo@592d32dd, net.citizensnpcs.api.trait.TraitInfo@1f42cd05, net.citizensnpcs.api.trait.TraitInfo@2af2de84, net.citizensnpcs.api.trait.TraitInfo@3701476b, net.citizensnpcs.api.trait.TraitInfo@78a208c, net.citizensnpcs.api.trait.TraitInfo@e29ef9d, net.citizensnpcs.api.trait.TraitInfo@32130622, net.citizensnpcs.api.trait.TraitInfo@f143514, net.citizensnpcs.api.trait.TraitInfo@59ccea3a, net.citizensnpcs.api.trait.TraitInfo@1858a399, net.citizensnpcs.api.trait.TraitInfo@325094a6, net.citizensnpcs.api.trait.TraitInfo@1cc2bb6d, net.citizensnpcs.api.trait.TraitInfo@22e11ff5, net.citizensnpcs.api.trait.TraitInfo@7f78245b, net.citizensnpcs.api.trait.TraitInfo@493b7ab6, net.citizensnpcs.api.trait.TraitInfo@402ba92f, net.citizensnpcs.api.trait.TraitInfo@6a9f1868, net.citizensnpcs.api.trait.TraitInfo@547bb39c, net.citizensnpcs.api.trait.TraitInfo@46878d6f, net.citizensnpcs.api.trait.TraitInfo@5b782641, net.citizensnpcs.api.trait.TraitInfo@49b6291e, net.citizensnpcs.api.trait.TraitInfo@405884e7, net.citizensnpcs.api.trait.TraitInfo@3a4e8576, net.citizensnpcs.api.trait.TraitInfo@209ee650, net.citizensnpcs.api.trait.TraitInfo@5818d584, net.citizensnpcs.api.trait.TraitInfo@5c630ddc, net.citizensnpcs.api.trait.TraitInfo@12484613, net.citizensnpcs.api.trait.TraitInfo@45b39e6c, net.citizensnpcs.api.trait.TraitInfo@5b19c7ab, net.citizensnpcs.api.trait.TraitInfo@1fd03cf9, net.citizensnpcs.api.trait.TraitInfo@4f7899ce, net.citizensnpcs.api.trait.TraitInfo@16613eb3, net.citizensnpcs.api.trait.TraitInfo@350974b, net.citizensnpcs.api.trait.TraitInfo@1df9442c, net.citizensnpcs.api.trait.TraitInfo@164418b4, net.citizensnpcs.api.trait.TraitInfo@94f2869, net.citizensnpcs.api.trait.TraitInfo@ea21cc4]
+[21:00:18] [Server thread/INFO]: [Mai] [ACF] Enabled Asynchronous Tab Completion Support!
+[21:00:18] [Server thread/INFO]: [org.patheloper.Pathetic] Pathetic initialized
+[21:00:18] [Server thread/INFO]: [org.patheloper.provider.ChunkDataProviderResolver] Detected version v1.21.4, using PaperChunkDataProvider
+[21:00:18] [Server thread/INFO]: [ViaBackwards] Enabling ViaBackwards v5.2.0
+[21:00:18] [Server thread/INFO]: [spark] Starting background profiler...
+[21:00:19] [Server thread/INFO]: Done preparing level "world" (2.058s)
+[21:00:19] [Server thread/INFO]: Running delayed init tasks
+[21:00:19] [Craft Scheduler Thread - 2 - ViaVersion/INFO]: [ViaVersion] Finished mapping loading, shutting down loader executor.
+[21:00:19] [Server thread/INFO]: [Citizens] Loaded 1 NPCs.
+[21:00:19] [Server thread/WARN]: [ViaVersion] Could not check for updates, check your connection.
+[21:00:19] [Server thread/INFO]: Done (9.115s)! For help, type "help"
+[21:00:22] [Server thread/INFO]: Server Plugins (5):
+[21:00:22] [Server thread/INFO]: Bukkit Plugins:
+[21:00:22] [Server thread/INFO]:  - Citizens, Mai, Sentinel, ViaBackwards, ViaVersion
+[21:02:14] [Server thread/INFO]: Stopping the server
+[21:02:14] [Server thread/INFO]: Stopping server
+[21:02:14] [Server thread/INFO]: [ViaBackwards] Disabling ViaBackwards v5.2.0
+[21:02:14] [Server thread/INFO]: [Mai] Disabling Mai v1.0.10
+[21:02:14] [Server thread/INFO]: [Sentinel] Disabling Sentinel v2.9.2-SNAPSHOT (build 527)
+[21:02:14] [Server thread/INFO]: [Sentinel] Sentinel unloading...
+[21:02:14] [Server thread/INFO]: [Sentinel] Sentinel unloaded!
+[21:02:14] [Server thread/INFO]: [ViaVersion] Disabling ViaVersion v5.2.0
+[21:02:14] [Server thread/INFO]: [ViaVersion] ViaVersion has been disabled; uninjected the platform and shut down the scheduler.
+[21:02:14] [Server thread/INFO]: [Citizens] Disabling Citizens v2.0.37-SNAPSHOT (build 3658)
+[21:02:14] [Server thread/INFO]: Saving players
+[21:02:15] [Server thread/INFO]: Saving worlds
+[21:02:15] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world' in 0.17s
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world'
+[21:02:15] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world_nether]'/minecraft:the_nether
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_nether'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world_nether'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_nether'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world_nether' in 0.09s
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_nether'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_nether'
+[21:02:15] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world_the_end]'/minecraft:the_end
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_the_end'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world_the_end'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_the_end'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world_the_end' in 0.09s
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_the_end'
+[21:02:15] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_the_end'
+[21:02:15] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[21:02:15] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[21:02:15] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[21:02:15] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+[21:02:15] [Server thread/INFO]: Waiting for I/O tasks to complete...
+[21:02:15] [Server thread/INFO]: All I/O tasks to complete
+[21:02:15] [Server thread/INFO]: [MoonriseCommon] Awaiting termination of worker pool for up to 60s...
+[21:02:15] [Server thread/INFO]: [MoonriseCommon] Awaiting termination of I/O pool for up to 60s...
