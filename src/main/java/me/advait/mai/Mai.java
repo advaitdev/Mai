@@ -1,14 +1,7 @@
 package me.advait.mai;
 
 import co.aikar.commands.PaperCommandManager;
-import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
-import de.metaphoriker.pathetic.api.factory.PathfinderInitializer;
-import de.metaphoriker.pathetic.api.pathing.Pathfinder;
-import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
-import de.metaphoriker.pathetic.bukkit.initializer.BukkitPathfinderInitializer;
-import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
-import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
 import me.advait.mai.command.HDebugCommand;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import net.citizensnpcs.api.CitizensAPI;
