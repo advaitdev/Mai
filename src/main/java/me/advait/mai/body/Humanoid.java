@@ -1,11 +1,8 @@
 package me.advait.mai.body;
 
-import me.advait.mai.brain.Brain;
-import me.advait.mai.npc.trait.HumanoidStuckAction;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.entity.EntityType;
 import org.mcmonkey.sentinel.SentinelTrait;
@@ -31,10 +28,6 @@ public class Humanoid {
 
     public NPC getNpc() {
         return npc;
-    }
-
-    public Brain getBrain() {
-        return brain;
     }
 
 }

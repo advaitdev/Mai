@@ -1,13 +1,22 @@
 package me.advait.mai.npc.trait.pathfinder;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
+import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
+import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 
 import java.util.Iterator;
 
 public class PatheticUtil {
 
-    public static boolean isSubPathEquivalent(Path longer, Path shorter) {
+    /**
+     * Determines if the second parameter passed is a "subpath" of the first; meaning, all of the positions in the shorter
+     * path exist in the longer path.
+     *
+     * @param longer The longer path.
+     * @param shorter The shorter path.
+     */
+    public static boolean isSubpathEquivalent(Path longer, Path shorter) {
         int lengthDifference = longer.length() - shorter.length();
         if (lengthDifference < 0) return false; // If the "shorter" path is somehow longer, the actual path was 100% recalculated
 
@@ -32,6 +41,15 @@ public class PatheticUtil {
 
         // If we exhaust both iterators without mismatch, the paths are equivalent
         return !shorterIterator.hasNext() && !longerIterator.hasNext();
+    }
+
+    public static boolean isTraversable(Path path) {
+        NavigationPointProvider navigationPointProvider = new LoadingNavigationPointProvider();
+
+        for (PathPosition pathPosition : path)
+            if (!navigationPointProvider.getNavigationPoint(pathPosition).isTraversable()) return false;
+
+        return true;
     }
 
 

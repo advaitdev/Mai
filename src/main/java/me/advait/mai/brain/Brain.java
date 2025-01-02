@@ -1,30 +1,34 @@
 package me.advait.mai.brain;
 
-import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.cerebrum.BrocasArea;
 import me.advait.mai.brain.cerebrum.MotorCortex;
-import net.citizensnpcs.api.ai.tree.BehaviorGoalAdapter;
-import net.citizensnpcs.api.npc.NPC;
+import me.advait.mai.brain.cerebrum.PrefrontalCortex;
 
-public interface Brain {
+public abstract class Brain {
 
+    private final BrocasArea brocasArea;
+    private final MotorCortex motorCortex;
+    private final PrefrontalCortex prefrontalCortex;
 
+    protected Brain(BrocasArea brocasArea, MotorCortex motorCortex, PrefrontalCortex prefrontalCortex) {
+        this.brocasArea = brocasArea;
+        this.motorCortex = motorCortex;
+        this.prefrontalCortex = prefrontalCortex;
+    }
 
+    public BrocasArea getBrocasArea() {
+        return brocasArea;
+    }
+
+    public MotorCortex getMotorCortex() {
+        return motorCortex;
+    }
+
+    public PrefrontalCortex getPrefrontalCortex() {
+        return prefrontalCortex;
+    }
 
     // todo: code the brain lol
 
-    /**
-     * behaviors:
-     * - walk to
-     * - bridge to
-     * - wander
-     * - mine
-     * - pick up
-     * - place
-     * - craft
-     * - smelt
-     * - melee attack
-     * - shoot
-     * - drop
-     */
 
 }

@@ -38,6 +38,13 @@ public final class PatheticAgent {
         return PATHFINDER;
     }
 
+
+    /**
+     * Gets a possible path from one point to another via <strong>solid ground only</strong>.
+     *
+     * @param origin The starting point of the path.
+     * @param dest The ending point of the path.
+     */
     public CompletionStage<PathfinderResult> getGroundPath(Location origin, Location dest) {
         PathPosition start = BukkitMapper.toPathPosition(origin);
         PathPosition end = BukkitMapper.toPathPosition(dest);
@@ -50,7 +57,9 @@ public final class PatheticAgent {
         return pathfindingResult;
     }
 
-    public boolean canNavigateTo(Location origin, Location dest) {
+
+
+    public boolean canNavigateToViaGround(Location origin, Location dest) {
         AtomicBoolean isPathSuccessful = new AtomicBoolean(false);
         CompletionStage<PathfinderResult> pathfindingResult = getGroundPath(origin, dest);
         pathfindingResult.thenAccept(result -> {

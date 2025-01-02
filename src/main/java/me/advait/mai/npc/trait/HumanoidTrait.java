@@ -12,24 +12,22 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
-import static me.advait.mai.util.Messages.debugMessage;
-
 import java.util.ArrayList;
 import java.util.List;
 
 @TraitName("humanoid")
 public class HumanoidTrait extends Trait {
 
-    private int pathfindingRunnableID;
-    private Path previousPath = null;
-
-    public HumanoidTrait() {
+    public HumanoidTrait() {  // Constructor cannot have any parameters (according to Citizens).
         super("humanoid");
     }
 
+    private int pathfindingRunnableID;
+    private Path previousPath = null;
+
     @Override
     public void run() {
-        debugMessage("Navigator location: " + npc.getNavigator().getTargetAsLocation() + " | Is navigating?: " + npc.getNavigator().isNavigating());
+        //debugMessage("Navigator location: " + npc.getNavigator().getTargetAsLocation() + " | Is navigating?: " + npc.getNavigator().isNavigating());
     }
 
     @Override
@@ -46,11 +44,12 @@ public class HumanoidTrait extends Trait {
                Path path = result.getPath();
                List<Vector> pathVectors = new ArrayList<>();
                if (previousPath != null) {
-                   if (PatheticUtil.isSubPathEquivalent(previousPath, path)) return;
+                   if (PatheticUtil.isSubpathEquivalent(previousPath, path)) return;
                }
                path.forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
                navigator.setTarget(pathVectors);
                previousPath = path;
+
             });
 
         }, 0, 10);
