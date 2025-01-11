@@ -11,6 +11,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Logger;
 
+// We're in the advait branch
+
 public final class Mai extends JavaPlugin {
 
     private static Mai INSTANCE = null;
