@@ -3,6 +3,7 @@ package me.advait.mai;
 import co.aikar.commands.PaperCommandManager;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HDebugCommand;
+import me.advait.mai.listener.ChatListener;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.trait.TraitInfo;
@@ -10,8 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Logger;
-
-// We're in the advait branch
 
 public final class Mai extends JavaPlugin {
 
@@ -34,6 +33,9 @@ public final class Mai extends JavaPlugin {
         initializeCitizens();
         initializePathetic();
         registerListeners();
+
+        getServer().getPluginManager().registerEvents(new ChatListener(), this);
+
     }
 
     public void registerCommands() {

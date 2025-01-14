@@ -1,4 +1,4 @@
-me/advait/mai/npc/pathetic/AntiDiagonalFilter.class
-me/advait/mai/npc/trait/pathfinder/PatheticAgent.class
-me/advait/mai/npc/trait/pathfinder/PatheticUtil.class
-me/advait/mai/npc/pathetic/SolidGroundFilter.class
+me\advait\mai\npc\trait\pathfinder\PatheticUtil.class
+me\advait\mai\npc\pathetic\SolidGroundFilter.class
+me\advait\mai\npc\trait\pathfinder\PatheticAgent.class
+me\advait\mai\npc\pathetic\AntiDiagonalFilter.class
