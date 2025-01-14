@@ -5,10 +5,15 @@ import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
+import org.bukkit.scheduler.BukkitScheduler;
+
+import java.util.concurrent.CompletableFuture;
 
 public abstract class HumanoidAction {
 
-    private final Humanoid humanoid;
+    protected final Humanoid humanoid;
+
+    protected final BukkitScheduler scheduler = Mai.getInstance().getServer().getScheduler();
 
     public HumanoidAction(final Humanoid humanoid) {
         this.humanoid = humanoid;
@@ -17,20 +22,23 @@ public abstract class HumanoidAction {
     /**
      * The actual driver code for the action; checks that the event isn't cancelled first and then performs the action.
      */
-    public HumanoidActionResult run() {
+    public CompletableFuture<HumanoidActionResult> run() {
+        CompletableFuture<HumanoidActionResult> resultFuture = new CompletableFuture<>();
+
         callEvent(getEvent());
 
         if (isEventCancelled()) {
-            return new HumanoidActionResult(false, "Action cancelled due to an external source—most likely this (or another) Spigot plugin.");
+            resultFuture.complete(new HumanoidActionResult(false, "Action cancelled due to an external source—most likely this (or another) Spigot plugin."));
         }
 
-        return perform();
+        perform(resultFuture);
+        return resultFuture;
     }
 
     /**
      * The logic code for the specific action.
      */
-    protected abstract HumanoidActionResult perform();
+    protected abstract void perform(CompletableFuture<HumanoidActionResult> resultFuture);
 
     public static class HumanoidActionResult {
 

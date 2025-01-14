@@ -1,4 +1,4 @@
-package me.advait.mai.npc.trait.pathfinder;
+package me.advait.mai.util;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
@@ -7,7 +7,7 @@ import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 
 import java.util.Iterator;
 
-public class PatheticUtil {
+public final class PatheticUtil {
 
     /**
      * Determines if the second parameter passed is a "subpath" of the first; meaning, all of the positions in the shorter

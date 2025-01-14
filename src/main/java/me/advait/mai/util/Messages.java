@@ -7,7 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class Messages {
+public final class Messages {
 
     public static void sendMessage(CommandSender sender, String message) {
         Component component = LegacyComponentSerializer.legacyAmpersand().deserialize(message);

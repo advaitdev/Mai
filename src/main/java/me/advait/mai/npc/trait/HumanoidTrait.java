@@ -4,7 +4,7 @@ import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.mai.Mai;
 import me.advait.mai.npc.trait.pathfinder.PatheticAgent;
-import me.advait.mai.npc.trait.pathfinder.PatheticUtil;
+import me.advait.mai.util.PatheticUtil;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.api.trait.TraitName;
