@@ -17,18 +17,56 @@ public abstract class HumanoidAction {
     /**
      * The actual driver code for the action; checks that the event isn't cancelled first and then performs the action.
      */
-    public void run() {
+    public HumanoidActionResult run() {
         callEvent(getEvent());
 
-        if (isEventCancelled()) return;
+        if (isEventCancelled()) {
+            return new HumanoidActionResult(false, "Action cancelled due to an external source—most likely this (or another) Spigot plugin.");
+        }
 
-        perform();
+        return perform();
     }
 
     /**
      * The logic code for the specific action.
      */
-    protected abstract void perform();
+    protected abstract HumanoidActionResult perform();
+
+    public static class HumanoidActionResult {
+
+        private final boolean success;
+        private String message;
+
+        public HumanoidActionResult(boolean success, String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        @Override
+        public String toString() {
+            return (success ? "SUCCEEDED" : "FAILED") + ": " + message;
+        }
+
+    }
+
+    public Humanoid getHumanoid() {
+        return humanoid;
+    }
+
+
+    // Bukkit event code
 
     protected abstract HumanoidActionEvent getEvent();
 
@@ -39,10 +77,6 @@ public abstract class HumanoidAction {
     private boolean isEventCancelled() {
         Event event = getEvent();
         return event != null && ((Cancellable) event).isCancelled();
-    }
-
-    public Humanoid getHumanoid() {
-        return humanoid;
     }
 
 }
