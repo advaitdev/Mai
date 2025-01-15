@@ -1,4 +1,4 @@
-package me.advait.mai.brain.action.message;
+package me.advait.mai.brain.action.result;
 
 public final class HumanoidActionMessage {
 

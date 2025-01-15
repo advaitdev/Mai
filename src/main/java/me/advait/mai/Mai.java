@@ -3,6 +3,7 @@ package me.advait.mai;
 import co.aikar.commands.PaperCommandManager;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HDebugCommand;
+import me.advait.mai.command.PatheticTestCommand;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import net.citizensnpcs.api.CitizensAPI;
@@ -43,6 +44,7 @@ public final class Mai extends JavaPlugin {
         PaperCommandManager paperCommandManager = new PaperCommandManager(this);
 
         paperCommandManager.registerCommand(new HDebugCommand());
+        getCommand("pathetictest").setExecutor(new PatheticTestCommand());
     }
 
     public void initializeCitizens() {

@@ -1,4 +1,14 @@
-me\advait\mai\npc\trait\pathfinder\PatheticUtil.class
+me\advait\mai\util\NPCUtil.class
+me\advait\mai\brain\action\event\HumanoidWalkToActionEvent.class
+me\advait\mai\brain\action\result\HumanoidActionMessage.class
+me\advait\mai\npc\pathetic\PatheticAgent.class
+me\advait\mai\command\PatheticTestCommand.class
+me\advait\mai\brain\action\result\HumanoidActionResult.class
+me\advait\mai\brain\action\HumanoidAction.class
 me\advait\mai\npc\pathetic\SolidGroundFilter.class
-me\advait\mai\npc\trait\pathfinder\PatheticAgent.class
+me\advait\mai\command\PatheticTestCommand$PlayerSession.class
 me\advait\mai\npc\pathetic\AntiDiagonalFilter.class
+me\advait\mai\brain\cerebrum\HumanoidMotorCortex.class
+me\advait\mai\brain\action\event\HumanoidActionEvent.class
+me\advait\mai\brain\action\HumanoidWalkToAction.class
+me\advait\mai\util\PatheticUtil.class

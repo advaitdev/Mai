@@ -1,17 +1,14 @@
-package me.advait.mai.npc.trait.pathfinder;
+package me.advait.mai.npc.pathetic;
 
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
 import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
-import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.npc.pathetic.SolidGroundFilter;
-import net.citizensnpcs.api.ai.Navigator;
 import org.bukkit.Location;
 
 import java.util.List;
