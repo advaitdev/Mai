@@ -29,14 +29,20 @@ public class HumanoidWalkToAction extends HumanoidAction {
 
         AtomicInteger walkToRunnableID = new AtomicInteger();  // Has to be atomic to be thread-safe
 
+        npc.getNavigator().setTarget(destination);
+
         walkToRunnableID.set(scheduler.scheduleSyncRepeatingTask(Mai.getInstance(), () -> {
+
             if (NPCUtil.isNPCNearDestination(npc, destination)) {
                 resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.WALK_TO_MESSAGE_SUCCESS));
                 scheduler.cancelTask(walkToRunnableID.get());
-            } else if (!PatheticAgent.getInstance().canNavigateToViaGround(npc.getStoredLocation(), destination)) {
+            }
+
+            else if (!PatheticAgent.getInstance().canNavigateToViaGround(npc.getStoredLocation(), destination)) {
                 resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
                 scheduler.cancelTask(walkToRunnableID.get());
             }
+
         }, 0, 20));
     }
 
