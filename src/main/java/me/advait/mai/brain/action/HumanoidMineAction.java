@@ -7,7 +7,7 @@ import me.advait.mai.brain.action.event.HumanoidMineActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.InventoryUtil;
-import net.citizensnpcs.api.ai.tree.BehaviorStatus;
+import me.advait.mai.util.runnable.BlockBreakerRunnable;
 import net.citizensnpcs.api.npc.BlockBreaker;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.Util;
@@ -24,16 +24,16 @@ import java.util.concurrent.CompletableFuture;
 public class HumanoidMineAction extends HumanoidAction {
 
     private final Block block;
-    private final boolean forceMine;
+    private final boolean ignoreRequiredTool;
 
     /**
-     * @param forceMine Decides if the humanoid should continue mining anyway, even without the appropriate tool.
+     * @param ignoreRequiredTool Decides if the humanoid should continue mining anyway, even without the appropriate tool.
      */
 
-    public HumanoidMineAction(Humanoid humanoid, Block block, boolean forceMine) {
+    public HumanoidMineAction(Humanoid humanoid, Block block, boolean ignoreRequiredTool) {
         super(humanoid);
         this.block = block;
-        this.forceMine = forceMine;
+        this.ignoreRequiredTool = ignoreRequiredTool;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class HumanoidMineAction extends HumanoidAction {
         Util.faceLocation(humanoid.getNpc().getEntity(), block.getLocation());
 
         // "Using tool" code
-        if (!forceMine) {
+        if (!ignoreRequiredTool) {
             if (Tag.MINEABLE_AXE.isTagged(material)) itemSlot = InventoryUtil.getSlotWithAxe(inventory);
             else if (Tag.MINEABLE_PICKAXE.isTagged(material)) itemSlot = InventoryUtil.getSlotWithPickaxe(inventory);
             else if (Tag.MINEABLE_SHOVEL.isTagged(material)) itemSlot = InventoryUtil.getSlotWithShovel(inventory);
@@ -61,25 +61,25 @@ public class HumanoidMineAction extends HumanoidAction {
             }
 
             ItemStack tool = humanoid.getInventory().getItem(itemSlot);
-            BlockBreaker.BlockBreakerConfiguration blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
+            var blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
             blockBreakerConfig.item(tool);
 
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
-            // TODO: Make NPC's arm swing
+
             if (blockBreaker.shouldExecute()) {
-                BlockBreakerTaskRunnable run = new BlockBreakerTaskRunnable(blockBreaker);
+                BlockBreakerRunnable run = new BlockBreakerRunnable(blockBreaker, humanoid.getNpc());
                 run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
             }
 
             // "Not using tool" code
         } else {
-            BlockBreaker.BlockBreakerConfiguration blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
+            var blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
             blockBreakerConfig.item(humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
 
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
-            // TODO: Make NPC's arm swing
+
             if (blockBreaker.shouldExecute()) {
-                BlockBreakerTaskRunnable run = new BlockBreakerTaskRunnable(blockBreaker);
+                BlockBreakerRunnable run = new BlockBreakerRunnable(blockBreaker, humanoid.getNpc());
                 run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
             }
         }
@@ -87,22 +87,6 @@ public class HumanoidMineAction extends HumanoidAction {
         resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MINE_MESSAGE_SUCCESS));
     }
 
-    private static class BlockBreakerTaskRunnable implements Runnable {
-        private int taskId;
-        private final BlockBreaker breaker;
-
-        public BlockBreakerTaskRunnable(BlockBreaker breaker) {
-            this.breaker = breaker;
-        }
-
-        @Override
-        public void run() {
-            if (breaker.run() != BehaviorStatus.RUNNING) {
-                Bukkit.getScheduler().cancelTask(taskId);
-                breaker.reset();
-            }
-        }
-    }
 
     @Override
     protected HumanoidActionEvent getEvent() {
