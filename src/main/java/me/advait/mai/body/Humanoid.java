@@ -60,6 +60,10 @@ public class Humanoid {
         return npc.getOrAddTrait(Inventory.class).getInventoryView();
     }
 
+    public Equipment getEquipment() {
+        return npc.getOrAddTrait(Equipment.class);
+    }
+
 
 
 

@@ -6,10 +6,10 @@ import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidMineActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.npc.HumanoidUtil;
 import me.advait.mai.util.InventoryUtil;
 import net.citizensnpcs.api.ai.tree.BehaviorStatus;
 import net.citizensnpcs.api.npc.BlockBreaker;
+import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -42,6 +42,9 @@ public class HumanoidMineAction extends HumanoidAction {
         Material material = block.getType();
         int itemSlot = -1;
 
+        Util.faceLocation(humanoid.getNpc().getEntity(), block.getLocation());
+
+        // "Using tool" code
         if (!forceMine) {
             if (Tag.MINEABLE_AXE.isTagged(material)) itemSlot = InventoryUtil.getSlotWithAxe(inventory);
             else if (Tag.MINEABLE_PICKAXE.isTagged(material)) itemSlot = InventoryUtil.getSlotWithPickaxe(inventory);
@@ -52,11 +55,14 @@ public class HumanoidMineAction extends HumanoidAction {
                 return;
             }
 
+            if (!block.isSolid() || block.isLiquid() || block.getType().getHardness() == -1) {
+                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_UNBREAKABLE));
+                return;
+            }
+
             ItemStack tool = humanoid.getInventory().getItem(itemSlot);
             BlockBreaker.BlockBreakerConfiguration blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
             blockBreakerConfig.item(tool);
-
-            Util.faceLocation(humanoid.getNpc().getEntity(), block.getLocation());
 
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
             // TODO: Make NPC's arm swing
@@ -65,10 +71,20 @@ public class HumanoidMineAction extends HumanoidAction {
                 run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
             }
 
+            // "Not using tool" code
         } else {
+            BlockBreaker.BlockBreakerConfiguration blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
+            blockBreakerConfig.item(humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
 
+            BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
+            // TODO: Make NPC's arm swing
+            if (blockBreaker.shouldExecute()) {
+                BlockBreakerTaskRunnable run = new BlockBreakerTaskRunnable(blockBreaker);
+                run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
+            }
         }
 
+        resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MINE_MESSAGE_SUCCESS));
     }
 
     private static class BlockBreakerTaskRunnable implements Runnable {
