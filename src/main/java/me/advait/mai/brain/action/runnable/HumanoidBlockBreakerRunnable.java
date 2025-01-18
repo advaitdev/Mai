@@ -8,12 +8,12 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.util.PlayerAnimation;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class HumanoidBlockBreakerRunnable implements Runnable {
+public class HumanoidBlockBreakerRunnable extends BukkitRunnable {
 
-    public int taskId;
     private final BlockBreaker breaker;
     private final NPC npc;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
@@ -26,13 +26,19 @@ public class HumanoidBlockBreakerRunnable implements Runnable {
 
     @Override
     public void run() {
-        if (npc == null || npc.getEntity() == null) return;
+        if (npc == null || npc.getEntity() == null) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.NPC_IS_NULL));
+            cancel();
+            return;
+        }
+
         PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());  // Make the NPC's arm swing
 
         if (breaker.run() != BehaviorStatus.RUNNING) {
-            Bukkit.getScheduler().cancelTask(taskId);
             breaker.reset();
             resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MINE_MESSAGE_SUCCESS));
+            cancel();
         }
     }
+
 }

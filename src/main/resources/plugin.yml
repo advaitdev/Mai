@@ -7,3 +7,5 @@ description: Creating an AI-powered world in Minecraft.
 commands:
   pathetictest:
     description: Pathetic API test command.
+  patheticgroundtest:
+    description: Pathetic API ground test command.

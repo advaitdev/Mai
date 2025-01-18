@@ -3,7 +3,9 @@ package me.advait.mai;
 import co.aikar.commands.PaperCommandManager;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HDebugCommand;
+import me.advait.mai.command.PatheticGroundTestCommand;
 import me.advait.mai.command.PatheticTestCommand;
+import me.advait.mai.file.SettingsFile;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import net.citizensnpcs.api.CitizensAPI;
@@ -25,10 +27,14 @@ public final class Mai extends JavaPlugin {
         return getInstance().getServer().getLogger();
     }
 
+    private SettingsFile settingsFile;
+
     @Override
     public void onEnable() {
         // Plugin startup logic
         INSTANCE = this;
+
+        this.settingsFile = new SettingsFile("settings.yml");
 
         registerCommands();
         initializeCitizens();
@@ -45,6 +51,7 @@ public final class Mai extends JavaPlugin {
 
         paperCommandManager.registerCommand(new HDebugCommand());
         getCommand("pathetictest").setExecutor(new PatheticTestCommand());
+        getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
     }
 
     public void initializeCitizens() {
@@ -71,6 +78,10 @@ public final class Mai extends JavaPlugin {
         // Plugin shutdown logic
 
         INSTANCE = null;
+    }
+
+    public SettingsFile getSettingsFile() {
+        return settingsFile;
     }
 
 }

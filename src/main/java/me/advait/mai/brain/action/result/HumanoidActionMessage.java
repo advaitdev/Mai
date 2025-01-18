@@ -2,6 +2,8 @@ package me.advait.mai.brain.action.result;
 
 public final class HumanoidActionMessage {
 
+    public static final String NPC_IS_NULL = "The player entity currently does not exist (most likely disconnected or is dead and about to respawn).";
+
     public static final String WALK_TO_MESSAGE_SUCCESS = "Arrived at destination via only walking on the ground.";
     public static String WALK_TO_MESSAGE_STUCK = "Stuck at the same location for an extended period of time.";
     public static final String WALK_TO_MESSAGE_FAILURE = "Cannot reach destination via only walking on the ground.";

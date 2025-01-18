@@ -73,7 +73,7 @@ public class HumanoidMineAction extends HumanoidAction {
 
             if (blockBreaker.shouldExecute()) {
                 HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
-                run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
+                run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
 
             // "Not using tool" code
@@ -85,7 +85,7 @@ public class HumanoidMineAction extends HumanoidAction {
 
             if (blockBreaker.shouldExecute()) {
                 HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
-                run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
+                run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
         }
     }
