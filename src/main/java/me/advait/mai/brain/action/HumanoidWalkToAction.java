@@ -23,6 +23,9 @@ public class HumanoidWalkToAction extends HumanoidAction {
         this.destination = destination;
     }
 
+    private Location previousLocation = null;
+    private int secondsElapsed = 0;
+
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         NPC npc = humanoid.getNpc();
@@ -33,15 +36,28 @@ public class HumanoidWalkToAction extends HumanoidAction {
 
         walkToRunnableID.set(scheduler.scheduleSyncRepeatingTask(Mai.getInstance(), () -> {
 
+            // This means the NPC is stuck
+            if (previousLocation != null && previousLocation.equals(npc.getStoredLocation()) && secondsElapsed >= 10) {
+                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_STUCK));
+                scheduler.cancelTask(walkToRunnableID.get());
+            }
+
+            //if (NPCUtil.isNPCNearDestination(npc, destination)) {
             if (NPCUtil.isNPCNearDestination(npc, destination)) {
                 resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.WALK_TO_MESSAGE_SUCCESS));
                 scheduler.cancelTask(walkToRunnableID.get());
             }
 
-            else if (!PatheticAgent.getInstance().canNavigateToViaGround(npc.getStoredLocation(), destination)) {
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
-                scheduler.cancelTask(walkToRunnableID.get());
-            }
+            var canNavigateResult = PatheticAgent.getInstance().canNavigateToViaGround(npc.getStoredLocation(), destination);
+            canNavigateResult.thenAccept(canNavigate -> {
+                if (!canNavigate) {
+                    resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
+                    scheduler.cancelTask(walkToRunnableID.get());
+                }
+            });
+
+            previousLocation = npc.getStoredLocation();
+            secondsElapsed++;
 
         }, 0, 20));
     }

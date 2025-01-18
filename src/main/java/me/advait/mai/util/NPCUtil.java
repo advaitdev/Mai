@@ -6,7 +6,7 @@ import org.bukkit.Location;
 public final class NPCUtil {
 
     public static boolean isNPCNearDestination(NPC npc, Location destination) {
-        return npc.getStoredLocation().distance(destination) <= 1;
+        return npc.getStoredLocation().distance(destination) <= 3;
     }
 
 }

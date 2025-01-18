@@ -7,7 +7,7 @@ import me.advait.mai.brain.action.event.HumanoidMineActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.InventoryUtil;
-import me.advait.mai.util.runnable.BlockBreakerRunnable;
+import me.advait.mai.brain.action.runnable.HumanoidBlockBreakerRunnable;
 import net.citizensnpcs.api.npc.BlockBreaker;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.Util;
@@ -38,11 +38,21 @@ public class HumanoidMineAction extends HumanoidAction {
 
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
+        if (block == null) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_UNBREAKABLE));
+            return;
+        }
+
         Inventory inventory = humanoid.getInventory();
         Material material = block.getType();
         int itemSlot = -1;
 
         Util.faceLocation(humanoid.getNpc().getEntity(), block.getLocation());
+
+        if (!block.isSolid() || block.isLiquid() || block.getType().getHardness() == -1) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_UNBREAKABLE));
+            return;
+        }
 
         // "Using tool" code
         if (!ignoreRequiredTool) {
@@ -55,11 +65,6 @@ public class HumanoidMineAction extends HumanoidAction {
                 return;
             }
 
-            if (!block.isSolid() || block.isLiquid() || block.getType().getHardness() == -1) {
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_UNBREAKABLE));
-                return;
-            }
-
             ItemStack tool = humanoid.getInventory().getItem(itemSlot);
             var blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
             blockBreakerConfig.item(tool);
@@ -67,7 +72,7 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                BlockBreakerRunnable run = new BlockBreakerRunnable(blockBreaker, humanoid.getNpc());
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
                 run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
             }
 
@@ -79,12 +84,10 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                BlockBreakerRunnable run = new BlockBreakerRunnable(blockBreaker, humanoid.getNpc());
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
                 run.taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(JavaPlugin.getPlugin(Mai.class), run, 0 ,1);
             }
         }
-
-        resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MINE_MESSAGE_SUCCESS));
     }
 
 

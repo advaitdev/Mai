@@ -9,9 +9,11 @@ import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
+import me.advait.mai.Mai;
 import org.bukkit.Location;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -56,16 +58,21 @@ public final class PatheticAgent {
 
 
 
-    public boolean canNavigateToViaGround(Location origin, Location dest) {
-        AtomicBoolean isPathSuccessful = new AtomicBoolean(false);
+    public CompletableFuture<Boolean> canNavigateToViaGround(Location origin, Location dest) {
+        CompletableFuture<Boolean> canNavigateResult = new CompletableFuture<>();
+
         CompletionStage<PathfinderResult> pathfindingResult = getGroundPath(origin, dest);
         pathfindingResult.thenAccept(result -> {
             if (result.successful()) {
-                isPathSuccessful.set(true);
-            }
+               canNavigateResult.complete(true);
+            } else canNavigateResult.complete(false);
+        }).exceptionally(ex -> {
+            Mai.log().severe("Could not determine a pathfinding result: " + ex.getMessage());
+            canNavigateResult.complete(false);
+            return null;
         });
 
-        return isPathSuccessful.get();
+        return canNavigateResult;
     }
 
 }

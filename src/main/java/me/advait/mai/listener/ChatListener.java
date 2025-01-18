@@ -2,8 +2,6 @@ package me.advait.mai.listener;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.advait.mai.GeminiAgent;
-import me.advait.mai.LlamaAgent;
-import me.advait.mai.npc.NPCUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;

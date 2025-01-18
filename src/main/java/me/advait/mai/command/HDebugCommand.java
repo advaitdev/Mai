@@ -6,21 +6,30 @@ import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
+import me.advait.mai.Catalog;
+import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.action.HumanoidActionChain;
+import me.advait.mai.brain.action.HumanoidMineAction;
+import me.advait.mai.brain.action.HumanoidWalkToAction;
 import me.advait.mai.npc.HumanoidUtil;
 import me.advait.mai.npc.pathetic.SolidGroundFilter;
 import me.advait.mai.npc.pathetic.PatheticAgent;
+import me.advait.mai.util.LocationUtil;
 import me.advait.mai.util.Messages;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 @CommandAlias("hdebug")
@@ -62,16 +71,84 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("mine")
     public void runMine(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        if (humanoid == null) {
+            Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
         }
 
-        boolean didMine = HumanoidUtil.mineTowardsTarget(npc, player.getLocation(), new ItemStack(Material.DIAMOND_PICKAXE));
-        if (!didMine) {
-            Messages.sendMessage(player, "&cNPC could not mine to your location!");
+        NPC npc = humanoid.getNpc();
+        Block inFront = LocationUtil.getBlockInFrontAtEyeLevel((Player) npc.getEntity(), 1);
+        BlockState inFrontState = inFront.getState();
+
+        var mineAction = new HumanoidMineAction(humanoid, inFront, true);
+        var mineActionResult = mineAction.run();
+
+        mineActionResult.thenAccept(result -> {
+            if (result.isSuccess()) {
+                Messages.sendMessage(player, "&aSuccess: " + result.getMessage() + " - Block: " + inFrontState);
+            } else {
+                Messages.sendMessage(player, "&cFailure: " + result.getMessage() + " - Block: " + inFrontState);
+            }
+        }).exceptionally(ex -> {
+            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
+        });
+    }
+
+    @CommandAlias("gotoandmine")
+    public void runGotoAndMine(Player player) {
+
+        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        if (humanoid == null) {
+            Messages.sendMessage(player, "&cNo humanoid exists in this world!");
+            return;
         }
+
+        var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
+        var mineAction = new HumanoidMineAction(humanoid, player.getTargetBlockExact(3), true);
+
+        HumanoidActionChain.executeChainedActions(walkToAction, mineAction).thenAccept(result -> {
+                    if (result.isSuccess()) {
+                        Messages.sendMessage(player, "&aAll actions completed successfully!");
+                    } else {
+                        Messages.sendMessage(player, "&cAction chain failed: " + result.getMessage());
+                    }
+                })
+                .exceptionally(ex -> {
+                    Messages.sendMessage(player, "&cAn error occurred during the action chain: " + ex.getMessage());
+                    ex.printStackTrace();
+                    return null;
+                });
+
+    }
+
+    @CommandAlias("minewithtool")
+    public void runMineWithTool(Player player) {
+        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        if (humanoid == null) {
+            Messages.sendMessage(player, "&cNo humanoid exists in this world!");
+            return;
+        }
+
+        NPC npc = humanoid.getNpc();
+        Block inFront = LocationUtil.getBlockInFrontAtEyeLevel((Player) npc.getEntity(), 1);
+
+        var mineAction = new HumanoidMineAction(humanoid, inFront, false);
+        var mineActionResult = mineAction.run();
+
+        mineActionResult.thenAccept(result -> {
+            if (result.isSuccess()) {
+                Messages.sendMessage(player, "&aSuccess: " + result.getMessage() + " - Block: " + inFront);
+            } else {
+                Messages.sendMessage(player, "&cFailure: " + result.getMessage() + " - Block: " + inFront);
+            }
+        }).exceptionally(ex -> {
+            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
+        });
     }
 
     @CommandAlias("bridge")
@@ -109,39 +186,27 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("gotome")
     public void runGoToMe(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        if (humanoid == null) {
+            Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
         }
 
-        Navigator navigator = npc.getNavigator();
-        Location targetLocation = player.getLocation();
-        Pathfinder pathfinder = PatheticAgent.getInstance().getPathfinder();
+        var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
+        var walkToActionResult = walkToAction.run();
 
-        PathPosition start = BukkitMapper.toPathPosition(npc.getEntity().getLocation());
-        PathPosition end = BukkitMapper.toPathPosition(targetLocation);
-
-        CompletionStage<PathfinderResult> pathfindingResult = pathfinder.findPath(
-                start,
-                end,
-                List.of(new SolidGroundFilter()));
-
-        pathfindingResult.thenAccept(result -> {
-            if (result.successful()) {
-                List<Vector> pathVectors = new ArrayList<>();
-                result.getPath().forEach(position -> {
-                    pathVectors.add(BukkitMapper.toVector(position.toVector()));
-                });
-
-                navigator.setTarget(pathVectors);
-                Messages.sendMessage(player, "&aFound path of length " + result.getPath().length() + ", going to your location!");
+        walkToActionResult.thenAccept(result -> {
+            if (result.isSuccess()) {
+                Messages.sendMessage(player, "&aSuccess: " + result.getMessage());
+            } else {
+                Messages.sendMessage(player, "&cFailure: " + result.getMessage());
             }
-
-            else {
-                Messages.sendMessage(player, "&cFailed to find path!");
-            }
+        }).exceptionally(ex -> {
+            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
         });
+
     }
 
 }

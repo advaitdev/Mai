@@ -39,8 +39,6 @@ public class Humanoid {
         //npc.getNavigator().getLocalParameters().stuckAction(new HumanoidStuckAction());
         npc.getNavigator().getLocalParameters().useNewPathfinder(true);
 
-        npc.getNavigator().getLocalParameters().speedModifier(130);
-
         SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
         skinTrait.setSkinName("WeNeedToGoDeeper", true);
 
