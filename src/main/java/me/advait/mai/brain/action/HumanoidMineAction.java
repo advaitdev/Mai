@@ -39,7 +39,7 @@ public class HumanoidMineAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         if (block == null) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_UNBREAKABLE));
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_NULL));
             return;
         }
 
@@ -67,7 +67,8 @@ public class HumanoidMineAction extends HumanoidAction {
 
             ItemStack tool = humanoid.getInventory().getItem(itemSlot);
             var blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
-            blockBreakerConfig.item(tool);
+            blockBreakerConfig.item(tool);  // Make the BlockBreaker use this tool
+            humanoid.setItemInMainHand(itemSlot);  // Set this tool to be in the humanoid's main hand
 
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 

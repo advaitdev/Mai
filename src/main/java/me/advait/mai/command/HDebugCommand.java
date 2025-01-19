@@ -63,9 +63,7 @@ public class HDebugCommand extends BaseCommand {
             return;
         }
 
-        NPC npc = humanoid.getNpc();
-        Block inFront = LocationUtil.getBlockInFrontAtEyeLevel((Player) npc.getEntity(), 1);
-        BlockState inFrontState = inFront.getState();
+        Block inFront = player.getTargetBlockExact(3);
 
         var mineAction = new HumanoidMineAction(humanoid, inFront, true);
         var mineActionResult = mineAction.run();
@@ -118,17 +116,16 @@ public class HDebugCommand extends BaseCommand {
             return;
         }
 
-        NPC npc = humanoid.getNpc();
-        Block inFront = LocationUtil.getBlockInFrontAtEyeLevel((Player) npc.getEntity(), 1);
+        Block inFront = player.getTargetBlockExact(3);
 
         var mineAction = new HumanoidMineAction(humanoid, inFront, false);
         var mineActionResult = mineAction.run();
 
         mineActionResult.thenAccept(result -> {
             if (result.isSuccess()) {
-                Messages.sendMessage(player, "&aSuccess: " + result.getMessage() + " - Block: " + inFront);
+                Messages.sendMessage(player, "&a" + result + " - Block: " + inFront);
             } else {
-                Messages.sendMessage(player, "&cFailure: " + result.getMessage() + " - Block: " + inFront);
+                Messages.sendMessage(player, "&c" + result + " - Block: " + inFront);
             }
         }).exceptionally(ex -> {
             Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
