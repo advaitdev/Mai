@@ -1,5 +1,5 @@
 name: Mai
-version: '1.0.14'
+version: '1.0.15'
 main: me.advait.mai.Mai
 api-version: '1.20'
 authors: [Advait]

@@ -2,17 +2,17 @@ package me.advait.mai.brain.action.runnable;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
-import me.advait.mai.Mai;
+import me.advait.mai.Settings;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.npc.pathetic.PatheticAgent;
+import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.util.NPCUtil;
 import me.advait.mai.util.PatheticUtil;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -33,6 +33,9 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private Path previousPath = null;
 
+    private int timeStuck = 0;
+    private Location previousLocation = null;
+
     @Override
     public void run() {
         if (npc == null || npc.getEntity() == null) {
@@ -41,13 +44,29 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             return;
         }
 
+        Navigator navigator = npc.getNavigator();
+
         if (NPCUtil.isNPCNearDestination(npc, target)) {
             resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.WALK_TO_MESSAGE_SUCCESS));
             cancel();
+            navigator.cancelNavigation();
             return;
         }
 
-        Navigator navigator = npc.getNavigator();
+        if (timeStuck >= Settings.HUMANOID_PATHFINDING_TIMEOUT && previousLocation.equals(npc.getStoredLocation())) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_STUCK));
+            cancel();
+            navigator.cancelNavigation();
+            return;
+        }
+
+        if (previousLocation != null && previousLocation.getBlockX() == npc.getStoredLocation().getBlockX() && previousLocation.getBlockZ() == npc.getStoredLocation().getBlockZ()) {
+            timeStuck++;
+        } else {
+            timeStuck = 0;
+        }
+
+        previousLocation = npc.getStoredLocation();
 
         var pathfindingResult = PatheticAgent.getInstance().getGroundPath(npc.getEntity().getLocation(), target);
         pathfindingResult.thenAccept(result -> {

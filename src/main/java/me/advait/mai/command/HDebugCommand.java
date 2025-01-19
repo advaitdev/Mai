@@ -2,35 +2,21 @@ package me.advait.mai.command;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
-import de.metaphoriker.pathetic.api.pathing.Pathfinder;
-import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
-import de.metaphoriker.pathetic.api.wrapper.PathPosition;
-import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.mai.Catalog;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.HumanoidActionChain;
 import me.advait.mai.brain.action.HumanoidMineAction;
 import me.advait.mai.brain.action.HumanoidWalkToAction;
 import me.advait.mai.npc.HumanoidUtil;
-import me.advait.mai.npc.pathetic.SolidGroundFilter;
-import me.advait.mai.npc.pathetic.PatheticAgent;
 import me.advait.mai.util.LocationUtil;
 import me.advait.mai.util.Messages;
 import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 @CommandAlias("hdebug")
 public class HDebugCommand extends BaseCommand {
@@ -86,9 +72,9 @@ public class HDebugCommand extends BaseCommand {
 
         mineActionResult.thenAccept(result -> {
             if (result.isSuccess()) {
-                Messages.sendMessage(player, "&aSuccess: " + result.getMessage() + " - Block: " + inFrontState);
+                Messages.sendMessage(player, "&a" + result);
             } else {
-                Messages.sendMessage(player, "&cFailure: " + result.getMessage() + " - Block: " + inFrontState);
+                Messages.sendMessage(player, "&c" + result);
             }
         }).exceptionally(ex -> {
             Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
@@ -113,7 +99,7 @@ public class HDebugCommand extends BaseCommand {
                     if (result.isSuccess()) {
                         Messages.sendMessage(player, "&aAll actions completed successfully!");
                     } else {
-                        Messages.sendMessage(player, "&cAction chain failed: " + result.getMessage());
+                        Messages.sendMessage(player, "&c" + result);
                     }
                 })
                 .exceptionally(ex -> {
@@ -197,9 +183,9 @@ public class HDebugCommand extends BaseCommand {
 
         walkToActionResult.thenAccept(result -> {
             if (result.isSuccess()) {
-                Messages.sendMessage(player, "&aSuccess: " + result.getMessage());
+                Messages.sendMessage(player, "&a" + result);
             } else {
-                Messages.sendMessage(player, "&cFailure: " + result.getMessage());
+                Messages.sendMessage(player, "&c" + result);
             }
         }).exceptionally(ex -> {
             Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());

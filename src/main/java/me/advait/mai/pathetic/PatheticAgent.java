@@ -1,4 +1,4 @@
-package me.advait.mai.npc.pathetic;
+package me.advait.mai.pathetic;
 
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
@@ -15,7 +15,6 @@ import org.bukkit.Location;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class PatheticAgent {
 
@@ -51,7 +50,7 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(new SolidGroundFilter(), new PassablePathFilter())
+                List.of(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter())
         );
         return pathfindingResult;
     }

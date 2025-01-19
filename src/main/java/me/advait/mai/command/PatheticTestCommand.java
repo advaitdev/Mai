@@ -1,7 +1,6 @@
 package me.advait.mai.command;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
-import me.advait.mai.npc.pathetic.PatheticAgent;
+import me.advait.mai.pathetic.PatheticAgent;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -17,7 +16,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
-import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 
