@@ -40,41 +40,37 @@ public final class HumanoidActionAgent {
     }
 
     private synchronized CompletableFuture<HumanoidActionResult> processQueue() {
-        if (isProcessing) return processingFuture;  // Don't process twice
-        else isProcessing = true;
+        if (isProcessing) {
+            return processingFuture;
+        }
 
-        return CompletableFuture.supplyAsync(() -> {
-            HumanoidActionResult lastResult = new HumanoidActionResult(true, "Initialized queue with a dummy action result!");;
+        isProcessing = true;
 
-            while (!actionQueue.isEmpty()) {
-                HumanoidAction action = actionQueue.poll();
+        CompletableFuture<HumanoidActionResult> resultFuture = CompletableFuture.completedFuture(new HumanoidActionResult(true, "The action queue has been initialized with the first result!"));
+        while (!actionQueue.isEmpty()) {
+            HumanoidAction action = actionQueue.poll();
 
-                if (action != null) {
-                    CompletableFuture<HumanoidActionResult> resultFuture = action.run();
-
-                    try {
-                        lastResult = resultFuture.join();
-                        if (!lastResult.isSuccess()) {
-                            Mai.log().warning("Action failed: " + lastResult.getMessage());
-                            break;  // Stop processing further actions on failure
-                        }
-                    } catch (Exception e) {
-                        Mai.log().severe("Exception while executing action: " + e.getMessage());
-                        lastResult = new HumanoidActionResult(false, "An error occurred while executing action: " + e.getMessage());
-                        break; // Stop processing further actions on exception
+            if (action != null) {
+                resultFuture = resultFuture.thenCompose(prevResult -> {
+                    if (!prevResult.isSuccess()) {
+                        // If the previous action failed, stop processing further
+                        return CompletableFuture.completedFuture(prevResult);
                     }
-                }
+                    return action.run();
+                });
             }
+        }
 
+        // Once all actions are processed, reset the processing flag
+        resultFuture = resultFuture.whenComplete((result, ex) -> {
             synchronized (this) {
                 isProcessing = false;
             }
-
-            return lastResult;
-
         });
 
+        return resultFuture;
     }
+
 
     @Deprecated
     /**
