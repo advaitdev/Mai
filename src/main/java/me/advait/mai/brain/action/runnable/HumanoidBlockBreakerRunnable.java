@@ -40,7 +40,7 @@ public class HumanoidBlockBreakerRunnable extends BukkitRunnable {
         }
 
 
-        if (LocationUtil.isBlockTargetable(npc.getStoredLocation(), block)) {
+        if (!LocationUtil.isBlockTargetable(npc.getStoredLocation(), block)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_TOO_FAR));
             cancel();
             return;
