@@ -91,7 +91,7 @@ public class HDebugCommand extends BaseCommand {
         var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
         var mineAction = new HumanoidMineAction(humanoid, player.getTargetBlockExact(3), true);
 
-        HumanoidActionAgent.executeChainedActions(walkToAction, mineAction).thenAccept(result -> {
+        HumanoidActionAgent.getInstance().addAction(walkToAction, mineAction).thenAccept(result -> {
                     if (result.isSuccess()) {
                         Messages.sendMessage(player, "&aAll actions completed successfully!");
                     } else {
