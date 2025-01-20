@@ -69,7 +69,9 @@ public class Humanoid {
      */
     public void setItemInMainHand(int itemSlot) {
         ItemStack toPut = getInventory().getItem(itemSlot);
-        ItemStack currentMainHand = getEquipment().get(Equipment.EquipmentSlot.HAND).clone();
+        ItemStack currentMainHand = getEquipment().get(Equipment.EquipmentSlot.HAND);
+        System.out.println("To put: " + toPut);
+        System.out.println("Current mainhand: " + currentMainHand);
         getEquipment().set(Equipment.EquipmentSlot.HAND, toPut);
         getInventory().setItem(itemSlot, currentMainHand);
     }
