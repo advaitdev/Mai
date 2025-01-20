@@ -66,11 +66,6 @@ public class HumanoidMineAction extends HumanoidAction {
                 return;
             }
 
-            if (LocationUtil.isBlockTargetable(humanoid.getNpc().getStoredLocation(), block)) {
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_TOO_FAR));
-                return;
-            }
-
             ItemStack tool = humanoid.getInventory().getItem(itemSlot);
             var blockBreakerConfig = new BlockBreaker.BlockBreakerConfiguration();
             blockBreakerConfig.item(tool);  // Make the BlockBreaker use this tool
@@ -79,7 +74,7 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, humanoid.getNpc(), resultFuture);
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, block, humanoid.getNpc(), resultFuture);
                 run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
 
@@ -91,7 +86,7 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, humanoid.getNpc(), resultFuture);
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, block, humanoid.getNpc(), resultFuture);
                 run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
         }
