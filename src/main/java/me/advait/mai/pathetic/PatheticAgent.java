@@ -28,7 +28,7 @@ public final class PatheticAgent {
     private final PathfinderFactory FACTORY = new AStarPathfinderFactory();
     private final PathfinderConfiguration CONFIG = PathfinderConfiguration.builder()
             .provider(new LoadingNavigationPointProvider())
-            .async(true)
+            //.async(true)
             .build();
     private final Pathfinder PATHFINDER = FACTORY.createPathfinder(CONFIG);
 
