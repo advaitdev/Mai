@@ -74,6 +74,8 @@ public class Humanoid {
         System.out.println("Current mainhand: " + currentMainHand);
         getEquipment().set(Equipment.EquipmentSlot.HAND, toPut);
         getInventory().setItem(itemSlot, currentMainHand);
+        System.out.println("New to put: " + toPut);
+        System.out.println("New current mainhand: " + currentMainHand);
     }
 
 }
