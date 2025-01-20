@@ -48,15 +48,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         if (NPCUtil.isNPCNearDestination(npc, target)) {
             resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.WALK_TO_MESSAGE_SUCCESS));
-            cancel();
             navigator.cancelNavigation();
+            cancel();
             return;
         }
 
         if (timeStuck >= Settings.HUMANOID_PATHFINDING_TIMEOUT && previousLocation.equals(npc.getStoredLocation())) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_STUCK));
-            cancel();
             navigator.cancelNavigation();
+            cancel();
             return;
         }
 
@@ -84,6 +84,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
             else {
                 resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
+                navigator.cancelNavigation();
                 cancel();
             }
         });
