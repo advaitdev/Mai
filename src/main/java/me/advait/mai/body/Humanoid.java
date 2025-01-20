@@ -3,6 +3,7 @@ package me.advait.mai.body;
 import me.advait.mai.brain.Brain;
 import me.advait.mai.brain.cerebrum.*;
 import me.advait.mai.npc.trait.HumanoidTrait;
+import me.advait.mai.util.InventoryUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
@@ -10,6 +11,8 @@ import net.citizensnpcs.api.trait.trait.Inventory;
 import net.citizensnpcs.trait.DropsTrait;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.mcmonkey.sentinel.SentinelTrait;
 
@@ -68,14 +71,15 @@ public class Humanoid {
      * @param itemSlot The inventory slot of the item which should be set in the humanoid's main hand; the current item in the main hand will be swapped into this slot.
      */
     public void setItemInMainHand(int itemSlot) {
-        ItemStack toPut = getInventory().getItem(itemSlot);
-        ItemStack currentMainHand = getEquipment().get(Equipment.EquipmentSlot.HAND);
-        System.out.println("To put: " + toPut);
-        System.out.println("Current mainhand: " + currentMainHand);
-        getEquipment().set(Equipment.EquipmentSlot.HAND, toPut);
-        getInventory().setItem(itemSlot, currentMainHand);
-        System.out.println("New to put: " + toPut);
-        System.out.println("New current mainhand: " + currentMainHand);
+        InventoryUtil.swapItems((Player) npc.getEntity(), 0, itemSlot);
+//        ItemStack toPut = getInventory().getItem(itemSlot);
+//        ItemStack currentMainHand = getEquipment().get(Equipment.EquipmentSlot.HAND);
+//        System.out.println("To put: " + toPut);
+//        System.out.println("Current mainhand: " + currentMainHand);
+//        getEquipment().set(Equipment.EquipmentSlot.HAND, toPut);
+//        getInventory().setItem(itemSlot, currentMainHand);
+//        System.out.println("New to put: " + toPut);
+//        System.out.println("New current mainhand: " + currentMainHand);
     }
 
 }

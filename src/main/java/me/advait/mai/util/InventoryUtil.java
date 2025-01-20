@@ -1,6 +1,7 @@
 package me.advait.mai.util;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -70,6 +71,23 @@ public final class InventoryUtil {
                 material == Material.GOLDEN_SHOVEL ||
                 material == Material.DIAMOND_SHOVEL ||
                 material == Material.NETHERITE_SHOVEL;
+    }
+
+    /**
+     * Swaps items in a player's inventory.
+     *
+     * @param player The player whose inventory will be modified.
+     * @param slot1  The first slot to swap.
+     * @param slot2  The second slot to swap.
+     */
+    public static void swapItems(Player player, int slot1, int slot2) {
+        Inventory inventory = player.getInventory();
+
+        ItemStack item1 = inventory.getItem(slot1);
+        ItemStack item2 = inventory.getItem(slot2);
+
+        inventory.setItem(slot1, item2);
+        inventory.setItem(slot2, item1);
     }
 
 }
