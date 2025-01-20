@@ -18,7 +18,7 @@ jobs:
           #   server-ids: |
           #     5f095019
           #     7f095019
-          source: "./target/Mai-1.0.16.jar"
+          source: "./target/Mai.jar"
           #   sources: |
           #     hello.txt
           #     hello2.txt

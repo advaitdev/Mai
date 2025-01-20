@@ -73,7 +73,7 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, humanoid.getNpc(), resultFuture);
                 run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
 
@@ -85,7 +85,7 @@ public class HumanoidMineAction extends HumanoidAction {
             BlockBreaker blockBreaker = humanoid.getNpc().getBlockBreaker(block, blockBreakerConfig);
 
             if (blockBreaker.shouldExecute()) {
-                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, humanoid.getNpc(), resultFuture);
+                HumanoidBlockBreakerRunnable run = new HumanoidBlockBreakerRunnable(blockBreaker, blockBreakerConfig, humanoid.getNpc(), resultFuture);
                 run.runTaskTimer(Mai.getInstance(),0L, 1L);
             }
         }
