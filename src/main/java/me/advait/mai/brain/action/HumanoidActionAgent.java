@@ -5,7 +5,7 @@ import me.advait.mai.brain.action.result.HumanoidActionResult;
 
 import java.util.concurrent.CompletableFuture;
 
-public final class HumanoidActionChain {
+public final class HumanoidActionAgent {
 
     /**
      * Chains together a variable number of HumanoidActions and executes them sequentially.

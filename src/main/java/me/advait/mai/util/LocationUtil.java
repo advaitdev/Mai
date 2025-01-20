@@ -7,8 +7,14 @@ import org.bukkit.util.Vector;
 
 public final class LocationUtil {
 
-    public static Block getBlockInFrontAtEyeLevel(Player player, double distance) {
-        return player.getLocation().add(player.getLocation().getDirection().multiply(distance)).getBlock();
+    /**
+     * Determines whether a block is targetable (using Minecraft's reach limit of about 4.5 blocks).
+     * @param standingLocation
+     * @param block
+     * @return
+     */
+    public static boolean isBlockTargetable(Location standingLocation, Block block) {
+        return !(standingLocation.distance(block.getLocation()) > 4.5);
     }
 
 }

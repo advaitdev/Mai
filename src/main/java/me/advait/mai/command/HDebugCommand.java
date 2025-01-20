@@ -4,17 +4,15 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
 import me.advait.mai.Catalog;
 import me.advait.mai.body.Humanoid;
-import me.advait.mai.brain.action.HumanoidActionChain;
+import me.advait.mai.brain.action.HumanoidActionAgent;
 import me.advait.mai.brain.action.HumanoidMineAction;
 import me.advait.mai.brain.action.HumanoidWalkToAction;
 import me.advait.mai.npc.HumanoidUtil;
-import me.advait.mai.util.LocationUtil;
 import me.advait.mai.util.Messages;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -93,7 +91,7 @@ public class HDebugCommand extends BaseCommand {
         var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
         var mineAction = new HumanoidMineAction(humanoid, player.getTargetBlockExact(3), true);
 
-        HumanoidActionChain.executeChainedActions(walkToAction, mineAction).thenAccept(result -> {
+        HumanoidActionAgent.executeChainedActions(walkToAction, mineAction).thenAccept(result -> {
                     if (result.isSuccess()) {
                         Messages.sendMessage(player, "&aAll actions completed successfully!");
                     } else {

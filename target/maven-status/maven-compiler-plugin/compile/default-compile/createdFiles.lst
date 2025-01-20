@@ -9,10 +9,10 @@ me\advait\mai\command\PatheticGroundTestCommand$PlayerSession.class
 me\advait\mai\pathetic\SolidGroundFilter.class
 me\advait\mai\brain\cerebrum\HumanoidMotorCortex.class
 me\advait\mai\file\SettingsFile.class
+me\advait\mai\brain\action\HumanoidActionAgent.class
 me\advait\mai\brain\action\HumanoidMineAction.class
 me\advait\mai\brain\action\event\HumanoidWalkToActionEvent.class
 me\advait\mai\brain\action\result\HumanoidActionMessage.class
-me\advait\mai\brain\action\HumanoidActionChain.class
 me\advait\mai\command\PatheticTestCommand.class
 me\advait\mai\brain\action\result\HumanoidActionResult.class
 me\advait\mai\Settings.class

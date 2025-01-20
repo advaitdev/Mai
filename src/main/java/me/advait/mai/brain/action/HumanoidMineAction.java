@@ -8,6 +8,7 @@ import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.InventoryUtil;
 import me.advait.mai.brain.action.runnable.HumanoidBlockBreakerRunnable;
+import me.advait.mai.util.LocationUtil;
 import net.citizensnpcs.api.npc.BlockBreaker;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.Util;
@@ -62,6 +63,11 @@ public class HumanoidMineAction extends HumanoidAction {
 
             if (itemSlot == -1) {
                 resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_NO_TOOL));
+                return;
+            }
+
+            if (LocationUtil.isBlockTargetable(humanoid.getNpc().getStoredLocation(), block)) {
+                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MINE_MESSAGE_FAILURE_TOO_FAR));
                 return;
             }
 
