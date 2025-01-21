@@ -38,22 +38,16 @@ jobs:
     name: Deploy to Pterodactyl
     needs: build
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifact  # Download the artifact uploaded in the build job
+          path: ./  # Extract it into the current working directory
       - uses: rexlmanu/pterodactyl-upload-action@v2.1
         with:
           panel-host: ${{ secrets.PANEL_HOST }}
           api-key: ${{ secrets.API_KEY }}
           server-id: "c69a0091-a46b-45bd-b7c1-3e305c672c51"
-          #   server-ids: |
-          #     5f095019
-          #     7f095019
           source: "./target/Mai-GIT.jar"
-          #   sources: |
-          #     hello.txt
-          #     hello2.txt
           target: "./plugins/"
-          # If you want to restart the servers after successful upload
           restart: true
-          # If you want to decompress the files after successful upload
-          # decompress-target: true
