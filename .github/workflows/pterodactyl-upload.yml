@@ -9,14 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     name: Build .jar
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up JDK 21
         uses: actions/setup-java@v1
         with:
           java-version: 21
       - name: Build with Maven
         run: mvn clean package
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         with:
           name: artifact
           path: target/
@@ -35,7 +35,7 @@ jobs:
           #   server-ids: |
           #     5f095019
           #     7f095019
-          source: "./target/Mai.jar"
+          source: "./target/Mai-GIT.jar"
           #   sources: |
           #     hello.txt
           #     hello2.txt
