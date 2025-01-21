@@ -20,7 +20,9 @@ public final class DurabilityUtil {
         if (item == null || !item.hasItemMeta()) return;
 
         ItemMeta meta = item.getItemMeta();
-        if (!(meta instanceof Damageable damageable)) return;
+        if (!(meta instanceof Damageable)) return;
+
+        Damageable damageable = (Damageable) meta;
 
         int currentDamage = damageable.getDamage();
         int maxDurability = item.getType().getMaxDurability();
