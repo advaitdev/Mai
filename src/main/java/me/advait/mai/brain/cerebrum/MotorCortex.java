@@ -1,6 +1,9 @@
 package me.advait.mai.brain.cerebrum;
 
-import org.bukkit.Location;
+import me.advait.mai.brain.action.HumanoidAction;
+import me.advait.mai.brain.action.result.HumanoidActionResult;
+
+import java.util.concurrent.CompletableFuture;
 
 // responsible for movement
 
@@ -21,15 +24,6 @@ import org.bukkit.Location;
 
 public interface MotorCortex {
 
-    void goTo(Location location);
-    void wander();
-    void mine();
-    void place();
-    void pickUpItem();
-    void dropItem();
-    void craft();
-    void smelt();
-    void attack();
-    void shoot();
+    CompletableFuture<HumanoidActionResult> performAction(HumanoidAction action);
 
 }

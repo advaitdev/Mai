@@ -1,22 +1,20 @@
-package me.advait.mai.npc.trait.pathfinder;
+package me.advait.mai.pathetic;
 
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
 import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
-import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.npc.pathetic.SolidGroundFilter;
-import net.citizensnpcs.api.ai.Navigator;
+import me.advait.mai.Mai;
 import org.bukkit.Location;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class PatheticAgent {
 
@@ -30,7 +28,7 @@ public final class PatheticAgent {
     private final PathfinderFactory FACTORY = new AStarPathfinderFactory();
     private final PathfinderConfiguration CONFIG = PathfinderConfiguration.builder()
             .provider(new LoadingNavigationPointProvider())
-            .async(true)
+            //.async(true)
             .build();
     private final Pathfinder PATHFINDER = FACTORY.createPathfinder(CONFIG);
 
@@ -52,23 +50,28 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(new SolidGroundFilter(), new PassablePathFilter())
+                List.of(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter())
         );
         return pathfindingResult;
     }
 
 
 
-    public boolean canNavigateToViaGround(Location origin, Location dest) {
-        AtomicBoolean isPathSuccessful = new AtomicBoolean(false);
+    public CompletableFuture<Boolean> canNavigateToViaGround(Location origin, Location dest) {
+        CompletableFuture<Boolean> canNavigateResult = new CompletableFuture<>();
+
         CompletionStage<PathfinderResult> pathfindingResult = getGroundPath(origin, dest);
         pathfindingResult.thenAccept(result -> {
             if (result.successful()) {
-                isPathSuccessful.set(true);
-            }
+               canNavigateResult.complete(true);
+            } else canNavigateResult.complete(false);
+        }).exceptionally(ex -> {
+            Mai.log().severe("Could not determine a pathfinding result: " + ex.getMessage());
+            canNavigateResult.complete(false);
+            return null;
         });
 
-        return isPathSuccessful.get();
+        return canNavigateResult;
     }
 
 }

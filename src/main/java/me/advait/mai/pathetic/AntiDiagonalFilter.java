@@ -1,4 +1,4 @@
-package me.advait.mai.npc.pathetic;
+package me.advait.mai.pathetic;
 
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilter;
 import de.metaphoriker.pathetic.api.pathing.filter.PathValidationContext;

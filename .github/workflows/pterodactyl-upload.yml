@@ -1,0 +1,60 @@
+on:
+  push:
+    branches:
+      - advait
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build .jar
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          path: target/*.jar  # Upload only the .jar file
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Pterodactyl
+    needs: build  # Wait for the build job to complete
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifact  # Download the artifact uploaded in the build job
+
+      - name: List current directory
+        run: ls -la
+
+      - name: Deploy to Pterodactyl
+        uses: rexlmanu/pterodactyl-upload-action@v2.1
+        with:
+          panel-host: ${{ secrets.PANEL_HOST }}
+          api-key: ${{ secrets.API_KEY }}
+          server-id: "c69a0091-a46b-45bd-b7c1-3e305c672c51"
+          source: "./Mai-GIT.jar"
+          target: "./plugins/"
+          restart: true

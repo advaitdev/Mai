@@ -1,5 +1,5 @@
 name: Mai
-version: '1.0.12'
+version: '1.0.16'
 main: me.advait.mai.Mai
 api-version: '1.20'
 authors: [Advait]
@@ -7,3 +7,5 @@ description: Creating an AI-powered world in Minecraft.
 commands:
   pathetictest:
     description: Pathetic API test command.
+  patheticgroundtest:
+    description: Pathetic API ground test command.
