@@ -25,10 +25,13 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean package
-      - uses: actions/upload-artifact@v3
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: artifact
-          path: target/
+          name: build-artifact
+          path: target/  # Upload the entire target directory
+
 
   deploy:
     runs-on: ubuntu-latest
