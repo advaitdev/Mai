@@ -66,6 +66,7 @@ public class HumanoidBuildAction extends HumanoidAction {
 
         Monitor.log("Current itemStack state: " + block + " @ " + this);
         block.setAmount(block.getAmount() - 1);
+        humanoid.getEquipment().set(Equipment.EquipmentSlot.HAND, block);
         Monitor.log("New itemStack state: " + block + " @ " + this);
 
         resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.BUILD_MESSAGE_SUCCESS));
