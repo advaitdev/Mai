@@ -30,6 +30,11 @@ public class HumanoidBuildAction extends HumanoidAction {
 
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
+        if (location == null) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NULL));
+            return;
+        }
+
         if (!LocationUtil.isBuildable(location)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_INVALID_LOCATION));
             return;
@@ -44,7 +49,7 @@ public class HumanoidBuildAction extends HumanoidAction {
             return;
         }
 
-        if (!humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND).equals(block)) {
+        if (humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND) == null || !humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND).equals(block)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_HOLDING_BLOCK));
             return;
         }
