@@ -15,4 +15,10 @@ public final class HumanoidActionMessage {
     public static final String MINE_MESSAGE_FAILURE_NULL = "This block turned null (most likely disappeared or changed types while running the action).";
     public static final String MINE_MESSAGE_SUCCESS = "Mined block successfully.";
 
+    public static final String BUILD_MESSAGE_FAILURE_INVALID_LOCATION = "A block cannot be placed in this location because a block is placed there.";
+    public static final String BUILD_MESSAGE_FAILURE_TOO_FAR = "Attempted to build at this location, but it is too far away to reach (more than 4.5 blocks).";
+    public static final String BUILD_MESSAGE_FAILURE_NOT_HOLDING_BLOCK = "Could not place the block at this location because it is not held (it may have moved inventory slots since the action was ran).";
+    public static final String BUILD_MESSAGE_FAILURE_NOT_PLACEABLE = "The item held is not placeable (it may not be a utility material instead of a block).";
+    public static final String BUILD_MESSAGE_SUCCESS = "Placed block successfully.";
+
 }

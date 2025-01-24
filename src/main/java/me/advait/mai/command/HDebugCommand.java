@@ -5,12 +5,14 @@ import co.aikar.commands.annotation.CommandAlias;
 import me.advait.mai.Catalog;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.HumanoidActionAgent;
+import me.advait.mai.brain.action.HumanoidBuildAction;
 import me.advait.mai.brain.action.HumanoidMineAction;
 import me.advait.mai.brain.action.HumanoidWalkToAction;
 import me.advait.mai.npc.HumanoidUtil;
 import me.advait.mai.util.Messages;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.trait.trait.Equipment;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -81,7 +83,6 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("gotoandmine")
     public void runGotoAndMine(Player player) {
-
         Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
@@ -93,7 +94,7 @@ public class HDebugCommand extends BaseCommand {
 
         HumanoidActionAgent.getInstance().addAction(walkToAction, mineAction).thenAccept(result -> {
                     if (result.isSuccess()) {
-                        Messages.sendMessage(player, "&aAll actions completed successfully!");
+                        Messages.sendMessage(player, "&agoToAndMine completed successfully!");
                     } else {
                         Messages.sendMessage(player, "&c" + result);
                     }
@@ -103,6 +104,31 @@ public class HDebugCommand extends BaseCommand {
                     ex.printStackTrace();
                     return null;
                 });
+    }
+
+    @CommandAlias("gotoandbuild")
+    public void runGotoAndBuild(Player player) {
+        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        if (humanoid == null) {
+            Messages.sendMessage(player, "&cNo humanoid exists in this world!");
+            return;
+        }
+
+        var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
+        var buildAction = new HumanoidBuildAction(humanoid, player.getTargetBlockExact(3).getLocation(), humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
+
+        HumanoidActionAgent.getInstance().addAction(walkToAction, buildAction).thenAccept(result -> {
+                    if (result.isSuccess()) {
+                        Messages.sendMessage(player, "&agoToAndBuild completed successfully!");
+                    } else {
+                        Messages.sendMessage(player, "&c" + result);
+                    }
+                })
+                .exceptionally(ex -> {
+                    Messages.sendMessage(player, "&cAn error occurred during the action chain: " + ex.getMessage());
+                    ex.printStackTrace();
+                    return null;
+        });
 
     }
 
