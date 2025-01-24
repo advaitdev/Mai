@@ -60,7 +60,7 @@ public class HumanoidBuildAction extends HumanoidAction {
         }
 
         // Actually place the block
-        PlayerAnimation.ARM_SWING.play((Player) npc);
+        PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());
         location.getBlock().setType(block.getType());
         block.setAmount(block.getAmount() - 1);
 
