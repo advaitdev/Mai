@@ -5,6 +5,7 @@ import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidBuildActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
+import me.advait.mai.monitor.Monitor;
 import me.advait.mai.util.LocationUtil;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
@@ -62,7 +63,10 @@ public class HumanoidBuildAction extends HumanoidAction {
         // Actually place the block
         PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());
         location.getBlock().setType(block.getType());
+
+        Monitor.log("Current itemStack state: " + block + " @ " + this);
         block.setAmount(block.getAmount() - 1);
+        Monitor.log("New itemStack state: " + block + " @ " + this);
 
         resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.BUILD_MESSAGE_SUCCESS));
     }
