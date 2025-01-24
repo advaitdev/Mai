@@ -25,6 +25,7 @@ public class AntiDiagonalFilter implements PathFilter {
         int currentX = currentNavigationPoint.getBlockState().getX();
         int currentZ = currentNavigationPoint.getBlockState().getZ();
 
+        Monitor.log("parentNavigationPoint: " + parentNavigationPoint.getBlockState() + ", currentNavigationPoint: " + currentNavigationPoint.getBlockState());
         Monitor.log("parentX: " + parentX + ", currentX: " + currentX + ", parentZ: " + parentZ + ", currentZ: " + currentZ);
 
         // If x and z are both different, we went diagonally; the path isn't valid.
