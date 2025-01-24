@@ -51,10 +51,11 @@ public class HumanoidBuildAction extends HumanoidAction {
             return;
         }
 
-        if (!LocationUtil.canSeeLocation((LivingEntity) npc.getEntity(), location)) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_OUT_OF_SIGHT));
-            return;
-        }
+        // TODO: fix broken code
+//        if (!LocationUtil.canSeeLocation((LivingEntity) npc.getEntity(), location)) {
+//            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_OUT_OF_SIGHT));
+//            return;
+//        }
 
         if (humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND) == null || !humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND).equals(block)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_HOLDING_BLOCK));

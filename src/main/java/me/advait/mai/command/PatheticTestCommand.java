@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
+import me.advait.mai.pathetic.AntiDiagonalFilter;
 import me.advait.mai.pathetic.PatheticAgent;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -87,7 +89,7 @@ public class PatheticTestCommand implements TabExecutor {
                         pathfinder.findPath(
                                 start,
                                 target,
-                                List.of());
+                                List.of(new PassablePathFilter(), new AntiDiagonalFilter()));
 
                 // Handle the pathfinding result
                 pathfindingResult.thenAccept(
