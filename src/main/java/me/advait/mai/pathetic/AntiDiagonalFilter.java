@@ -19,10 +19,10 @@ public class AntiDiagonalFilter implements PathFilter {
         var parentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(parent);
         var currentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(current);
 
-        int parentX = parentNavigationPoint.getBlockState().getBlock().getX();
-        int parentZ = parentNavigationPoint.getBlockState().getBlock().getZ();
-        int currentX = currentNavigationPoint.getBlockState().getBlock().getX();
-        int currentZ = currentNavigationPoint.getBlockState().getBlock().getZ();
+        int parentX = parentNavigationPoint.getBlockState().getX();
+        int parentZ = parentNavigationPoint.getBlockState().getZ();
+        int currentX = currentNavigationPoint.getBlockState().getX();
+        int currentZ = currentNavigationPoint.getBlockState().getZ();
 
         // If x and z are both different, we went diagonally; the path isn't valid.
         return parentX == currentX || parentZ == currentZ;
