@@ -50,6 +50,7 @@ public class HumanoidBlockBreakerRunnable extends BukkitRunnable {
 
         if (breaker.run() != BehaviorStatus.RUNNING) {
             breaker.reset();
+            // TODO: fix bug where the itemstack in the main hand isn't updated with the new durability
             DurabilityUtil.decreaseToolDurability(breakerConfig.item());
             resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MINE_MESSAGE_SUCCESS));
             cancel();
