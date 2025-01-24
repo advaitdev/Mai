@@ -17,20 +17,22 @@ public class AntiDiagonalFilter implements PathFilter {
 
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 
-        var parentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(parent);
-        var currentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(current);
+        return parent.getX() == current.getX() || parent.getZ() == current.getZ();
 
-        int parentX = parentNavigationPoint.getBlockState().getX();
-        int parentZ = parentNavigationPoint.getBlockState().getZ();
-        int currentX = currentNavigationPoint.getBlockState().getX();
-        int currentZ = currentNavigationPoint.getBlockState().getZ();
-
-        Monitor.log("parentNavigationPoint: " + parentNavigationPoint.getBlockState().getBlockData().getAsString() +
-                ", currentNavigationPoint: " + currentNavigationPoint.getBlockState().getBlockData().getAsString());
-        Monitor.log("parentX: " + parentX + ", currentX: " + currentX + ", parentZ: " + parentZ + ", currentZ: " + currentZ);
-
-        // If x and z are both different, we went diagonally; the path isn't valid.
-        return parentX == currentX || parentZ == currentZ;
+//        var parentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(parent);
+//        var currentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(current);
+//
+//        int parentX = parentNavigationPoint.getBlockState().getX();
+//        int parentZ = parentNavigationPoint.getBlockState().getZ();
+//        int currentX = currentNavigationPoint.getBlockState().getX();
+//        int currentZ = currentNavigationPoint.getBlockState().getZ();
+//
+//        Monitor.log("parentNavigationPoint: " + parentNavigationPoint.getBlockState().getBlockData().getAsString() +
+//                ", currentNavigationPoint: " + currentNavigationPoint.getBlockState().getBlockData().getAsString());
+//        Monitor.log("parentX: " + parentX + ", currentX: " + currentX + ", parentZ: " + parentZ + ", currentZ: " + currentZ);
+//
+//        // If x and z are both different, we went diagonally; the path isn't valid.
+//        return parentX == currentX || parentZ == currentZ;
     }
 
 }
