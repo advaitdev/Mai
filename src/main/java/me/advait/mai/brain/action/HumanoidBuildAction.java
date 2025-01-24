@@ -13,6 +13,7 @@ import net.citizensnpcs.util.PlayerAnimation;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -47,6 +48,11 @@ public class HumanoidBuildAction extends HumanoidAction {
 
         if (!LocationUtil.isBlockTargetable(npc.getStoredLocation(), location.getBlock())) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_TOO_FAR));
+            return;
+        }
+
+        if (!LocationUtil.canSeeLocation((LivingEntity) npc.getEntity(), location)) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_OUT_OF_SIGHT));
             return;
         }
 

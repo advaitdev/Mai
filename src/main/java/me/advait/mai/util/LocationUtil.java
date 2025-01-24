@@ -3,6 +3,8 @@ package me.advait.mai.util;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -18,6 +20,10 @@ public final class LocationUtil {
      */
     public static boolean isBlockTargetable(Location standingLocation, Block block) {
         return !(standingLocation.distance(block.getLocation()) > 4.5);
+    }
+
+    public static boolean canSeeLocation(LivingEntity entity, Location location) {
+        return entity.getLineOfSight(null, 10).contains(location.getBlock());
     }
 
     private static final EnumSet<Material> BUILDABLE_MATERIALS = EnumSet.of(
