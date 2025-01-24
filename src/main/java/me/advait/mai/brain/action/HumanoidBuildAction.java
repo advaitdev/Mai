@@ -54,7 +54,7 @@ public class HumanoidBuildAction extends HumanoidAction {
             return;
         }
 
-        if (block.getType().isBlock()) {
+        if (!block.getType().isBlock()) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_PLACEABLE));
             return;
         }

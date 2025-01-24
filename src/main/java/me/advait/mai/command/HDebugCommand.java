@@ -115,6 +115,12 @@ public class HDebugCommand extends BaseCommand {
         }
 
         var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
+
+        if (player.getTargetBlockExact(3) == null) {
+            Messages.sendMessage(player, "&cYou are too far away from any targetable block; get closer to something.");
+            return;
+        }
+
         var buildAction = new HumanoidBuildAction(humanoid, player.getTargetBlockExact(3).getLocation(), humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
 
         HumanoidActionAgent.getInstance().addAction(walkToAction, buildAction).thenAccept(result -> {
