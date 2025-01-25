@@ -58,16 +58,15 @@ public final class PatheticUtil {
     }
 
     public static boolean isSurroundedByAir(PathPosition pathPosition) {
-        // TODO: this line throws an error
         World world = Bukkit.getWorld(pathPosition.getPathEnvironment().getName());
 
         Location current = new Location(world, pathPosition.getX(), pathPosition.getY(), pathPosition.getZ());
-        Material below = current.add(0, 1, 0).getBlock().getType();
-        Material above = current.add(0, -1, 0).getBlock().getType();
-        Material side1 = current.add(1, 0, 0).getBlock().getType();
-        Material side2 = current.add(-1, 0, 0).getBlock().getType();
-        Material side3 = current.add(0, 0, 1).getBlock().getType();
-        Material side4 = current.add(0, 0, -1).getBlock().getType();
+        Material below = current.clone().add(0, 1, 0).getBlock().getType();
+        Material above = current.clone().add(0, -1, 0).getBlock().getType();
+        Material side1 = current.clone().add(1, 0, 0).getBlock().getType();
+        Material side2 = current.clone().add(-1, 0, 0).getBlock().getType();
+        Material side3 = current.clone().add(0, 0, 1).getBlock().getType();
+        Material side4 = current.clone().add(0, 0, -1).getBlock().getType();
 
         return !(below.isBlock() ||
                 above.isBlock() ||
