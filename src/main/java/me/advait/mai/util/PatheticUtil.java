@@ -5,6 +5,7 @@ import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -56,10 +57,9 @@ public final class PatheticUtil {
         return true;
     }
 
-    public static boolean isSurroundedByAir(PathPosition pathPosition, NavigationPointProvider navigationPointProvider) {
-        var navigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(pathPosition);
+    public static boolean isSurroundedByAir(PathPosition pathPosition) {
         // TODO: this line throws an error
-        World world = navigationPoint.getBlockState().getWorld();
+        World world = Bukkit.getWorld(pathPosition.getPathEnvironment().getName());
 
         Location current = new Location(world, pathPosition.getX(), pathPosition.getY(), pathPosition.getZ());
         Material below = current.add(0, 1, 0).getBlock().getType();
