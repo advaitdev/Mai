@@ -3,7 +3,11 @@ package me.advait.mai.util;
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
+import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 
 import java.util.Iterator;
 
@@ -50,6 +54,26 @@ public final class PatheticUtil {
             if (!navigationPointProvider.getNavigationPoint(pathPosition).isTraversable()) return false;
 
         return true;
+    }
+
+    public static boolean isSurroundedByAir(PathPosition pathPosition, NavigationPointProvider navigationPointProvider) {
+        var navigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(pathPosition);
+        World world = navigationPoint.getBlockState().getWorld();
+
+        Location current = new Location(world, pathPosition.getX(), pathPosition.getY(), pathPosition.getZ());
+        Material below = current.add(0, 1, 0).getBlock().getType();
+        Material above = current.add(0, -1, 0).getBlock().getType();
+        Material side1 = current.add(1, 0, 0).getBlock().getType();
+        Material side2 = current.add(-1, 0, 0).getBlock().getType();
+        Material side3 = current.add(0, 0, 1).getBlock().getType();
+        Material side4 = current.add(0, 0, -1).getBlock().getType();
+
+        return !(below.isBlock() ||
+                above.isBlock() ||
+                side1.isBlock() ||
+                side2.isBlock() ||
+                side3.isBlock() ||
+                side4.isBlock());
     }
 
 

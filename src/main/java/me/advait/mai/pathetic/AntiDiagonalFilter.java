@@ -6,6 +6,7 @@ import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
 import me.advait.mai.monitor.Monitor;
+import me.advait.mai.util.PatheticUtil;
 import org.jetbrains.annotations.NotNull;
 
 public class AntiDiagonalFilter implements PathFilter {
@@ -17,7 +18,7 @@ public class AntiDiagonalFilter implements PathFilter {
 
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 
-        return parent.getX() == current.getX() || parent.getZ() == current.getZ();
+        return (parent.getX() == current.getX() || parent.getZ() == current.getZ()) && !PatheticUtil.isSurroundedByAir(current, navigationPointProvider);
 
 //        var parentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(parent);
 //        var currentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(current);
