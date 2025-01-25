@@ -68,12 +68,12 @@ public final class PatheticUtil {
         Material side3 = current.clone().add(0, 0, 1).getBlock().getType();
         Material side4 = current.clone().add(0, 0, -1).getBlock().getType();
 
-        return !(below.isBlock() ||
-                above.isBlock() ||
-                side1.isBlock() ||
-                side2.isBlock() ||
-                side3.isBlock() ||
-                side4.isBlock());
+        return !(below.isSolid() ||
+                above.isSolid() ||
+                side1.isSolid() ||
+                side2.isSolid() ||
+                side3.isSolid() ||
+                side4.isSolid());
     }
 
 
