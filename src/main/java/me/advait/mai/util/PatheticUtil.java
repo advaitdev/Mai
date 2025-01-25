@@ -58,6 +58,7 @@ public final class PatheticUtil {
 
     public static boolean isSurroundedByAir(PathPosition pathPosition, NavigationPointProvider navigationPointProvider) {
         var navigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(pathPosition);
+        // TODO: this line throws an error
         World world = navigationPoint.getBlockState().getWorld();
 
         Location current = new Location(world, pathPosition.getX(), pathPosition.getY(), pathPosition.getZ());

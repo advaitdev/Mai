@@ -18,6 +18,8 @@ public class AntiDiagonalFilter implements PathFilter {
 
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 
+        Monitor.log(current.getPathEnvironment().getName());
+
         return (parent.getX() == current.getX() || parent.getZ() == current.getZ()) && !PatheticUtil.isSurroundedByAir(current, navigationPointProvider);
 
 //        var parentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(parent);
