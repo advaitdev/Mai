@@ -57,24 +57,6 @@ public final class PatheticUtil {
         return true;
     }
 
-    public static boolean isSurroundedByAir(PathPosition pathPosition) {
-        World world = Bukkit.getWorld(pathPosition.getPathEnvironment().getName());
-
-        Location current = new Location(world, pathPosition.getX(), pathPosition.getY(), pathPosition.getZ());
-        Material below = current.clone().add(0, 1, 0).getBlock().getType();
-        Material above = current.clone().add(0, -1, 0).getBlock().getType();
-        Material side1 = current.clone().add(1, 0, 0).getBlock().getType();
-        Material side2 = current.clone().add(-1, 0, 0).getBlock().getType();
-        Material side3 = current.clone().add(0, 0, 1).getBlock().getType();
-        Material side4 = current.clone().add(0, 0, -1).getBlock().getType();
-
-        return !(below.isSolid() ||
-                above.isSolid() ||
-                side1.isSolid() ||
-                side2.isSolid() ||
-                side3.isSolid() ||
-                side4.isSolid());
-    }
 
 
 }
