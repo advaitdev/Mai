@@ -20,7 +20,7 @@ public class BridgeRealismFilter implements PathFilter {
         PathPosition parent = pathValidationContext.getParent();
         PathPosition current = pathValidationContext.getPosition();
 
-        if (isPlayerTraversable(current, pathValidationContext)) return false;
+        if (!isPlayerTraversable(current, pathValidationContext)) return false;
 
         // If the y-level hasn't changed, simply check that we aren't bridging diagonally.
         if (parent.getY() == current.getY()) {
