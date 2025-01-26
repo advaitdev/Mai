@@ -25,6 +25,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Calculate Commit Info
+        id: commit-info
+        run: |
+          commit_number=$(git rev-list --count HEAD)
+          commit_hash=$(git rev-parse --short HEAD)
+          echo "COMMIT_NUMBER=$commit_number" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$commit_hash" >> $GITHUB_ENV
+
+      - name: Update plugin.yml with Version
+        run: |
+          sed -i "s/^version:.*$/version: 1.A.${COMMIT_NUMBER} (${COMMIT_HASH})/" resources/plugin.yml
+          echo "Updated version in resources/plugin.yml"
+
       - name: Build with Maven
         run: mvn clean package
 
