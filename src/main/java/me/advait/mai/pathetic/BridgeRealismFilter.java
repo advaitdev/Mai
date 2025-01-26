@@ -62,7 +62,7 @@ public class BridgeRealismFilter implements PathFilter {
         var navigationPointCurrent = (BukkitNavigationPoint) pathValidationContext.getNavigationPointProvider().getNavigationPoint(pathPosition);
         var navigationPointAbove = (BukkitNavigationPoint) pathValidationContext.getNavigationPointProvider().getNavigationPoint(pathPosition.clone().add(0, 1, 0));
 
-        return navigationPointCurrent.isTraversable() && navigationPointAbove.isTraversable();
+        return navigationPointCurrent.getMaterial().getHardness() != -1 && navigationPointAbove.getMaterial().getHardness() != -1;
     }
 
 }

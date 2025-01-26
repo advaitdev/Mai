@@ -1,7 +1,7 @@
 # Settings file for Mai
 
 # Distance a humanoid has to be for it to be considered "at" its target
-HUMANOID_NEAR_TARGET_DISTANCE: 3
+HUMANOID_NEAR_TARGET_DISTANCE: 0
 
 # Seconds a humanoid can remain stuck before its pathfinding times out
 HUMANOID_PATHFINDING_TIMEOUT: 10
