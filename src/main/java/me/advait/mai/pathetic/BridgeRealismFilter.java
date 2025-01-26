@@ -3,6 +3,7 @@ package me.advait.mai.pathetic;
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilter;
 import de.metaphoriker.pathetic.api.pathing.filter.PathValidationContext;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
+import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -18,6 +19,8 @@ public class BridgeRealismFilter implements PathFilter {
     public boolean filter(@NotNull PathValidationContext pathValidationContext) {
         PathPosition parent = pathValidationContext.getParent();
         PathPosition current = pathValidationContext.getPosition();
+
+        if (isPlayerTraversable(current, pathValidationContext)) return false;
 
         // If the y-level hasn't changed, simply check that we aren't bridging diagonally.
         if (parent.getY() == current.getY()) {
@@ -54,6 +57,13 @@ public class BridgeRealismFilter implements PathFilter {
                 side2.isSolid() ||
                 side3.isSolid() ||
                 side4.isSolid());
+    }
+
+    private boolean isPlayerTraversable(PathPosition pathPosition, PathValidationContext pathValidationContext) {
+        var navigationPointCurrent = (BukkitNavigationPoint) pathValidationContext.getNavigationPointProvider().getNavigationPoint(pathPosition);
+        var navigationPointAbove = (BukkitNavigationPoint) pathValidationContext.getNavigationPointProvider().getNavigationPoint(pathPosition.clone().add(0, 1, 0));
+
+        return navigationPointCurrent.isTraversable() && navigationPointAbove.isTraversable();
     }
 
 }
