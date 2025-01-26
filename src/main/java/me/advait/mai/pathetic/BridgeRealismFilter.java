@@ -28,9 +28,8 @@ public class BridgeRealismFilter implements PathFilter {
         }
 
         // If we are bridging "downwards," the only way this is possible is if there's already a solid block placed next to the current location.
-        // We also have to make sure we aren't bridging diagonally.
         else if (current.getY() < parent.getY()) {
-            return parent.getX() == current.getX() && parent.getZ() == current.getZ() && !isSurroundedByAir(current);
+            return !isSurroundedByAir(current);
         }
 
         // If we are bridging "upwards," just check to make sure that our x and z haven't changed. If they have, we're bridging diagonally, which is impossible.
