@@ -55,7 +55,24 @@ public final class PatheticAgent {
         return pathfindingResult;
     }
 
+    /**
+     * Gets a possible path from one point to another, including via <strong>non-solid ground only</strong>.
+     * @param origin The starting point of the path.
+     * @param dest The ending point of the path.
+     * @return
+     */
 
+    public CompletionStage<PathfinderResult> getBridgingPath(Location origin, Location dest) {
+        PathPosition start = BukkitMapper.toPathPosition(origin);
+        PathPosition end = BukkitMapper.toPathPosition(dest);
+
+        CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
+                start,
+                end,
+                List.of(new BridgeRealismFilter())
+        );
+        return pathfindingResult;
+    }
 
     public CompletableFuture<Boolean> canNavigateToViaGround(Location origin, Location dest) {
         CompletableFuture<Boolean> canNavigateResult = new CompletableFuture<>();
