@@ -1,4 +1,4 @@
-package me.advait.mai.command;
+package me.advait.mai.command.pathetic;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -89,7 +89,7 @@ public class PatheticTestCommand implements TabExecutor {
                         pathfinder.findPath(
                                 start,
                                 target,
-                                List.of(new PassablePathFilter(), new BridgeRealismFilter()));
+                                List.of(new PassablePathFilter()));
 
                 // Handle the pathfinding result
                 pathfindingResult.thenAccept(

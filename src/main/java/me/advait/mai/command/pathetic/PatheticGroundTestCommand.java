@@ -1,4 +1,4 @@
-package me.advait.mai.command;
+package me.advait.mai.command.pathetic;
 
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
