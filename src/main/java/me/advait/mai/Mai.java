@@ -3,6 +3,7 @@ package me.advait.mai;
 import co.aikar.commands.PaperCommandManager;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HDebugCommand;
+import me.advait.mai.command.pathetic.PatheticBridgeTestCommand;
 import me.advait.mai.command.pathetic.PatheticGroundTestCommand;
 import me.advait.mai.command.pathetic.PatheticTestCommand;
 import me.advait.mai.file.SettingsFile;
@@ -52,7 +53,7 @@ public final class Mai extends JavaPlugin {
         paperCommandManager.registerCommand(new HDebugCommand());
         getCommand("pathetictest").setExecutor(new PatheticTestCommand());
         getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
-        getCommand("patheticbridgetest").setExecutor(new PatheticGroundTestCommand());
+        getCommand("patheticbridgetest").setExecutor(new PatheticBridgeTestCommand());
     }
 
     public void initializeCitizens() {

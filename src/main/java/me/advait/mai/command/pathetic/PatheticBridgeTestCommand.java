@@ -82,8 +82,7 @@ public class PatheticBridgeTestCommand implements TabExecutor {
                  * the PassablePathFilter, MinimumHeightFilter, and DangerousMaterialsFilter to filter out
                  * invalid paths.
                  */
-                CompletionStage<PathfinderResult> pathfindingResult =
-                        PatheticAgent.getInstance().getBridgingPath(playerSession.getPos1(), playerSession.getPos2());
+                CompletionStage<PathfinderResult> pathfindingResult = PatheticAgent.getInstance().getBridgingPath(playerSession.getPos1(), playerSession.getPos2());
 
                 // Handle the pathfinding result
                 pathfindingResult.thenAccept(
