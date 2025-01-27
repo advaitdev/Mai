@@ -3,6 +3,7 @@ package me.advait.mai.brain.action.runnable;
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.mai.Settings;
+import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.pathetic.PatheticAgent;
@@ -21,12 +22,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
-    private final NPC npc;
+    private final Humanoid humanoid;
     private final Location target;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
 
-    public HumanoidWalkToRunnable(NPC npc, Location target, CompletableFuture<HumanoidActionResult> resultFuture) {
-        this.npc = npc;
+    public HumanoidWalkToRunnable(Humanoid humanoid, Location target, CompletableFuture<HumanoidActionResult> resultFuture) {
+        this.humanoid = humanoid;
         this.target = target;
         this.resultFuture = resultFuture;
     }
@@ -38,6 +39,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     @Override
     public void run() {
+        NPC npc = humanoid.getNpc();
+
         if (npc == null || npc.getEntity() == null) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.NPC_IS_NULL));
             cancel();
