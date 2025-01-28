@@ -29,8 +29,8 @@ public class NavigationRealismFilter implements PathFilter {
 
         boolean underground = !currentBlock.isPassable() && !currentBlock.getRelative(0, 1, 0).isPassable();
 
+        // "Mining" pathfinding
         if (underground) {
-
             // If the y-level hasn't changed, simply check that we aren't mining diagonally.
             if (parent.getY() == current.getY()) {
                 return parent.getX() == current.getX() || parent.getZ() == current.getZ();
@@ -42,6 +42,7 @@ public class NavigationRealismFilter implements PathFilter {
             }
         }
 
+        // "Building" pathfinding
         else {
             // If the y-level hasn't changed, simply check that we aren't bridging diagonally.
             if (parent.getY() == current.getY()) {

@@ -15,7 +15,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 
-public class PatheticBridgeTestCommand implements TabExecutor {
+public class PatheticNavigationTestCommand implements TabExecutor {
 
     // Map to store player sessions using their unique IDs
     private static final Map<UUID, PlayerSession> SESSION_MAP = new HashMap<>();
@@ -24,7 +24,7 @@ public class PatheticBridgeTestCommand implements TabExecutor {
     private final Pathfinder pathfinder;
 
     // Constructor to initialize the pathfinder
-    public PatheticBridgeTestCommand() {
+    public PatheticNavigationTestCommand() {
         this.pathfinder = PatheticAgent.getInstance().getPathfinder();
     }
 
@@ -79,7 +79,7 @@ public class PatheticBridgeTestCommand implements TabExecutor {
                  * the PassablePathFilter, MinimumHeightFilter, and DangerousMaterialsFilter to filter out
                  * invalid paths.
                  */
-                CompletionStage<PathfinderResult> pathfindingResult = PatheticAgent.getInstance().getBridgingPath(playerSession.getPos1(), playerSession.getPos2());
+                CompletionStage<PathfinderResult> pathfindingResult = PatheticAgent.getInstance().getNPCPath(playerSession.getPos1(), playerSession.getPos2());
 
                 // Handle the pathfinding result
                 pathfindingResult.thenAccept(

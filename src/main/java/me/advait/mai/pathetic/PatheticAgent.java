@@ -3,6 +3,7 @@ package me.advait.mai.pathetic;
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
+import de.metaphoriker.pathetic.api.pathing.filter.PathFilterStage;
 import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
@@ -57,11 +58,10 @@ public final class PatheticAgent {
 
     /**
      * Gets a possible path from one point to another, including via <strong>non-solid ground only</strong>.
+     *
      * @param origin The starting point of the path.
      * @param dest The ending point of the path.
-     * @return
      */
-
     public CompletionStage<PathfinderResult> getBridgingPath(Location origin, Location dest) {
         PathPosition start = BukkitMapper.toPathPosition(origin);
         PathPosition end = BukkitMapper.toPathPosition(dest);
@@ -70,6 +70,20 @@ public final class PatheticAgent {
                 start,
                 end,
                 List.of(new NavigationRealismFilter())
+        );
+        return pathfindingResult;
+    }
+
+    public CompletionStage<PathfinderResult> getNPCPath(Location origin, Location dest) {
+        PathPosition start = BukkitMapper.toPathPosition(origin);
+        PathPosition end = BukkitMapper.toPathPosition(dest);
+
+        CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
+                start,
+                end,
+                List.of(),
+                List.of(new PathFilterStage(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter()),
+                        new PathFilterStage(new NavigationRealismFilter()))
         );
         return pathfindingResult;
     }

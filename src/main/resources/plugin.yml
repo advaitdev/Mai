@@ -9,5 +9,5 @@ commands:
     description: Pathetic API test command.
   patheticgroundtest:
     description: Pathetic API ground test command.
-  patheticbridgetest:
-    description: Pathetic API bridge test command.
+  patheticnavigationtest:
+    description: Pathetic API NPC navigation test command.
