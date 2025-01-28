@@ -21,6 +21,15 @@ public class HumanoidGoToRunnable extends BukkitRunnable {
         this.resultFuture = resultFuture;
     }
 
+    // TODO / PLAN:
+    // - calculate ground path to the location
+    // - if ground path is possible, use code from WalkToAction to follow it
+    // - if no ground path is possible, find the bridge path
+    // - build the blocks on the bridge path using a helper method to get blocks from inventory
+    //    - this includes mining blocks too
+    // - if no blocks are left and a ground path isn't possible, no success
+    // - if no path at all is possible, no success
+
     @Override
     public void run() {
         NPC npc = humanoid.getNpc();
@@ -30,8 +39,6 @@ public class HumanoidGoToRunnable extends BukkitRunnable {
             cancel();
             return;
         }
-
-
 
     }
 
