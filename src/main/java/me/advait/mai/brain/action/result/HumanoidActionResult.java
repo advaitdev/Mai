@@ -3,6 +3,7 @@ package me.advait.mai.brain.action.result;
 import me.advait.mai.Mai;
 import me.advait.mai.brain.action.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionResultEvent;
+import me.advait.mai.monitor.Monitor;
 import org.bukkit.Bukkit;
 
 public class HumanoidActionResult {
@@ -18,7 +19,7 @@ public class HumanoidActionResult {
     public HumanoidActionResult(boolean success, String message, Class<?> resultClassOrigin) {
         this(success, message);
         if (!HumanoidAction.class.isAssignableFrom(resultClassOrigin)) {
-            Mai.log().severe("A non-HumanoidAction class was passed into HumanoidActionResult: " + resultClassOrigin);
+            Monitor.logError("A non-HumanoidAction class was passed into HumanoidActionResult: " + resultClassOrigin);
             throw new IllegalArgumentException("A non-HumanoidAction class was passed into HumanoidActionResult: " + resultClassOrigin);
         }
         // TODO: Call HumanoidActionResultEvent

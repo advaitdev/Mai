@@ -9,7 +9,7 @@ import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.Mai;
+import me.advait.mai.monitor.Monitor;
 import org.bukkit.Location;
 
 import java.util.List;
@@ -69,7 +69,7 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(new BridgeRealismFilter())
+                List.of(new NavigationRealismFilter())
         );
         return pathfindingResult;
     }
@@ -83,7 +83,7 @@ public final class PatheticAgent {
                canNavigateResult.complete(true);
             } else canNavigateResult.complete(false);
         }).exceptionally(ex -> {
-            Mai.log().severe("Could not determine a pathfinding result: " + ex.getMessage());
+            Monitor.logError("Could not determine a pathfinding result: " + ex.getMessage());
             canNavigateResult.complete(false);
             return null;
         });

@@ -1,12 +1,9 @@
 package me.advait.mai.command.pathetic;
 
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
-import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
-import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
-import me.advait.mai.pathetic.BridgeRealismFilter;
 import me.advait.mai.pathetic.PatheticAgent;
 import org.bukkit.Location;
 import org.bukkit.Material;

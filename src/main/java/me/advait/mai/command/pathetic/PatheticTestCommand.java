@@ -9,7 +9,6 @@ import java.util.concurrent.CompletionStage;
 
 import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
-import me.advait.mai.pathetic.BridgeRealismFilter;
 import me.advait.mai.pathetic.PatheticAgent;
 import org.bukkit.Location;
 import org.bukkit.Material;
