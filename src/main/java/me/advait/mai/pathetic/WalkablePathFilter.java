@@ -20,6 +20,6 @@ public class WalkablePathFilter implements PathFilter {
         var belowNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(below);
 
 
-        return currentNavigationPoint.isTraversable() && aboveNavigationPoint.isTraversable();
+        return currentNavigationPoint.isTraversable() && aboveNavigationPoint.isTraversable() && belowNavigationPoint.getMaterial().isSolid();
     }
 }
