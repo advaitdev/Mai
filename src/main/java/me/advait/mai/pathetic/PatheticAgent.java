@@ -12,6 +12,7 @@ import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
 import me.advait.mai.monitor.Monitor;
 import org.bukkit.Location;
+import org.checkerframework.checker.units.qual.N;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -81,10 +82,9 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(),
-                List.of(new PathFilterStage(new WalkablePathFilter()),
-                        new PathFilterStage(new NavigationRealismFilter()))
-//                List.of(new PathFilterStage(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter()),
+                List.of(),  // TODO: fix stages not working properly
+                List.of(new PathFilterStage(new WalkablePathFilter(), new NavigationRealismFilter()))
+//                List.of(new PathFilterStage(new WalkablePathFilter()),
 //                        new PathFilterStage(new NavigationRealismFilter()))
 
         );
