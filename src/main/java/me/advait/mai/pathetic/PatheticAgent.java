@@ -81,9 +81,14 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(),
-                List.of(new PathFilterStage(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter()),
+                List.of(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter(), new NavigationRealismFilter()),
+                List.of(new PathFilterStage(new SolidGroundFilter()),
+                        new PathFilterStage(new PassablePathFilter()),
+                        new PathFilterStage(new WalkablePathFilter()),
                         new PathFilterStage(new NavigationRealismFilter()))
+//                List.of(new PathFilterStage(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter()),
+//                        new PathFilterStage(new NavigationRealismFilter()))
+
         );
         return pathfindingResult;
     }
