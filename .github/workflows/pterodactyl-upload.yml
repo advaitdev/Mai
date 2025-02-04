@@ -45,7 +45,7 @@ jobs:
         run: mvn clean package
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifact
           path: target/*.jar  # Upload only the .jar file
