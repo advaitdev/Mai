@@ -5,11 +5,15 @@ import de.metaphoriker.pathetic.api.pathing.filter.PathValidationContext;
 import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
+import me.advait.mai.monitor.Monitor;
 
 public class WalkablePathFilter implements PathFilter {
 
     @Override
     public boolean filter(PathValidationContext pathValidationContext) {
+        Monitor.log("WalkablePathFilter running.");
+
+
         PathPosition above = pathValidationContext.getPosition().add(0, 1, 0);
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 

@@ -4,6 +4,7 @@ import de.metaphoriker.pathetic.api.pathing.filter.PathFilter;
 import de.metaphoriker.pathetic.api.pathing.filter.PathValidationContext;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
+import me.advait.mai.monitor.Monitor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,6 +21,8 @@ public class NavigationRealismFilter implements PathFilter {
 
     @Override
     public boolean filter(@NotNull PathValidationContext pathValidationContext) {
+        Monitor.log("NavigationRealismFilter running.");
+
         PathPosition parent = pathValidationContext.getParent();
         PathPosition current = pathValidationContext.getPosition();
 
