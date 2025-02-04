@@ -6,6 +6,7 @@ import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
 
+@Deprecated
 public class SolidGroundFilter implements PathFilter {
 
     @Override

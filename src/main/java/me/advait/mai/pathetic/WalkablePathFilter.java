@@ -13,9 +13,9 @@ public class WalkablePathFilter implements PathFilter {
         PathPosition above = pathValidationContext.getPosition().add(0, 1, 0);
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 
-        var currentNavigationPoint = navigationPointProvider.getNavigationPoint(pathValidationContext.getPosition());
+        var currentNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(pathValidationContext.getPosition());
         var aboveNavigationPoint = (BukkitNavigationPoint) navigationPointProvider.getNavigationPoint(above);
 
-        return currentNavigationPoint.isTraversable() && aboveNavigationPoint.isTraversable();
+        return currentNavigationPoint.isTraversable() && aboveNavigationPoint.isTraversable() && currentNavigationPoint.getMaterial().isSolid();
     }
 }
