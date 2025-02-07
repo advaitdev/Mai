@@ -1,4 +1,4 @@
-package me.advait.patheticCitizens;
+package me.advait.patheticcitizens;
 
 import org.bukkit.plugin.java.JavaPlugin;
 

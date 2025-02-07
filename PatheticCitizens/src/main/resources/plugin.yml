@@ -1,4 +1,4 @@
 name: PatheticCitizens
 version: '1.0-SNAPSHOT'
-main: me.advait.patheticCitizens.PatheticCitizens
+main: me.advait.patheticcitizens.PatheticCitizens
 api-version: '1.21'
