@@ -123,4 +123,12 @@ jobs:
           server-id: "c69a0091-a46b-45bd-b7c1-3e305c672c51"
           source: "./PatheticCitizens-GIT.jar"
           target: "./plugins/"
+          restart: false
+
+      - name: Restart Server
+        uses: rexlmanu/pterodactyl-upload-action@v2.1
+        with:
+          panel-host: ${{ secrets.PANEL_HOST }}
+          api-key: ${{ secrets.API_KEY }}
+          server-id: "c69a0091-a46b-45bd-b7c1-3e305c672c51"
           restart: true
