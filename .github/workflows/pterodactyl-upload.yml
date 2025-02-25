@@ -88,7 +88,8 @@ jobs:
           echo "Updated version in src/main/resources/plugin.yml"
 
       - name: Build Mai with Maven
-        run: mvn clean package
+#        run: mvn clean package
+        run: mvn package
 
       - name: Upload Mai Build Artifact
         uses: actions/upload-artifact@v4
