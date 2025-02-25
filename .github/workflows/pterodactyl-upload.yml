@@ -49,6 +49,7 @@ jobs:
           name: mai-build-artifact
           path: target/*.jar
 
+
   build-patheticcitizens:
     runs-on: ubuntu-latest
     name: Build PatheticCitizens .jar
@@ -70,6 +71,14 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: Calculate Commit Info
+        id: commit-info
+        run: |
+          commit_number=$(git rev-list --count HEAD)
+          commit_hash=$(git rev-parse --short HEAD)
+          echo "COMMIT_NUMBER=$commit_number" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$commit_hash" >> $GITHUB_ENV
 
       - name: Update plugin.yml with Version (PatheticCitizens)
         run: |
