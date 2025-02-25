@@ -17,7 +17,7 @@
   </properties>
 
   <build>
-    <finalName>Mai-GIT</finalName>
+    <finalName>PatheticCitizens-GIT</finalName>
     <defaultGoal>clean package</defaultGoal>
     <plugins>
       <plugin>
