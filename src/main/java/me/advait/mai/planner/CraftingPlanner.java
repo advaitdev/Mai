@@ -23,12 +23,18 @@ https://docs.oracle.com/javase/8/docs/api/java/util/List.html
  */
 
 public class CraftingPlanner {
-    private Inventory inventory;
+    private ArrayList<ItemStack> inventory;
     public CraftingPlanner(Humanoid humanoid){
-        this.inventory = humanoid.getInventory();
+        this.inventory = new ArrayList<ItemStack>();
+        for(ItemStack inventorySlot : humanoid.getInventory()){
+            this.inventory.add(inventorySlot);
+        }
     }
     public CraftingPlanner(Player player){
-        this.inventory = player.getInventory();
+        this.inventory = new ArrayList<ItemStack>();
+        for(ItemStack inventorySlot : player.getInventory()){
+            this.inventory.add(inventorySlot);
+        }
     }
 
     private ArrayList<ItemStack> getIngredients(ItemStack goal){
@@ -68,6 +74,10 @@ public class CraftingPlanner {
     }
 
     public String craftItem(String name, int amount){
+        for(ItemStack inventorySlot : inventory){
+            if(inventorySlot != null) {Bukkit.broadcastMessage(inventorySlot.toString());}
+            else{Bukkit.broadcastMessage("Null");}
+        }
         Material material = Material.getMaterial(name);
         ItemStack goal;
         if (material == null)
@@ -79,7 +89,21 @@ public class CraftingPlanner {
         queue.add(goal);
         while (!queue.isEmpty()){
             ItemStack currentItem = queue.removeFirst();
-
+            for(int i = 0; i < inventory.size(); i++){
+                if (inventory.get(i) == null){
+                    Bukkit.broadcastMessage("MUSTAAAAAAAAAAAARD");
+                    inventory.set(i,currentItem);
+                    break;
+                }
+            }
+            temp = getIngredients(currentItem);
+            if(!temp.isEmpty()){
+                queue.addAll(temp);
+            }
+        }
+        for(ItemStack inventorySlot : inventory){
+            if(inventorySlot != null) {Bukkit.broadcastMessage(inventorySlot.toString());}
+            else{Bukkit.broadcastMessage("Null");}
         }
 
         String test = "";
@@ -90,8 +114,6 @@ public class CraftingPlanner {
         }
 
         return test;
-
-
         //return "Item crafted successfully";
     }
 
