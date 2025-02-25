@@ -8,9 +8,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PatheticCitizens extends JavaPlugin {
 
+    private static PatheticCitizens INSTANCE = null;
+
     @Override
     public void onEnable() {
         // Plugin startup logic
+
+        INSTANCE = this;
 
         NPC npc;
         CitizensNPC citizensNPC;
@@ -19,6 +23,14 @@ public final class PatheticCitizens extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+
+        INSTANCE = null;
+
     }
+
+    public static PatheticCitizens getInstance() {
+        return INSTANCE;
+    }
+
 }
+
