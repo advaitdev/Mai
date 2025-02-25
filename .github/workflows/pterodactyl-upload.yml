@@ -130,5 +130,7 @@ jobs:
         with:
           panel-host: ${{ secrets.PANEL_HOST }}
           api-key: ${{ secrets.API_KEY }}
+          source: ""
+          target: ""
           server-id: "c69a0091-a46b-45bd-b7c1-3e305c672c51"
           restart: true
