@@ -54,6 +54,7 @@ jobs:
   build-mai:
     runs-on: ubuntu-latest
     name: Build Mai .jar
+    needs: build-patheticcitizens
     steps:
       - uses: actions/checkout@v3
         with:
