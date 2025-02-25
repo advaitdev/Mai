@@ -40,8 +40,10 @@ jobs:
           sed -i "s/^version:.*$/version: 1.A.${COMMIT_NUMBER} (${COMMIT_HASH})/" ./PatheticCitizens/src/main/resources/plugin.yml
           echo "Updated version in PatheticCitizens/src/main/resources/plugin.yml"
 
-      - name: Build PatheticCitizens with Maven
-        run: mvn -f ./PatheticCitizens/pom.xml clean package
+      - name: Build PatheticCitizens with Maven and push to local repo
+       #run: mvn -f ./PatheticCitizens/pom.xml clean package
+        run: mvn -f ./PatheticCitizens/pom.xml clean install
+
 
       - name: Upload PatheticCitizens Build Artifact
         uses: actions/upload-artifact@v4
