@@ -5,6 +5,50 @@ on:
 
 jobs:
 
+  build-patheticcitizens:
+    runs-on: ubuntu-latest
+    name: Build PatheticCitizens .jar
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Calculate Commit Info
+        id: commit-info
+        run: |
+          commit_number=$(git rev-list --count HEAD)
+          commit_hash=$(git rev-parse --short HEAD)
+          echo "COMMIT_NUMBER=$commit_number" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$commit_hash" >> $GITHUB_ENV
+
+      - name: Update plugin.yml with Version (PatheticCitizens)
+        run: |
+          sed -i "s/^version:.*$/version: 1.A.${COMMIT_NUMBER} (${COMMIT_HASH})/" ./PatheticCitizens/src/main/resources/plugin.yml
+          echo "Updated version in PatheticCitizens/src/main/resources/plugin.yml"
+
+      - name: Build PatheticCitizens with Maven
+        run: mvn -f ./PatheticCitizens/pom.xml clean package
+
+      - name: Upload PatheticCitizens Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: patheticcitizens-build-artifact
+          path: PatheticCitizens/target/*.jar
+
   build-mai:
     runs-on: ubuntu-latest
     name: Build Mai .jar
@@ -49,50 +93,6 @@ jobs:
           name: mai-build-artifact
           path: target/*.jar
 
-
-  build-patheticcitizens:
-    runs-on: ubuntu-latest
-    name: Build PatheticCitizens .jar
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: 21
-          distribution: temurin
-
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Calculate Commit Info
-        id: commit-info
-        run: |
-          commit_number=$(git rev-list --count HEAD)
-          commit_hash=$(git rev-parse --short HEAD)
-          echo "COMMIT_NUMBER=$commit_number" >> $GITHUB_ENV
-          echo "COMMIT_HASH=$commit_hash" >> $GITHUB_ENV
-
-      - name: Update plugin.yml with Version (PatheticCitizens)
-        run: |
-          sed -i "s/^version:.*$/version: 1.A.${COMMIT_NUMBER} (${COMMIT_HASH})/" ./PatheticCitizens/src/main/resources/plugin.yml
-          echo "Updated version in PatheticCitizens/src/main/resources/plugin.yml"
-
-      - name: Build PatheticCitizens with Maven
-        run: mvn -f ./PatheticCitizens/pom.xml clean package
-
-      - name: Upload PatheticCitizens Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: patheticcitizens-build-artifact
-          path: PatheticCitizens/target/*.jar
 
   deploy:
     runs-on: ubuntu-latest
