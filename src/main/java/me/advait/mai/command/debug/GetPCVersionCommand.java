@@ -1,4 +1,4 @@
-package me.advait.mai.command;
+package me.advait.mai.command.debug;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;

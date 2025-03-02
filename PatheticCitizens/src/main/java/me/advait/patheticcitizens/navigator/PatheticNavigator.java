@@ -12,6 +12,7 @@ public final class PatheticNavigator extends CitizensNavigator {
 
     public void setWalkableTarget(Location target) {
         // TODO
+
     }
 
     public void setBuildableTarget(Location target) {

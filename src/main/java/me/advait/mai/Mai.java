@@ -2,7 +2,8 @@ package me.advait.mai;
 
 import co.aikar.commands.PaperCommandManager;
 import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
-import me.advait.mai.command.HDebugCommand;
+import me.advait.mai.command.debug.GetPCVersionCommand;
+import me.advait.mai.command.debug.HDebugCommand;
 import me.advait.mai.command.pathetic.PatheticNavigationTestCommand;
 import me.advait.mai.command.pathetic.PatheticGroundTestCommand;
 import me.advait.mai.command.pathetic.PatheticTestCommand;
@@ -53,6 +54,8 @@ public final class Mai extends JavaPlugin {
         PaperCommandManager paperCommandManager = new PaperCommandManager(this);
 
         paperCommandManager.registerCommand(new HDebugCommand());
+        paperCommandManager.registerCommand(new GetPCVersionCommand());
+
         getCommand("pathetictest").setExecutor(new PatheticTestCommand());
         getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
         getCommand("patheticnavigationtest").setExecutor(new PatheticNavigationTestCommand());

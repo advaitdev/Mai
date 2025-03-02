@@ -1,4 +1,4 @@
-package me.advait.mai.pathetic;
+package me.advait.patheticcitizens.pathfinder;
 
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
@@ -10,14 +10,15 @@ import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.monitor.Monitor;
+import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
+import me.advait.patheticcitizens.pathfinder.filter.SolidGroundFilter;
+import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
 import org.bukkit.Location;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-@Deprecated
 public final class PatheticAgent {
 
     private static final PatheticAgent INSTANCE = new PatheticAgent();
@@ -96,10 +97,9 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = getGroundPath(origin, dest);
         pathfindingResult.thenAccept(result -> {
             if (result.successful()) {
-               canNavigateResult.complete(true);
+                canNavigateResult.complete(true);
             } else canNavigateResult.complete(false);
         }).exceptionally(ex -> {
-            Monitor.logError("Could not determine a pathfinding result: " + ex.getMessage());
             canNavigateResult.complete(false);
             return null;
         });
