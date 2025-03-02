@@ -9,6 +9,7 @@ import me.advait.mai.command.pathetic.PatheticTestCommand;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.npc.trait.HumanoidTrait;
+import me.advait.patheticcitizens.PatheticCitizens;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.trait.TraitInfo;
 import org.bukkit.Bukkit;

@@ -1,5 +1,5 @@
 name: Mai
-version: '1.0.16'
+version: '1.0-SNAPSHOT'
 main: me.advait.mai.Mai
 api-version: '1.20'
 authors: [Advait]
@@ -9,3 +9,5 @@ commands:
     description: Pathetic API test command.
   patheticgroundtest:
     description: Pathetic API ground test command.
+  patheticnavigationtest:
+    description: Pathetic API NPC navigation test command.
