@@ -92,7 +92,7 @@ jobs:
 
       - name: Build Mai with Maven
 #        run: mvn clean package
-        run: mvn clean package
+        run: mvn clean install
 
       - name: Upload Mai Build Artifact
         uses: actions/upload-artifact@v4

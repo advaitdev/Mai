@@ -45,6 +45,7 @@ public final class Mai extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
 
+        PatheticCitizens patheticCitizens;
     }
 
     public void registerCommands() {
