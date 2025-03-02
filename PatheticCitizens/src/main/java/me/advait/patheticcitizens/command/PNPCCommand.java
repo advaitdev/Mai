@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 @CommandAlias("pnpc")
 public class PNPCCommand extends BaseCommand {
 
-    @Subcommand("walktome")
+    @CommandAlias("walktome")
     public void runWalkToMe(Player player) {
         NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
         if (npc == null) {
