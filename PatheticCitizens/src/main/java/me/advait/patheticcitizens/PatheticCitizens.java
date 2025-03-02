@@ -18,7 +18,7 @@ public final class PatheticCitizens extends JavaPlugin {
 
         INSTANCE = this;
 
-
+        registerCommands();
     }
 
     @Override
