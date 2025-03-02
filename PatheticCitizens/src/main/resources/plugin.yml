@@ -2,3 +2,5 @@ name: PatheticCitizens
 version: '${project.version}'
 main: me.advait.patheticcitizens.PatheticCitizens
 api-version: '1.21'
+depend:
+  - Citizens

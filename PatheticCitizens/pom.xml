@@ -81,6 +81,7 @@
       <groupId>net.citizensnpcs</groupId>
       <artifactId>citizens-main</artifactId>
       <version>2.0.37-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.mcmonkey</groupId>
