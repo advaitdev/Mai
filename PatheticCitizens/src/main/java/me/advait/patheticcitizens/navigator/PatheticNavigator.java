@@ -8,9 +8,9 @@ import org.bukkit.Location;
 
 public final class PatheticNavigator extends CitizensNavigator {
 
-    private final PatheticNPC npc;
+    private final NPC npc;
 
-    public PatheticNavigator(PatheticNPC npc) {
+    public PatheticNavigator(NPC npc) {
         super(npc);
         this.npc = npc;
     }
