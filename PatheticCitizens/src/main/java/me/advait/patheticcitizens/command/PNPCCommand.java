@@ -33,6 +33,9 @@ public class PNPCCommand extends BaseCommand {
         } catch (Exception e) {
             player.sendMessage(Component.text("Failed to modify navigator field: " + e.getMessage()).color(NamedTextColor.RED));
         }
+
+        player.sendMessage(npc.getNavigator().getClass().toString());
+
     }
 
 }
