@@ -21,6 +21,8 @@ public class PNPCCommand extends BaseCommand {
             return;
         }
 
+        player.sendMessage(Component.text(npc.getClass().getSimpleName()).color(NamedTextColor.GREEN));
+
         PatheticNPC patheticNPC = (PatheticNPC) npc;
         patheticNPC.getNavigator().setWalkableTarget(player.getLocation());
     }
