@@ -48,6 +48,9 @@ public class PatheticTestCommand extends BaseCommand {
         Location start = session.getPos1();
         Location end = session.getPos2();
 
+        player.sendMessage(Component.text("Starting ").color(NamedTextColor.GREEN)
+                .append(Component.text("NPC path ").color(NamedTextColor.GOLD))
+                .append(Component.text("test").color(NamedTextColor.GREEN)));
         player.sendMessage(Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
 
         CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getNPCPath(start, end);
@@ -84,14 +87,18 @@ public class PatheticTestCommand extends BaseCommand {
         Location start = session.getPos1();
         Location end = session.getPos2();
 
-        player.sendMessage(Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
+        player.sendMessage(Component.text("Starting ").color(NamedTextColor.GREEN)
+                .append(Component.text("ground path ").color(NamedTextColor.GOLD))
+                .append(Component.text("test").color(NamedTextColor.GREEN)));
+        player.sendMessage(
+                Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
 
         CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getGroundPath(start, end);
 
         pathfinderResult.thenAccept(
                 result -> {
                     player.sendMessage(Component.text("State: " + result.getPathState().name()).color(NamedTextColor.GOLD));
-                    player.sendMessage(Component.text("Bridge path length: " + result.getPath().length()).color(NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("Path length: " + result.getPath().length()).color(NamedTextColor.GREEN));
 
                     // If pathfinding is successful, show the path to the player
                     if (result.successful() || result.hasFallenBack()) {
