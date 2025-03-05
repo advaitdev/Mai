@@ -50,7 +50,7 @@ public class PatheticTestCommand extends BaseCommand {
 
         player.sendMessage(Component.text("Starting ").color(NamedTextColor.GREEN)
                 .append(Component.text("NPC path ").color(NamedTextColor.GOLD))
-                .append(Component.text("test").color(NamedTextColor.GREEN)));
+                .append(Component.text("test...").color(NamedTextColor.GREEN)));
         player.sendMessage(Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
 
         CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getNPCPath(start, end);
@@ -89,7 +89,7 @@ public class PatheticTestCommand extends BaseCommand {
 
         player.sendMessage(Component.text("Starting ").color(NamedTextColor.GREEN)
                 .append(Component.text("ground path ").color(NamedTextColor.GOLD))
-                .append(Component.text("test").color(NamedTextColor.GREEN)));
+                .append(Component.text("test...").color(NamedTextColor.GREEN)));
         player.sendMessage(
                 Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
 
