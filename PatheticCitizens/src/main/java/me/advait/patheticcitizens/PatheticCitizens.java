@@ -2,6 +2,7 @@ package me.advait.patheticcitizens;
 
 import co.aikar.commands.PaperCommandManager;
 import me.advait.patheticcitizens.command.PNPCCommand;
+import me.advait.patheticcitizens.command.PatheticTestCommand;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.CitizensNPC;
 import net.citizensnpcs.npc.ai.AStarNavigationStrategy;
@@ -30,6 +31,8 @@ public final class PatheticCitizens extends JavaPlugin {
 
     private void registerCommands() {
         PaperCommandManager pm = new PaperCommandManager(this);
+
+        pm.registerCommand(new PatheticTestCommand());
         pm.registerCommand(new PNPCCommand());
     }
 

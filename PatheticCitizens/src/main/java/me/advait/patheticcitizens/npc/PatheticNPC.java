@@ -5,6 +5,7 @@ import me.advait.patheticcitizens.navigator.PatheticNavigator;
 import net.citizensnpcs.api.npc.NPCRegistry;
 import net.citizensnpcs.npc.CitizensNPC;
 import net.citizensnpcs.npc.EntityController;
+import net.citizensnpcs.util.NMS;
 
 import java.lang.reflect.Field;
 
