@@ -1,6 +1,7 @@
 package me.advait.patheticcitizens;
 
 import co.aikar.commands.PaperCommandManager;
+import de.metaphoriker.pathetic.engine.Pathetic;
 import me.advait.patheticcitizens.command.PNPCCommand;
 import me.advait.patheticcitizens.command.PatheticTestCommand;
 import net.citizensnpcs.api.npc.NPC;
@@ -16,6 +17,8 @@ public final class PatheticCitizens extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
+
+        getLogger().info("Pathetic version:" + Pathetic.getEngineVersion());
 
         INSTANCE = this;
 

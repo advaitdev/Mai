@@ -56,9 +56,9 @@ public final class Mai extends JavaPlugin {
         paperCommandManager.registerCommand(new HDebugCommand());
         paperCommandManager.registerCommand(new GetPCVersionCommand());
 
-        getCommand("pathetictest").setExecutor(new PatheticTestCommand());
-        getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
-        getCommand("patheticnavigationtest").setExecutor(new PatheticNavigationTestCommand());
+//        getCommand("pathetictest").setExecutor(new PatheticTestCommand());
+//        getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
+//        getCommand("patheticnavigationtest").setExecutor(new PatheticNavigationTestCommand());
     }
 
     public void initializeCitizens() {

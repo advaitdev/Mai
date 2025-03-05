@@ -2,10 +2,7 @@ package me.advait.patheticcitizens.command;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.Subcommand;
-import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.navigator.PatheticNavigator;
-import me.advait.patheticcitizens.npc.PatheticNPC;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.CitizensNPC;

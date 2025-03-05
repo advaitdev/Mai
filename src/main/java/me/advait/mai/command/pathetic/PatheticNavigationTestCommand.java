@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 
+@Deprecated
 public class PatheticNavigationTestCommand implements TabExecutor {
 
     // Map to store player sessions using their unique IDs
