@@ -23,34 +23,70 @@ public class PatheticTestCommand extends BaseCommand {
 
     private final PatheticAgent patheticAgent = PatheticAgent.getInstance();
 
-    @CommandAlias("npc pos1")
+    @CommandAlias("pos1")
     public void runNPCPos1(Player player) {
         PlayerSession session = SESSION_MAP.computeIfAbsent(player.getUniqueId(), k -> new PlayerSession());
         session.setPos1(player.getLocation());
         player.sendMessage(Component.text("Position 1 set to " + session.getPos1()).color(NamedTextColor.GREEN));
     }
 
-    @CommandAlias("npc pos2")
+    @CommandAlias("pos2")
     public void runNPCPos2(Player player) {
         PlayerSession session = SESSION_MAP.computeIfAbsent(player.getUniqueId(), k -> new PlayerSession());
         session.setPos2(player.getLocation());
         player.sendMessage(Component.text("Position 2 set to " + session.getPos1()).color(NamedTextColor.GREEN));
     }
 
-    @CommandAlias("npc start")
+    @CommandAlias("start npc")
     public void runNPCStart(Player player) {
         PlayerSession session = SESSION_MAP.computeIfAbsent(player.getUniqueId(), k -> new PlayerSession());
         if (!session.isComplete()) {
             player.sendMessage(Component.text("Set both locations first!").color(NamedTextColor.RED));
             return;
         }
-        
+
         Location start = session.getPos1();
         Location end = session.getPos2();
 
         player.sendMessage(Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
 
         CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getNPCPath(start, end);
+
+        pathfinderResult.thenAccept(
+                result -> {
+                    player.sendMessage(Component.text("State: " + result.getPathState().name()).color(NamedTextColor.GOLD));
+                    player.sendMessage(Component.text("Bridge path length: " + result.getPath().length()).color(NamedTextColor.GREEN));
+
+                    // If pathfinding is successful, show the path to the player
+                    if (result.successful() || result.hasFallenBack()) {
+                        result
+                                .getPath()
+                                .forEach(
+                                        position -> {
+                                            Location location = BukkitMapper.toLocation(position);
+                                            player.sendBlockChange(
+                                                    location, Material.YELLOW_STAINED_GLASS.createBlockData());
+                                        });
+                    } else {
+                        player.sendMessage(Component.text("Path not found!").color(NamedTextColor.RED));
+                    }
+                });
+    }
+
+    @CommandAlias("start ground")
+    public void runGroundStart(Player player) {
+        PlayerSession session = SESSION_MAP.computeIfAbsent(player.getUniqueId(), k -> new PlayerSession());
+        if (!session.isComplete()) {
+            player.sendMessage(Component.text("Set both locations first!").color(NamedTextColor.RED));
+            return;
+        }
+
+        Location start = session.getPos1();
+        Location end = session.getPos2();
+
+        player.sendMessage(Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
+
+        CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getGroundPath(start, end);
 
         pathfinderResult.thenAccept(
                 result -> {
