@@ -116,18 +116,18 @@
     <dependency>
       <groupId>com.github.Metaphoriker.pathetic</groupId>
       <artifactId>paper</artifactId>
-      <version>4.0.1</version>
+      <version>4.0.3</version>
     </dependency>
     <dependency>
       <groupId>com.github.Metaphoriker.pathetic</groupId>
       <artifactId>pathetic-engine</artifactId>
-      <version>4.0.2</version>
+      <version>4.0.3</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.github.Metaphoriker.pathetic</groupId>
       <artifactId>pathetic-bukkit</artifactId>
-      <version>4.0.2</version>
+      <version>4.0.3</version>
       <scope>compile</scope>
     </dependency>
     <dependency>

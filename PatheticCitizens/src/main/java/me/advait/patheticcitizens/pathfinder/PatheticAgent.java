@@ -13,6 +13,9 @@ import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
 import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
 import me.advait.patheticcitizens.pathfinder.filter.SolidGroundFilter;
 import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
+import net.citizensnpcs.api.astar.pathfinder.MinecraftBlockExaminer;
+import net.citizensnpcs.npc.CitizensNPC;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import org.bukkit.Location;
 
 import java.util.List;
@@ -74,6 +77,7 @@ public final class PatheticAgent {
                 List.of(new NavigationRealismFilter())
         );
         return pathfindingResult;
+
     }
 
     public CompletionStage<PathfinderResult> getNPCPath(Location origin, Location dest) {
