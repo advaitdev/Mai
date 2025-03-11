@@ -4,18 +4,14 @@ import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilterStage;
-import de.metaphoriker.pathetic.api.pathing.filter.filters.PassablePathFilter;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
+import me.advait.patheticcitizens.pathfinder.filter.GamerFilter;
 import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
-import me.advait.patheticcitizens.pathfinder.filter.SolidGroundFilter;
 import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
-import net.citizensnpcs.api.astar.pathfinder.MinecraftBlockExaminer;
-import net.citizensnpcs.npc.CitizensNPC;
-import net.citizensnpcs.npc.ai.CitizensNavigator;
 import org.bukkit.Location;
 
 import java.util.List;
@@ -88,7 +84,7 @@ public final class PatheticAgent {
                 start,
                 end,
                 List.of(),
-                List.of(new PathFilterStage(new WalkablePathFilter()), new PathFilterStage(new NavigationRealismFilter()))
+                List.of(new PathFilterStage(new WalkablePathFilter()), new PathFilterStage(new GamerFilter()))
         );
         return pathfindingResult;
     }

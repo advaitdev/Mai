@@ -1,5 +1,6 @@
 package me.advait.mai.pathetic;
 
+
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilter;
 import de.metaphoriker.pathetic.api.pathing.filter.PathValidationContext;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
  * This should be used in plugins where Pathetic acts as a substitute for an entity-realistic pathfinder, such as Citizens.
  */
 
+@Deprecated  // Implemented in PatheticCitizens
 public class NavigationRealismFilter implements PathFilter {
 
     @Override
