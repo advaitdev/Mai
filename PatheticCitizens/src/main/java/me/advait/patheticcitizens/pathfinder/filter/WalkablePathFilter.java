@@ -10,7 +10,6 @@ public class WalkablePathFilter implements PathFilter {
 
     @Override
     public boolean filter(PathValidationContext pathValidationContext) {
-
         PathPosition above = pathValidationContext.getPosition().add(0, 1, 0);
         NavigationPointProvider navigationPointProvider = pathValidationContext.getNavigationPointProvider();
 
@@ -23,4 +22,5 @@ public class WalkablePathFilter implements PathFilter {
 
         return currentNavigationPoint.isTraversable() && aboveNavigationPoint.isTraversable() && belowNavigationPoint.getMaterial().isSolid();
     }
+
 }
