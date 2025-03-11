@@ -33,6 +33,19 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.5.3</version>
+        <configuration>
+          <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
+          <relocations>
+            <relocation>
+              <pattern>co.aikar.commands</pattern>
+              <shadedPattern>me.advait.patheticcitizens.acf</shadedPattern> <!-- Replace this -->
+            </relocation>
+            <relocation>
+              <pattern>co.aikar.locales</pattern>
+              <shadedPattern>me.advait.patheticcitizens.locales</shadedPattern> <!-- Replace this -->
+            </relocation>
+          </relocations>
+        </configuration>
         <executions>
           <execution>
             <phase>package</phase>
@@ -68,6 +81,10 @@
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
     </repository>
+    <repository>
+      <id>aikar</id>
+      <url>https://repo.aikar.co/content/groups/aikar/</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -99,7 +116,24 @@
     <dependency>
       <groupId>com.github.Metaphoriker.pathetic</groupId>
       <artifactId>paper</artifactId>
-      <version>4.0.2</version>
+      <version>4.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.Metaphoriker.pathetic</groupId>
+      <artifactId>pathetic-engine</artifactId>
+      <version>4.0.3</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.Metaphoriker.pathetic</groupId>
+      <artifactId>pathetic-bukkit</artifactId>
+      <version>4.0.3</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>co.aikar</groupId>
+      <artifactId>acf-paper</artifactId>
+      <version>0.5.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

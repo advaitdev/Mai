@@ -1,4 +1,4 @@
-package me.advait.mai.pathetic;
+package me.advait.patheticcitizens.pathfinder;
 
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
@@ -10,14 +10,18 @@ import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.monitor.Monitor;
+import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
+import me.advait.patheticcitizens.pathfinder.filter.SolidGroundFilter;
+import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
+import net.citizensnpcs.api.astar.pathfinder.MinecraftBlockExaminer;
+import net.citizensnpcs.npc.CitizensNPC;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import org.bukkit.Location;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-@Deprecated
 public final class PatheticAgent {
 
     private static final PatheticAgent INSTANCE = new PatheticAgent();
@@ -52,7 +56,7 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter())
+                List.of(new WalkablePathFilter())
         );
         return pathfindingResult;
     }
@@ -73,6 +77,7 @@ public final class PatheticAgent {
                 List.of(new NavigationRealismFilter())
         );
         return pathfindingResult;
+
     }
 
     public CompletionStage<PathfinderResult> getNPCPath(Location origin, Location dest) {
@@ -82,10 +87,8 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = PATHFINDER.findPath(
                 start,
                 end,
-                List.of(),  // TODO: fix stages not working properly
-                List.of(new PathFilterStage(new WalkablePathFilter()),
-                        new PathFilterStage(new NavigationRealismFilter()))
-
+                List.of(),
+                List.of(new PathFilterStage(new WalkablePathFilter()), new PathFilterStage(new NavigationRealismFilter()))
         );
         return pathfindingResult;
     }
@@ -96,10 +99,9 @@ public final class PatheticAgent {
         CompletionStage<PathfinderResult> pathfindingResult = getGroundPath(origin, dest);
         pathfindingResult.thenAccept(result -> {
             if (result.successful()) {
-               canNavigateResult.complete(true);
+                canNavigateResult.complete(true);
             } else canNavigateResult.complete(false);
         }).exceptionally(ex -> {
-            Monitor.logError("Could not determine a pathfinding result: " + ex.getMessage());
             canNavigateResult.complete(false);
             return null;
         });

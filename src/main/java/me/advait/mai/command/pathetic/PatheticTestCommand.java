@@ -20,6 +20,7 @@ import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 
+@Deprecated
 public class PatheticTestCommand implements TabExecutor {
 
     // Map to store player sessions using their unique IDs
