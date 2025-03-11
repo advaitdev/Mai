@@ -11,6 +11,7 @@ import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
 import me.advait.patheticcitizens.pathfinder.filter.GamerFilter;
 import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
+import me.advait.patheticcitizens.pathfinder.filter.TestFilter;
 import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
 import org.bukkit.Location;
 
@@ -84,7 +85,7 @@ public final class PatheticAgent {
                 start,
                 end,
                 List.of(),
-                List.of(new PathFilterStage(new WalkablePathFilter()), new PathFilterStage(new GamerFilter()))
+                List.of(new PathFilterStage(new WalkablePathFilter()), new PathFilterStage(new TestFilter()))
         );
         return pathfindingResult;
     }
