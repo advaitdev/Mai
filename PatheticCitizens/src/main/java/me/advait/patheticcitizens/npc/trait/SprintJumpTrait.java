@@ -3,6 +3,7 @@ package me.advait.patheticcitizens.npc.trait;
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.api.trait.TraitName;
 import net.citizensnpcs.npc.ai.CitizensNavigator;
+import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
@@ -19,11 +20,15 @@ public class SprintJumpTrait extends Trait {
 
     @Override
     public void run() {
+
         if (!npc.isSpawned()) return;
         if (!npc.getNavigator().isNavigating()) return;
         if (npc.getNavigator().isPaused()) return;
 
         LivingEntity entity = (LivingEntity) npc.getEntity();
+
+        Util.faceLocation(entity, npc.getNavigator().getTargetAsLocation());
+
         long currentTime = System.currentTimeMillis();
 
         Location location = entity.getLocation();
@@ -39,6 +44,7 @@ public class SprintJumpTrait extends Trait {
             velocity.setY(0.5);
             entity.setVelocity(velocity);
         }
+
     }
 
 }
