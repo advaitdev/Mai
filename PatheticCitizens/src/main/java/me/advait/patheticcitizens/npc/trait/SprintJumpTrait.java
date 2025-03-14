@@ -26,20 +26,23 @@ public class SprintJumpTrait extends Trait {
         if (npc.getNavigator().isPaused()) return;
 
         LivingEntity entity = (LivingEntity) npc.getEntity();
+        Location targetLocation = npc.getNavigator().getTargetAsLocation();
 
-        Util.faceLocation(entity, npc.getNavigator().getTargetAsLocation());
+        if (npc.getStoredLocation().distance(targetLocation) < 3) return;
+
+        Util.faceLocation(entity, targetLocation);
 
         long currentTime = System.currentTimeMillis();
 
         Location location = entity.getLocation();
-        Vector velocity = location.getDirection().normalize().multiply(1.5);
+        Vector velocity = location.getDirection().normalize().multiply(0.7);
 
         if (velocity.isZero()) return;
 
         if (entity.isOnGround() && currentTime - lastJumpTime > JUMP_COOLDOWN) {
             lastJumpTime = currentTime;
 
-            npc.getNavigator().getLocalParameters().speedModifier(1.1f);
+            npc.getNavigator().getLocalParameters().speedModifier(0.7f);
 
             velocity.setY(0.5);
             entity.setVelocity(velocity);
