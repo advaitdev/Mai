@@ -1,9 +1,11 @@
 package me.advait.patheticcitizens.npc.trait;
 
 import net.citizensnpcs.api.trait.Trait;
+import net.citizensnpcs.api.trait.TraitName;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
+@TraitName("sprintjump")
 public class SprintJumpTrait extends Trait {
 
     private long lastJumpTime = 0;
