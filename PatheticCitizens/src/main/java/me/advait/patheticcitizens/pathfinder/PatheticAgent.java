@@ -13,6 +13,7 @@ import me.advait.patheticcitizens.pathfinder.filter.NavigationRealismFilter;
 import me.advait.patheticcitizens.pathfinder.filter.TestFilter;
 import me.advait.patheticcitizens.pathfinder.filter.WalkablePathFilter;
 import org.bukkit.Location;
+import org.bukkit.Warning;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +31,7 @@ public final class PatheticAgent {
     private final PathfinderFactory FACTORY = new AStarPathfinderFactory();
     private final PathfinderConfiguration CONFIG = PathfinderConfiguration.builder()
             .provider(new LoadingNavigationPointProvider())
-            //.async(true)
+            .async(true)
             .build();
     private final Pathfinder PATHFINDER = FACTORY.createPathfinder(CONFIG);
 
@@ -38,6 +39,21 @@ public final class PatheticAgent {
         return PATHFINDER;
     }
 
+
+    /**
+     * Gets a <strong>raw</strong> path (i.e. a path with no filters or checks) from one point to another.
+     * This may return a path that is dangerous or impossible to traverse.
+     * Do <strong>not</strong> use this in production.
+     *
+     * @param origin The starting point of the path.
+     * @param dest The ending point of the path.
+     */
+    public CompletionStage<PathfinderResult> getRawPath(Location origin, Location dest) {
+        PathPosition start = BukkitMapper.toPathPosition(origin);
+        PathPosition end = BukkitMapper.toPathPosition(dest);
+
+        return PATHFINDER.findPath(start, end, List.of());
+    }
 
     /**
      * Gets a possible path from one point to another via <strong>solid ground only</strong>.
