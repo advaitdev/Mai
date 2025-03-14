@@ -1,10 +1,14 @@
 package me.advait.patheticcitizens;
 
 import co.aikar.commands.PaperCommandManager;
+import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import de.metaphoriker.pathetic.engine.Pathetic;
 import me.advait.patheticcitizens.command.PNPCCommand;
 import me.advait.patheticcitizens.command.PatheticTestCommand;
+import me.advait.patheticcitizens.npc.trait.SprintJumpTrait;
+import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.trait.TraitInfo;
 import net.citizensnpcs.npc.CitizensNPC;
 import net.citizensnpcs.npc.ai.AStarNavigationStrategy;
 import net.citizensnpcs.npc.ai.CitizensNavigator;
@@ -23,6 +27,8 @@ public final class PatheticCitizens extends JavaPlugin {
         INSTANCE = this;
 
         registerCommands();
+        initializePathetic();
+        initializeCitizensTraits();
     }
 
     @Override
@@ -37,6 +43,14 @@ public final class PatheticCitizens extends JavaPlugin {
 
         pm.registerCommand(new PatheticTestCommand());
         pm.registerCommand(new PNPCCommand());
+    }
+
+    private void initializePathetic() {
+        PatheticBukkit.initialize(this);
+    }
+
+    private void initializeCitizensTraits() {
+        CitizensAPI.getTraitFactory().registerTrait(TraitInfo.create(SprintJumpTrait.class));
     }
 
     public static PatheticCitizens getInstance() {
