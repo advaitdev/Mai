@@ -131,13 +131,6 @@ jobs:
           target: "./plugins/"
           restart: false
 
-      - name: Send kick message before deployment
-        run: |
-          curl -X POST "https://${{ secrets.PANEL_HOST }}/api/client/servers/c69a0091-a46b-45bd-b7c1-3e305c672c51/command" \
-            -H "Authorization: Bearer ${{ secrets.API_KEY }}" \
-            -H "Content-Type: application/json" \
-            --data '{"command": "kick @a A new build is being deployed."}'
-
       - name: Deploy PatheticCitizens to Pterodactyl
         uses: rexlmanu/pterodactyl-upload-action@v2.1
         with:
