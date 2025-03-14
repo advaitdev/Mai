@@ -20,6 +20,8 @@ public class SprintJumpTrait extends Trait {
     @Override
     public void run() {
         if (!npc.isSpawned()) return;
+        if (!npc.getNavigator().isNavigating()) return;
+        if (npc.getNavigator().isPaused()) return;
 
         LivingEntity entity = (LivingEntity) npc.getEntity();
         long currentTime = System.currentTimeMillis();
@@ -32,7 +34,7 @@ public class SprintJumpTrait extends Trait {
         if (entity.isOnGround() && currentTime - lastJumpTime > JUMP_COOLDOWN) {
             lastJumpTime = currentTime;
 
-            npc.getNavigator().getLocalParameters().speedModifier(1.3f);
+            npc.getNavigator().getLocalParameters().speedModifier(1.1f);
 
             velocity.setY(0.5);
             entity.setVelocity(velocity);
