@@ -2,6 +2,8 @@ package me.advait.patheticcitizens.npc.trait;
 
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.api.trait.TraitName;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
+import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
@@ -22,16 +24,19 @@ public class SprintJumpTrait extends Trait {
         LivingEntity entity = (LivingEntity) npc.getEntity();
         long currentTime = System.currentTimeMillis();
 
-        if (entity.isOnGround() && currentTime - lastJumpTime > JUMP_COOLDOWN && npc.getNavigator().isNavigating()) {
+        Location location = entity.getLocation();
+        Vector velocity = location.getDirection().normalize().multiply(1.5);
+
+        if (velocity.isZero()) return;
+
+        if (entity.isOnGround() && currentTime - lastJumpTime > JUMP_COOLDOWN) {
             lastJumpTime = currentTime;
 
             npc.getNavigator().getLocalParameters().speedModifier(1.3f);
 
-            Vector velocity = entity.getVelocity();
             velocity.setY(0.5);
-            velocity.setX(velocity.getX() * 1.2);
-            velocity.setZ(velocity.getZ() * 1.2);
             entity.setVelocity(velocity);
         }
     }
+
 }
