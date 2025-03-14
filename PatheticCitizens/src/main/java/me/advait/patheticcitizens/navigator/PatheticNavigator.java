@@ -2,8 +2,10 @@ package me.advait.patheticcitizens.navigator;
 
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
+import net.citizensnpcs.api.NMSHelper;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.ai.CitizensNavigator;
+import net.citizensnpcs.util.NMS;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
