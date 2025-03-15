@@ -35,8 +35,6 @@ public final class PatheticNavigator {
         var groundPath = AGENT.getGroundPath(npc.getLocation(), target);
         System.out.println("Found the ground path.");
 
-        PatheticUtil.toLocationQueue(groundPath).forEach(location -> System.out.println(location));
-
         PatheticNavigationStrategy navigationStrategy = new PatheticNavigationStrategy(
                 npc,
                 this,

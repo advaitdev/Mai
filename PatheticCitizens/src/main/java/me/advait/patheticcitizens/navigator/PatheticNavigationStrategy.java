@@ -36,6 +36,11 @@ public class PatheticNavigationStrategy {
             return;
         }
 
+        if (path.isEmpty()) {
+            System.out.println("Path is empty.");
+            return;
+        }
+
         if (arrived()) {
             System.out.println("Arrived at destination.");
             patheticNavigator.setNavigating(false);
