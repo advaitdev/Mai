@@ -22,7 +22,7 @@ public class PatheticTrait extends Trait {
             Bukkit.getLogger().info("Detected unregistered Pathetic NPC: " + npc.getName()
                     + " (" + npc.getMinecraftUniqueId() + ")" + "! Registering...");
 
-            PatheticNPC patheticNPC = new PatheticNPC(npc.getName());
+            PatheticNPC patheticNPC = new PatheticNPC(npc);
             registry.register(patheticNPC);
         }
 

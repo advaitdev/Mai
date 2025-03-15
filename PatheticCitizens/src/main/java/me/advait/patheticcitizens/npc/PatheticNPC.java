@@ -14,9 +14,9 @@ public class PatheticNPC {
     private final String name;
     private final NPC citizensNPC;
 
-    public PatheticNPC(String name) {
-        this.name = name;
-        this.citizensNPC = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, name);
+    public PatheticNPC(NPC citizensNPC) {
+        this.name = citizensNPC.getName();
+        this.citizensNPC = citizensNPC;
     }
 
     public void destroy() {
