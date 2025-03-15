@@ -15,7 +15,7 @@ public class PatheticTrait extends Trait {
 
     @Override
     public void run() {
-        if (!PatheticNPCRegistry.isRegistered(npc)) {
+        if (!PatheticNPCRegistry.getInstance().isRegistered(npc)) {
             Bukkit.getLogger().info("Detected unregistered Pathetic NPC: " + npc.getName() + "! Registering...");
             PatheticNPC patheticNPC = new PatheticNPC(npc.getName());
             patheticNPC.register();

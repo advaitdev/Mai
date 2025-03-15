@@ -4,30 +4,35 @@ import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class PatheticNPCRegistry {
 
-    private PatheticNPCRegistry() {}
+    public static final PatheticNPCRegistry INSTANCE = new PatheticNPCRegistry();
 
-    private static final Map<NPC, PatheticNPC> npcMap = new ConcurrentHashMap<>();
+    public static PatheticNPCRegistry getInstance() {
+        return INSTANCE;
+    }
 
-    public static void register(PatheticNPC patheticNPC) {
-        npcMap.put(patheticNPC.getCitizensNPC(), patheticNPC);
+    private final Map<UUID /* Citizens-provided UUID */, PatheticNPC> npcMap = new ConcurrentHashMap<>();
+
+    public void register(PatheticNPC patheticNPC) {
+        npcMap.put(patheticNPC.getCitizensNPC().getUniqueId(), patheticNPC);
         Bukkit.getLogger().info("Registered Pathetic NPC: " + patheticNPC.getName());
     }
 
-    public static void unregister(PatheticNPC patheticNPC) {
-        npcMap.remove(patheticNPC.getCitizensNPC());
+    public void unregister(PatheticNPC patheticNPC) {
+        npcMap.remove(patheticNPC.getCitizensNPC().getUniqueId());
         Bukkit.getLogger().info("Unregistered Pathetic NPC: " + patheticNPC.getName());
     }
 
-    public static PatheticNPC getPatheticNPC(NPC npc) {
-        return npcMap.get(npc);
+    public PatheticNPC getPatheticNPC(NPC npc) {
+        return npcMap.get(npc.getUniqueId());
     }
 
-    public static boolean isRegistered(NPC npc) {
-        return npcMap.containsKey(npc);
+    public boolean isRegistered(NPC npc) {
+        return npcMap.containsKey(npc.getUniqueId());
     }
 
 }

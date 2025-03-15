@@ -18,12 +18,12 @@ public class PatheticNPC {
     }
 
     public void register() {
-        PatheticNPCRegistry.register(this);
+        PatheticNPCRegistry.getInstance().register(this);
     }
 
     public void destroy() {
         citizensNPC.destroy();
-        PatheticNPCRegistry.unregister(this);
+        PatheticNPCRegistry.getInstance().unregister(this);
     }
 
     public Location getLocation() {

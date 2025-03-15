@@ -19,7 +19,7 @@ public class PNPCCommand extends BaseCommand {
 
     @CommandAlias("walktome")
     public void runWalkToMe(Player player) {
-        PatheticNPC npc = PatheticNPCRegistry.getPatheticNPC(
+        PatheticNPC npc = PatheticNPCRegistry.getInstance().getPatheticNPC(
                 CitizensAPI.getDefaultNPCSelector().getSelected(player));
 
         if (npc == null) {
