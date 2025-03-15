@@ -17,10 +17,6 @@ public class PatheticNPC {
         this.citizensNPC = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, name);
     }
 
-    public void register() {
-        PatheticNPCRegistry.getInstance().register(this);
-    }
-
     public void destroy() {
         citizensNPC.destroy();
         PatheticNPCRegistry.getInstance().unregister(this);

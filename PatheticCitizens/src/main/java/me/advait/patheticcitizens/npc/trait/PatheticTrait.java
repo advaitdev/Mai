@@ -13,12 +13,18 @@ public class PatheticTrait extends Trait {
         super("Pathetic");
     }
 
+
     @Override
     public void run() {
-        if (!PatheticNPCRegistry.getInstance().isRegistered(npc)) {
+        PatheticNPCRegistry registry = PatheticNPCRegistry.getInstance();
+
+        PatheticNPC existingPatheticNPC = registry.getPatheticNPC(npc);
+        if (existingPatheticNPC == null) {
             Bukkit.getLogger().info("Detected unregistered Pathetic NPC: " + npc.getName() + "! Registering...");
+
             PatheticNPC patheticNPC = new PatheticNPC(npc.getName());
-            patheticNPC.register();
+            registry.register(patheticNPC);
         }
+
     }
 }
