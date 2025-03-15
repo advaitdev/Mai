@@ -3,6 +3,7 @@ package me.advait.patheticcitizens.npc;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +16,7 @@ public final class PatheticNPCRegistry {
         return INSTANCE;
     }
 
-    private final Map<UUID /* Citizens-provided UUID */, PatheticNPC> npcMap = new ConcurrentHashMap<>();
+    private final Map<UUID /* Citizens-provided UUID */, PatheticNPC> npcMap = new HashMap<>();
 
     public void register(PatheticNPC patheticNPC) {
         npcMap.put(patheticNPC.getCitizensNPC().getUniqueId(), patheticNPC);

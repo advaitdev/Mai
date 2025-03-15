@@ -13,7 +13,6 @@ public class PatheticTrait extends Trait {
         super("Pathetic");
     }
 
-
     @Override
     public void run() {
         PatheticNPCRegistry registry = PatheticNPCRegistry.getInstance();
