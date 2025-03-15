@@ -40,8 +40,8 @@ public class PatheticNPC {
         return citizensNPC;
     }
 
-    public UUID getMinecraftUUID() {
-        return citizensNPC.getMinecraftUniqueId();
+    public UUID getUUID() {
+        return citizensNPC.getUniqueId();
     }
 
 }
