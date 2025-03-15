@@ -8,7 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
-@TraitName("sprintjump")
+@TraitName("SprintJump")
 public class SprintJumpTrait extends Trait {
 
     private long lastJumpTime = 0;

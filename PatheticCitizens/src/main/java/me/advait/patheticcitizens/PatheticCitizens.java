@@ -5,6 +5,7 @@ import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
 import de.metaphoriker.pathetic.engine.Pathetic;
 import me.advait.patheticcitizens.command.PNPCCommand;
 import me.advait.patheticcitizens.command.PatheticTestCommand;
+import me.advait.patheticcitizens.npc.trait.PatheticTrait;
 import me.advait.patheticcitizens.npc.trait.SprintJumpTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -50,6 +51,7 @@ public final class PatheticCitizens extends JavaPlugin {
     }
 
     private void initializeCitizensTraits() {
+        CitizensAPI.getTraitFactory().registerTrait(TraitInfo.create(PatheticTrait.class));
         CitizensAPI.getTraitFactory().registerTrait(TraitInfo.create(SprintJumpTrait.class));
     }
 
