@@ -34,6 +34,9 @@ public final class PatheticNavigator {
     public void setWalkableTarget(Location target) {
         var groundPath = AGENT.getGroundPath(npc.getLocation(), target);
         System.out.println("Found the ground path.");
+
+        PatheticUtil.toLocationQueue(groundPath).forEach(location -> System.out.println(location));
+
         PatheticNavigationStrategy navigationStrategy = new PatheticNavigationStrategy(
                 npc,
                 this,
@@ -41,7 +44,9 @@ public final class PatheticNavigator {
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
             if (navigationStrategy.arrived()) currentTask.cancel();
-            else navigationStrategy.tick();
+            else {
+                navigationStrategy.tick();
+            }
         }, 0, 10L);
 
     }
