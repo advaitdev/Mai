@@ -40,7 +40,7 @@ public final class PatheticNavigator {
                 PatheticUtil.toLocationQueue(groundPath));
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
-            if (navigationStrategy.isComplete()) currentTask.cancel();
+            if (navigationStrategy.arrived()) currentTask.cancel();
             else navigationStrategy.tick();
         }, 0, 10L);
 

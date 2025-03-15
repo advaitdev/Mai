@@ -6,6 +6,8 @@ import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import org.bukkit.Location;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.CompletionStage;
@@ -18,8 +20,8 @@ public final class PatheticUtil {
      * @param patheticPath The CompletionStage (async) path returned by Pathetic.
      * @return A queue (FIFO) of the path as locations; null if no path was found.
      */
-    public static @Nullable Queue<Location> toLocationQueue(CompletionStage<PathfinderResult> patheticPath) {
-        AtomicReference<Queue<Location>> locations = new AtomicReference<>(new LinkedList<>());
+    public static @Nullable Deque<Location> toLocationQueue(CompletionStage<PathfinderResult> patheticPath) {
+        AtomicReference<Deque<Location>> locations = new AtomicReference<>(new ArrayDeque<>());
         patheticPath.thenAccept(result -> {
             if (result.successful()) {
                 Path path = result.getPath();

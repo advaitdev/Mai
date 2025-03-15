@@ -8,23 +8,22 @@ import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Deque;
 import java.util.Queue;
 
 public class PatheticNavigationStrategy {
 
     private final PatheticNPC patheticNPC;
     private final PatheticNavigator patheticNavigator;
-    private Queue<Location> path;
-    private boolean complete;
+    private Deque<Location> path;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Queue<Location> path) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path) {
         this.patheticNPC = patheticNPC;
         this.patheticNavigator = patheticNavigator;
         this.path = path;
-        this.complete = false;
     }
 
-    public void setPath(@Nullable Queue<Location> path) {
+    public void setPath(@Nullable Deque<Location> path) {
         this.path = path;
     }
 
@@ -37,9 +36,8 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        if (path.isEmpty()) {
-            this.complete = true;
-            System.out.println("Path is empty.");
+        if (arrived()) {
+            System.out.println("Arrived at destination.");
             patheticNavigator.setNavigating(false);
             return;
         }
@@ -53,8 +51,8 @@ public class PatheticNavigationStrategy {
                 1.0f);
     }
 
-    public boolean isComplete() {
-        return complete;
+    public boolean arrived() {
+        if (path.peekLast() == null) return false;
+        return patheticNPC.getLocation().distance(path.peekLast()) <= 1;
     }
-
 }

@@ -19,11 +19,16 @@ public class PNPCCommand extends BaseCommand {
 
     @CommandAlias("walktome")
     public void runWalkToMe(Player player) {
+        if (CitizensAPI.getDefaultNPCSelector().getSelected(player) == null) {
+            player.sendMessage(Component.text("You have no NPC selected!", NamedTextColor.RED));
+            return;
+        }
+
         PatheticNPC npc = PatheticNPCRegistry.getInstance().getPatheticNPC(
                 CitizensAPI.getDefaultNPCSelector().getSelected(player));
 
         if (npc == null) {
-            player.sendMessage(Component.text("You have no NPC selected!", NamedTextColor.RED));
+            player.sendMessage(Component.text("The selected NPC does not have the Pathetic trait!", NamedTextColor.RED));
             return;
         }
 
