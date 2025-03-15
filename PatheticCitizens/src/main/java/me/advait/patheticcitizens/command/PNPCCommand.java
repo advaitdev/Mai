@@ -3,6 +3,8 @@ package me.advait.patheticcitizens.command;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
 import me.advait.patheticcitizens.navigator.PatheticNavigator;
+import me.advait.patheticcitizens.npc.PatheticNPC;
+import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.CitizensNPC;
@@ -17,22 +19,17 @@ public class PNPCCommand extends BaseCommand {
 
     @CommandAlias("walktome")
     public void runWalkToMe(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
+        PatheticNPC npc = PatheticNPCRegistry.getPatheticNPC(
+                CitizensAPI.getDefaultNPCSelector().getSelected(player));
+
         if (npc == null) {
-            player.sendMessage(Component.text("You have no NPC selected!").color(NamedTextColor.RED));
+            player.sendMessage(Component.text("You have no NPC selected!", NamedTextColor.RED));
             return;
         }
 
-        try {
-            Field navigatorField = CitizensNPC.class.getDeclaredField("navigator");
-            navigatorField.setAccessible(true);
-            navigatorField.set(npc, new PatheticNavigator(npc));
-        } catch (Exception e) {
-            player.sendMessage(Component.text("Failed to modify navigator field: " + e.getMessage()).color(NamedTextColor.RED));
-        }
-
-        player.sendMessage(npc.getNavigator().getClass().toString());
-
+        npc.getNavigator().setWalkableTarget(player.getLocation());
+        player.sendMessage(Component.text(npc.getName() + " is walking to you...", NamedTextColor.GREEN));
     }
 
 }
+
