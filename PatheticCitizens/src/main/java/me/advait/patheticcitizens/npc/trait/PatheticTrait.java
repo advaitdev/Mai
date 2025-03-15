@@ -19,7 +19,8 @@ public class PatheticTrait extends Trait {
 
         PatheticNPC existingPatheticNPC = registry.getPatheticNPC(npc);
         if (existingPatheticNPC == null) {
-            Bukkit.getLogger().info("Detected unregistered Pathetic NPC: " + npc.getName() + "! Registering...");
+            Bukkit.getLogger().info("Detected unregistered Pathetic NPC: " + npc.getName()
+                    + " (" + npc.getMinecraftUniqueId() + ")" + "! Registering...");
 
             PatheticNPC patheticNPC = new PatheticNPC(npc.getName());
             registry.register(patheticNPC);

@@ -6,6 +6,8 @@ import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 
+import java.util.UUID;
+
 public class PatheticNPC {
 
     private final PatheticNavigator navigator = new PatheticNavigator(this);
@@ -36,6 +38,10 @@ public class PatheticNPC {
 
     public NPC getCitizensNPC() {
         return citizensNPC;
+    }
+
+    public UUID getMinecraftUUID() {
+        return citizensNPC.getMinecraftUniqueId();
     }
 
 }

@@ -16,16 +16,18 @@ public final class PatheticNPCRegistry {
         return INSTANCE;
     }
 
-    private final Map<UUID /* Citizens-provided UUID */, PatheticNPC> npcMap = new HashMap<>();
+    private final Map<UUID /* Minecraft-provided UUID */, PatheticNPC> npcMap = new HashMap<>();
 
     public void register(PatheticNPC patheticNPC) {
-        npcMap.put(patheticNPC.getCitizensNPC().getUniqueId(), patheticNPC);
-        Bukkit.getLogger().info("Registered Pathetic NPC: " + patheticNPC.getName());
+        npcMap.put(patheticNPC.getCitizensNPC().getMinecraftUniqueId(), patheticNPC);
+        Bukkit.getLogger().info("Registered Pathetic NPC: " + patheticNPC.getName()
+                + " (" + patheticNPC.getMinecraftUUID() + ")");
     }
 
     public void unregister(PatheticNPC patheticNPC) {
-        npcMap.remove(patheticNPC.getCitizensNPC().getUniqueId());
-        Bukkit.getLogger().info("Unregistered Pathetic NPC: " + patheticNPC.getName());
+        npcMap.remove(patheticNPC.getCitizensNPC().getMinecraftUniqueId());
+        Bukkit.getLogger().info("Unregistered Pathetic NPC: " + patheticNPC.getName()
+                + " (" + patheticNPC.getMinecraftUUID() + ")");
     }
 
     public PatheticNPC getPatheticNPC(NPC npc) {
