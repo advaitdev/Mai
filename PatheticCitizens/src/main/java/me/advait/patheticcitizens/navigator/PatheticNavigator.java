@@ -25,21 +25,33 @@ public final class PatheticNavigator {
     private final BukkitScheduler scheduler = Bukkit.getScheduler();
     private BukkitTask currentTask;
 
+    private boolean isNavigating = false;
+
     public PatheticNavigator(PatheticNPC npc) {
         this.npc = npc;
     }
 
     public void setWalkableTarget(Location target) {
         var groundPath = AGENT.getGroundPath(npc.getLocation(), target);
+        System.out.println("Found the ground path.");
         PatheticNavigationStrategy navigationStrategy = new PatheticNavigationStrategy(
                 npc,
+                this,
                 PatheticUtil.toLocationQueue(groundPath));
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
             if (navigationStrategy.isComplete()) currentTask.cancel();
             else navigationStrategy.tick();
         }, 0, 10L);
-        
+
+    }
+
+    public boolean isNavigating() {
+        return isNavigating;
+    }
+
+    public void setNavigating(boolean navigating) {
+        isNavigating = navigating;
     }
 
     public void setBuildableTarget(Location target) {

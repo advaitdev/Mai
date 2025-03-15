@@ -13,11 +13,13 @@ import java.util.Queue;
 public class PatheticNavigationStrategy {
 
     private final PatheticNPC patheticNPC;
+    private final PatheticNavigator patheticNavigator;
     private Queue<Location> path;
     private boolean complete;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, Queue<Location> path) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Queue<Location> path) {
         this.patheticNPC = patheticNPC;
+        this.patheticNavigator = patheticNavigator;
         this.path = path;
         this.complete = false;
     }
@@ -30,15 +32,21 @@ public class PatheticNavigationStrategy {
         NPC citizensNPC = patheticNPC.getCitizensNPC();
 
         if (path == null) {
+            patheticNavigator.setNavigating(false);
+            System.out.println("No path found!");
             return;
         }
 
         if (path.isEmpty()) {
             this.complete = true;
+            System.out.println("Path is empty.");
+            patheticNavigator.setNavigating(false);
             return;
         }
 
         Location destination = Util.getCenterLocation(path.remove().getBlock());
+        patheticNavigator.setNavigating(true);
+        System.out.println("Setting NMS destination.");
         NMS.setDestination(
                 citizensNPC.getEntity(),
                 destination.getX(), destination.getY(), destination.getZ(),
