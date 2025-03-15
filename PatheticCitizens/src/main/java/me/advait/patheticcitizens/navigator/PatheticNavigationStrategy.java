@@ -3,6 +3,7 @@ package me.advait.patheticcitizens.navigator;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
@@ -15,9 +16,9 @@ public class PatheticNavigationStrategy {
 
     private final PatheticNPC patheticNPC;
     private final PatheticNavigator patheticNavigator;
-    private Deque<Location> path;
+    private @Nullable Deque<Location> path;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, @Nullable Deque<Location> path) {
         this.patheticNPC = patheticNPC;
         this.patheticNavigator = patheticNavigator;
         this.path = path;
@@ -32,24 +33,21 @@ public class PatheticNavigationStrategy {
 
         if (path == null) {
             patheticNavigator.setNavigating(false);
-            System.out.println("No path found!");
             return;
         }
 
         if (path.isEmpty()) {
-            System.out.println("Path is empty.");
             return;
         }
 
         if (arrived()) {
-            System.out.println("Arrived at destination.");
             patheticNavigator.setNavigating(false);
             return;
         }
 
-        Location destination = Util.getCenterLocation(path.remove().getBlock());
+        Location destination = Util.getCenterLocation(path.peekFirst().getBlock());
+        System.out.println(destination);
         patheticNavigator.setNavigating(true);
-        System.out.println("Setting NMS destination.");
         NMS.setDestination(
                 citizensNPC.getEntity(),
                 destination.getX(), destination.getY(), destination.getZ(),
