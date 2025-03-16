@@ -32,11 +32,13 @@ public class PatheticNavigationStrategy {
         NPC citizensNPC = patheticNPC.getCitizensNPC();
 
         if (path == null) {
+            System.out.println("Path is null.");
             patheticNavigator.setNavigating(false);
             return;
         }
 
         if (path.isEmpty()) {
+            System.out.println("Path is empty.");
             return;
         }
 
