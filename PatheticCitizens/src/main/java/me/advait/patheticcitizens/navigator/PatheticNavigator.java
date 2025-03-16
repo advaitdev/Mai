@@ -49,13 +49,13 @@ public final class PatheticNavigator {
 
                 Deque<Location> locationQueue = new ArrayDeque<>();
                 groundPathResult.thenAccept(result -> {
+
                     if (result.successful()) {
-                        System.out.println("Result successful.");
                         Path path = result.getPath();
-                        for (PathPosition pathPosition : path) {
-                            locationQueue.add(BukkitMapper.toLocation(pathPosition));
-                        }
+                        for (PathPosition pathPosition : path) locationQueue.add(BukkitMapper.toLocation(pathPosition));
+                        navigationStrategy.setPath(locationQueue);
                     }
+
                     navigationStrategy.tick();
                 });
             }
