@@ -39,11 +39,11 @@ public final class PatheticNavigator {
         PatheticNavigationStrategy navigationStrategy = new PatheticNavigationStrategy(
                 npc,
                 this,
-                null);
+                new ArrayDeque<>());
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
-
             if (navigationStrategy.arrived()) currentTask.cancel();
+
             else {
                 var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
 
@@ -55,12 +55,7 @@ public final class PatheticNavigator {
                         for (PathPosition pathPosition : path) {
                             locationQueue.add(BukkitMapper.toLocation(pathPosition));
                         }
-                    } else {
-                        System.out.println("Result failed.");
                     }
-                    System.out.println("LOCATION QUEUE IS BEING DEBUGGED.");
-                    locationQueue.forEach(location -> System.out.println("LOCATION QUEUE DEBUG: " + location));
-                    navigationStrategy.setPath(locationQueue);
                     navigationStrategy.tick();
                 });
             }

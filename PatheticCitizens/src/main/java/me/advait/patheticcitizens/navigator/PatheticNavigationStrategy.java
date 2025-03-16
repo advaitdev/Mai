@@ -16,15 +16,15 @@ public class PatheticNavigationStrategy {
 
     private final PatheticNPC patheticNPC;
     private final PatheticNavigator patheticNavigator;
-    private @Nullable Deque<Location> path;
+    private Deque<Location> path;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, @Nullable Deque<Location> path) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path) {
         this.patheticNPC = patheticNPC;
         this.patheticNavigator = patheticNavigator;
         this.path = path;
     }
 
-    public void setPath(@Nullable Deque<Location> path) {
+    public void setPath(Deque<Location> path) {
         this.path = path;
     }
 
@@ -32,23 +32,20 @@ public class PatheticNavigationStrategy {
         NPC citizensNPC = patheticNPC.getCitizensNPC();
 
         if (path == null) {
-            System.out.println("Path is null.");
             patheticNavigator.setNavigating(false);
             return;
         }
 
         if (path.isEmpty()) {
-            System.out.println("Path is empty.");
             return;
         }
 
         if (arrived()) {
-            System.out.println("NPC arrived.");
             patheticNavigator.setNavigating(false);
             return;
         }
 
-        Location destination = Util.getCenterLocation(path.peekFirst().getBlock());
+        Location destination = Util.getCenterLocation(path.remove().getBlock());
         System.out.println(destination);
         patheticNavigator.setNavigating(true);
         Util.faceLocation(citizensNPC.getEntity(), destination);
