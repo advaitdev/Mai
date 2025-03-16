@@ -84,7 +84,7 @@ public final class PatheticUtil {
                 task.cancel();
                 return;
             }
-            player.spawnParticle(Particle.DUST, location, 50, dustOptions);
+            player.spawnParticle(Particle.DUST, location, 1, dustOptions);
             totalTimeInTicks.getAndDecrement();
         }, 0, 20);
 

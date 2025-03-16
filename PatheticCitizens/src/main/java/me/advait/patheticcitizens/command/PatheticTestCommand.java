@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
+import me.advait.patheticcitizens.util.PatheticUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -107,8 +108,9 @@ public class PatheticTestCommand extends BaseCommand {
                                 .forEach(
                                         position -> {
                                             Location location = BukkitMapper.toLocation(position);
-                                            player.sendBlockChange(
-                                                    location, Material.YELLOW_STAINED_GLASS.createBlockData());
+//                                            player.sendBlockChange(
+//                                                    location, Material.YELLOW_STAINED_GLASS.createBlockData());
+                                            PatheticUtil.sendDebugPath(player, location);
                                         });
                     } else {
                         player.sendMessage(Component.text("Path not found!").color(NamedTextColor.RED));
