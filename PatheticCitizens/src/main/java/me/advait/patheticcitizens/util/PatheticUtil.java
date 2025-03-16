@@ -6,7 +6,11 @@ import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -68,6 +72,11 @@ public final class PatheticUtil {
 
         // If we exhaust both iterators without mismatch, the paths are equivalent
         return !shorterIterator.hasNext() && !longerIterator.hasNext();
+    }
+
+    public static void sendDebugPath(Player player, Location location) {
+        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 127, 255), 1.0F);
+        player.spawnParticle(Particle.CHERRY_LEAVES, player.getLocation(), 50, dustOptions);
     }
 
 }

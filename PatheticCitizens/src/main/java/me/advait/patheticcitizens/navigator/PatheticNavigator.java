@@ -14,6 +14,7 @@ import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -54,7 +55,13 @@ public final class PatheticNavigator {
 
                     if (result.successful()) {
                         Path path = result.getPath();
-                        for (PathPosition pathPosition : path) locationQueue.add(BukkitMapper.toLocation(pathPosition));
+
+                        for (PathPosition pathPosition : path) {
+                            Location bukkitLocation = BukkitMapper.toLocation(pathPosition);
+                            locationQueue.add(bukkitLocation);
+                            for (Player player : Bukkit.getOnlinePlayers()) PatheticUtil.sendDebugPath(player, bukkitLocation);
+                        }
+
                         navigationStrategy.setPath(locationQueue);
                     }
 
