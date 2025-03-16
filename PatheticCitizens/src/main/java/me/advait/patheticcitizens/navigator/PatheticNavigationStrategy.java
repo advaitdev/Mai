@@ -1,12 +1,15 @@
 package me.advait.patheticcitizens.navigator;
 
+import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.citizensnpcs.util.Util;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +23,8 @@ public class PatheticNavigationStrategy {
     private Deque<Location> path;
     private final Location destination;
     private float speed;
+
+    private final BukkitScheduler scheduler = Bukkit.getScheduler();
 
     public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path, Location destination, float speed) {
         this.patheticNPC = patheticNPC;
@@ -69,8 +74,15 @@ public class PatheticNavigationStrategy {
         return patheticNPC.getLocation().distance(destination) <= 1;
     }
 
-    private void setNMSDestination(NPC citizensNPC, Location destination) {
-
+    private void setNMSDestination(NPC citizensNPC, Location destination, float speed) {
+        NMS.updatePathfindingRange(citizensNPC, 1000f);
+        scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
+            if (citizensNPC.getStoredLocation().distance(destination) <= 1) {
+                task.cancel();
+                return;
+            }
+            NMS.setDestination(citizensNPC.getEntity(), destination.getX(), destination.getY(), destination.getZ(), speed);
+        }, 0, 1);
     }
 
 }

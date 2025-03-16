@@ -76,7 +76,7 @@ public final class PatheticUtil {
 
     public static void sendDebugPath(Player player, Location location) {
         Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 127, 255), 1.0F);
-        player.spawnParticle(Particle.CHERRY_LEAVES, player.getLocation(), 50, dustOptions);
+        player.spawnParticle(Particle.HEART, location, 50, dustOptions);
     }
 
 }
