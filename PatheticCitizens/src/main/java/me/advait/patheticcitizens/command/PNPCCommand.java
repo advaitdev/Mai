@@ -2,6 +2,7 @@ package me.advait.patheticcitizens.command;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
+import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.navigator.PatheticNavigator;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
@@ -12,6 +13,7 @@ import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
@@ -53,8 +55,10 @@ public class PNPCCommand extends BaseCommand {
             return;
         }
 
-        NMS.updatePathfindingRange(npc.getCitizensNPC(), 500f);
-        NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 2.0F);
+        Bukkit.getScheduler().runTaskTimer(PatheticCitizens.getInstance(), () -> {
+            NMS.updatePathfindingRange(npc.getCitizensNPC(), 500f);
+            NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 2.0F);
+        }, 0, 1);
         player.sendMessage(Component.text(npc.getName() + " is walking to you via NMS... (Destination:" + NMS.getDestination(npc.getCitizensNPC().getEntity()) + ")", NamedTextColor.GREEN));
     }
 
