@@ -76,7 +76,7 @@ public final class PatheticUtil {
     }
 
     public static void sendDebugPath(Player player, Location location) {
-        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.ORANGE, 1.0F);
+        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.WHITE, 1.0F);
 
         AtomicInteger totalTimeInTicks = new AtomicInteger(20);
         Bukkit.getScheduler().runTaskTimer(PatheticCitizens.getInstance(), task -> {
@@ -84,9 +84,9 @@ public final class PatheticUtil {
                 task.cancel();
                 return;
             }
-            player.spawnParticle(Particle.DUST, location, 1, dustOptions);
+            player.spawnParticle(Particle.DUST, location, 20, dustOptions);
             totalTimeInTicks.getAndDecrement();
-        }, 0, 20);
+        }, 0, 1);
 
     }
 
