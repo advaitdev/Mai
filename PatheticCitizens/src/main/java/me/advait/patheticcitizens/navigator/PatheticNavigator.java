@@ -41,7 +41,13 @@ public final class PatheticNavigator {
             if (navigationStrategy.arrived()) currentTask.cancel();
             else {
                 var groundPathNextTick = AGENT.getGroundPath(npc.getLocation(), target);
-                navigationStrategy.setPath(PatheticUtil.toLocationQueue(groundPathNextTick));
+                var locationQueue = PatheticUtil.toLocationQueue(groundPathNextTick);
+
+                for (var location : locationQueue) {
+                    System.out.println(location);
+                }
+
+                navigationStrategy.setPath(locationQueue);
                 navigationStrategy.tick();
             }
         }, 0, 10L);
