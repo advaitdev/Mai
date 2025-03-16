@@ -54,13 +54,14 @@ public final class PatheticNavigator {
                         Path path = result.getPath();
                         for (PathPosition pathPosition : path) {
                             locationQueue.add(BukkitMapper.toLocation(pathPosition));
-                            System.out.println("ADDED " + BukkitMapper.toLocation(pathPosition));
                         }
                     } else {
                         System.out.println("Result failed.");
                     }
                 });
 
+                System.out.println("LOCATION QUEUE IS BEING DEBUGGED.");
+                locationQueue.forEach(location -> System.out.println("LOCATION QUEUE DEBUG: " + location));
                 navigationStrategy.setPath(locationQueue);
                 navigationStrategy.tick();
             }
