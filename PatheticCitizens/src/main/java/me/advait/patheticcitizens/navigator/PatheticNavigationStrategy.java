@@ -46,7 +46,6 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-
         Location nextLocation = path.peek();
         Util.faceLocation(citizensNPC.getEntity(), nextLocation);
 
@@ -57,8 +56,9 @@ public class PatheticNavigationStrategy {
             return;
         }
 
+        NMS.setDestination(citizensNPC.getEntity(), nextLocation.getX(), nextLocation.getY(), nextLocation.getZ(), 1.0f);
 
-        if (currentLocation.distance(nextLocation) < 0.5) {
+        if (currentLocation.distance(nextLocation) <= 1) {
             path.remove();
         }
 
@@ -69,7 +69,7 @@ public class PatheticNavigationStrategy {
         return patheticNPC.getLocation().distance(destination) <= 1;
     }
 
-    private void setNMSDestination() {
+    private void setNMSDestination(NPC citizensNPC, Location destination) {
 
     }
 

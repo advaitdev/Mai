@@ -27,7 +27,6 @@ public final class PatheticNavigator {
     private final PatheticAgent AGENT = PatheticAgent.getInstance();
 
     private final BukkitScheduler scheduler = Bukkit.getScheduler();
-    private BukkitTask currentTask;
 
     private boolean isNavigating = false;
 
@@ -43,10 +42,11 @@ public final class PatheticNavigator {
                 target,
                 1F);
 
-        this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
-            if (navigationStrategy.arrived()) currentTask.cancel();
+        scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
+            if (navigationStrategy.arrived()) task.cancel();
 
             else {
+                // TODO: We're running Pathetic every tick, is this necessary?
                 var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
 
                 Deque<Location> locationQueue = new ArrayDeque<>();
@@ -61,7 +61,7 @@ public final class PatheticNavigator {
                     navigationStrategy.tick();
                 });
             }
-        }, 0, 10L);
+        }, 0, 1);
 
     }
 
