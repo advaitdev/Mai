@@ -61,6 +61,7 @@ public final class PatheticNavigator {
 
                         navigationStrategy.setPath(locationQueue);
                     }
+
                 });
             }
             CURRENT_ITERATION.getAndIncrement();
