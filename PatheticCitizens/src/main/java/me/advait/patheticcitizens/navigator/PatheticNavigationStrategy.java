@@ -2,19 +2,14 @@ package me.advait.patheticcitizens.navigator;
 
 import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
-import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
 import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.util.Vector;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Deque;
-import java.util.Queue;
 
 public class PatheticNavigationStrategy {
 
@@ -61,9 +56,9 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        setNMSDestination(citizensNPC, Util.getCenterLocation(destination.getBlock()), speed);
+        setNMSDestination(citizensNPC, center(currentLocation), speed);
 
-        if (currentLocation.distance(nextLocation) <= 1) {
+        if (center(currentLocation).equals(nextLocation)) {
             path.remove();
         }
 
@@ -71,17 +66,21 @@ public class PatheticNavigationStrategy {
     }
 
     public boolean arrived() {
-        return patheticNPC.getLocation().distance(destination) <= 1;
+        return center(patheticNPC.getLocation()).equals(destination);
     }
 
-    private void setNMSDestination(NPC citizensNPC, Location destination, float speed) {
+    private Location center(Location location) {
+        return Util.getCenterLocation(location.getBlock());
+    }
+
+    private void setNMSDestination(NPC citizensNPC, Location nmsDestination, float speed) {
         NMS.updatePathfindingRange(citizensNPC, 1000f);
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
-            if (citizensNPC.getStoredLocation().distance(destination) <= 1) {
+            if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
                 task.cancel();
                 return;
             }
-            NMS.setDestination(citizensNPC.getEntity(), destination.getX(), destination.getY(), destination.getZ(), speed);
+            NMS.setDestination(citizensNPC.getEntity(), nmsDestination.getX(), nmsDestination.getY(), nmsDestination.getZ(), speed);
         }, 0, 1);
     }
 
