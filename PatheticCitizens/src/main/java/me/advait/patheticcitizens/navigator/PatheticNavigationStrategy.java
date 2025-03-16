@@ -79,6 +79,7 @@ public class PatheticNavigationStrategy {
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
             if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
                 System.out.println("cancelling task for nmsDestination: " + nmsDestination);
+                path.remove();
                 task.cancel();
                 return;
             }
