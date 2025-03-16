@@ -1,5 +1,6 @@
 package me.advait.patheticcitizens.navigator;
 
+import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import me.advait.patheticcitizens.PatheticCitizens;
@@ -41,6 +42,15 @@ public final class PatheticNavigator {
             if (navigationStrategy.arrived()) currentTask.cancel();
             else {
                 var groundPathNextTick = AGENT.getGroundPath(npc.getLocation(), target);
+
+                // DEBUGGGGGGGGGGG!!!!
+                groundPathNextTick.thenAccept(result -> {
+                    Path path = result.getPath();
+                    for (PathPosition pathPosition : path) {
+                        System.out.println(pathPosition);
+                    }
+                });
+
                 var locationQueue = PatheticUtil.toLocationQueue(groundPathNextTick);
 
                 for (var location : locationQueue) {
