@@ -3,6 +3,7 @@ package me.advait.patheticcitizens.navigator;
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
+import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
@@ -16,6 +17,8 @@ import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
 
 public final class PatheticNavigator {
@@ -39,23 +42,24 @@ public final class PatheticNavigator {
                 null);
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
+
             if (navigationStrategy.arrived()) currentTask.cancel();
             else {
-                var groundPathNextTick = AGENT.getGroundPath(npc.getLocation(), target);
+                var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
 
-                // DEBUGGGGGGGGGGG!!!!
-                groundPathNextTick.thenAccept(result -> {
-                    Path path = result.getPath();
-                    for (PathPosition pathPosition : path) {
-                        System.out.println(pathPosition);
+                Deque<Location> locationQueue = new ArrayDeque<>();
+                groundPathResult.thenAccept(result -> {
+                    if (result.successful()) {
+                        System.out.println("Result successful.");
+                        Path path = result.getPath();
+                        for (PathPosition pathPosition : path) {
+                            locationQueue.offer(BukkitMapper.toLocation(pathPosition));
+                            System.out.println(BukkitMapper.toLocation(pathPosition));
+                        }
+                    } else {
+                        System.out.println("Result failed.");
                     }
                 });
-
-                var locationQueue = PatheticUtil.toLocationQueue(groundPathNextTick);
-
-                for (var location : locationQueue) {
-                    System.out.println(location);
-                }
 
                 navigationStrategy.setPath(locationQueue);
                 navigationStrategy.tick();

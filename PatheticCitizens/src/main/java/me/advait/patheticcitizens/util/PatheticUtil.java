@@ -2,14 +2,14 @@ package me.advait.patheticcitizens.util;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
+import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
+import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
+import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import org.bukkit.Location;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,7 +26,6 @@ public final class PatheticUtil {
             if (result.successful()) {
                 Path path = result.getPath();
                 path.forEach(pathPosition -> {
-                    System.out.println("toLocationQueue DEBUG: " + BukkitMapper.toLocation(pathPosition));
                     locations.get().offer(BukkitMapper.toLocation(pathPosition));
                 });
             } else {
@@ -34,6 +33,41 @@ public final class PatheticUtil {
             }
         });
         return locations.get();
+    }
+
+
+    /**
+     * Determines if the second parameter passed is a "subpath" of the first; meaning, all of the positions in the shorter
+     * path exist in the longer path.
+     *
+     * @param longer The longer path.
+     * @param shorter The shorter path.
+     */
+    public static boolean isSubpathEquivalent(Path longer, Path shorter) {
+        int lengthDifference = longer.length() - shorter.length();
+        if (lengthDifference < 0) return false; // If the "shorter" path is somehow longer, the actual path was 100% recalculated
+
+        // Iterate over the paths, starting from the trimmed position in the longer path
+        Iterator<PathPosition> longerIterator = longer.iterator();
+        Iterator<PathPosition> shorterIterator = shorter.iterator();
+
+        // Skip the first "lengthDifference" positions of the longer path
+        for (int i = 0; i < lengthDifference; i++) {
+            if (longerIterator.hasNext()) {
+                longerIterator.next();
+            } else {
+                return false;
+            }
+        }
+
+        while (shorterIterator.hasNext() && longerIterator.hasNext()) {
+            if (!longerIterator.next().equals(shorterIterator.next())) {
+                return false;
+            }
+        }
+
+        // If we exhaust both iterators without mismatch, the paths are equivalent
+        return !shorterIterator.hasNext() && !longerIterator.hasNext();
     }
 
 }
