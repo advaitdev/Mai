@@ -57,12 +57,6 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        Vector direction = nextLocation.toVector().subtract(currentLocation.toVector()).normalize().multiply(speed);
-
-        if (citizensNPC.getEntity() != null) {
-            citizensNPC.getEntity().setVelocity(direction);
-        }
-
 
         if (currentLocation.distance(nextLocation) < 0.5) {
             path.remove();
@@ -74,4 +68,9 @@ public class PatheticNavigationStrategy {
     public boolean arrived() {
         return patheticNPC.getLocation().distance(destination) <= 1;
     }
+
+    private void setNMSDestination() {
+
+    }
+
 }
