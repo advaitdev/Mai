@@ -55,8 +55,13 @@ public class PNPCCommand extends BaseCommand {
             return;
         }
 
-        Bukkit.getScheduler().runTaskTimer(PatheticCitizens.getInstance(), () -> {
+        Bukkit.getScheduler().runTaskTimer(PatheticCitizens.getInstance(), task -> {
             NMS.updatePathfindingRange(npc.getCitizensNPC(), 500f);
+            if (npc.getLocation().distance(player.getLocation()) <= 1) {
+                task.cancel();
+                player.sendMessage(Component.text(npc.getName() + "Navigation complete! (Final destination: " + NMS.getDestination(npc.getCitizensNPC().getEntity()) + ")", NamedTextColor.GREEN));
+                return;
+            }
             NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 1.0F);
             player.sendActionBar(Component.text("(Destination: " + NMS.getDestination(npc.getCitizensNPC().getEntity()) + ")", NamedTextColor.GREEN));
         }, 0, 1);
