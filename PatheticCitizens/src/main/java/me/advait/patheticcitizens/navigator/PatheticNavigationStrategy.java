@@ -59,7 +59,6 @@ public class PatheticNavigationStrategy {
         setNMSDestination(citizensNPC, center(nextLocation), speed);
 
         if (center(currentLocation).equals(nextLocation)) {
-            System.out.println("center of currentLocation equals nextLocation");
             path.remove();
         }
 
@@ -77,9 +76,12 @@ public class PatheticNavigationStrategy {
     private void setNMSDestination(NPC citizensNPC, Location nmsDestination, float speed) {
         NMS.updatePathfindingRange(citizensNPC, 1000f);
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
+            if (arrived()) {
+                task.cancel();
+                return;
+            }
             if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
-                System.out.println("cancelling task for nmsDestination: " + nmsDestination);
-                path.remove();
+                if (!path.isEmpty()) path.remove();
                 task.cancel();
                 return;
             }
