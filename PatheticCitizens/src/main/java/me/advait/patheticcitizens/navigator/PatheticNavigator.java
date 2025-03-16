@@ -58,12 +58,11 @@ public final class PatheticNavigator {
                     } else {
                         System.out.println("Result failed.");
                     }
+                    System.out.println("LOCATION QUEUE IS BEING DEBUGGED.");
+                    locationQueue.forEach(location -> System.out.println("LOCATION QUEUE DEBUG: " + location));
+                    navigationStrategy.setPath(locationQueue);
+                    navigationStrategy.tick();
                 });
-
-                System.out.println("LOCATION QUEUE IS BEING DEBUGGED.");
-                locationQueue.forEach(location -> System.out.println("LOCATION QUEUE DEBUG: " + location));
-                navigationStrategy.setPath(locationQueue);
-                navigationStrategy.tick();
             }
         }, 0, 10L);
 
