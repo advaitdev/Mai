@@ -25,7 +25,10 @@ public final class PatheticUtil {
         patheticPath.thenAccept(result -> {
             if (result.successful()) {
                 Path path = result.getPath();
-                path.forEach(pathPosition -> locations.get().offer(BukkitMapper.toLocation(pathPosition)));
+                path.forEach(pathPosition -> {
+                    System.out.println("toLocationQueue DEBUG: " + BukkitMapper.toLocation(pathPosition));
+                    locations.get().offer(BukkitMapper.toLocation(pathPosition));
+                });
             } else {
                 locations.set(null);
             }
