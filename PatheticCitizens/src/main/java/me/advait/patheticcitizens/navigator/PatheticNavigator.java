@@ -53,8 +53,8 @@ public final class PatheticNavigator {
                         System.out.println("Result successful.");
                         Path path = result.getPath();
                         for (PathPosition pathPosition : path) {
-                            locationQueue.offer(BukkitMapper.toLocation(pathPosition));
-                            System.out.println(BukkitMapper.toLocation(pathPosition));
+                            locationQueue.add(BukkitMapper.toLocation(pathPosition));
+                            System.out.println("ADDED " + BukkitMapper.toLocation(pathPosition));
                         }
                     } else {
                         System.out.println("Result failed.");
