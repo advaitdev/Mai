@@ -55,6 +55,7 @@ public class PatheticNavigationStrategy {
     }
 
     public boolean arrived() {
+        if (path == null) return false;
         if (path.peekLast() == null) return false;
         return patheticNPC.getLocation().distance(path.peekLast()) <= 1;
     }
