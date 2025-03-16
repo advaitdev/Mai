@@ -8,6 +8,7 @@ import me.advait.patheticcitizens.npc.PatheticNPCRegistry;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.CitizensNPC;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -52,8 +53,10 @@ public class PNPCCommand extends BaseCommand {
             return;
         }
 
-        NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 1.0F);
-        player.sendMessage(Component.text(npc.getName() + " is walking to you via NMS...", NamedTextColor.GREEN));
+        NMS.updatePathfindingRange(npc.getCitizensNPC(), 500f);
+        NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 2.0F);
+        player.sendMessage(Component.text(npc.getName() + " is walking to you via NMS... (Destination:" + NMS.getDestination(npc.getCitizensNPC().getEntity()) + ")", NamedTextColor.GREEN));
+
     }
 
 }

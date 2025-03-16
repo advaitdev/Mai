@@ -17,11 +17,13 @@ public class PatheticNavigationStrategy {
     private final PatheticNPC patheticNPC;
     private final PatheticNavigator patheticNavigator;
     private Deque<Location> path;
+    private float speed;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path, float speed) {
         this.patheticNPC = patheticNPC;
         this.patheticNavigator = patheticNavigator;
         this.path = path;
+        this.speed = speed;
     }
 
     public void setPath(Deque<Location> path) {
@@ -48,10 +50,13 @@ public class PatheticNavigationStrategy {
         Location destination = Util.getCenterLocation(path.remove().getBlock());
         patheticNavigator.setNavigating(true);
         Util.faceLocation(citizensNPC.getEntity(), destination);
-        NMS.setDestination(
-                citizensNPC.getEntity(),
-                destination.getX(), destination.getY(), destination.getZ(),
-                1.0f);
+
+
+
+//        NMS.setDestination(
+//                citizensNPC.getEntity(),
+//                destination.getX(), destination.getY(), destination.getZ(),
+//                speed);
     }
 
     public boolean arrived() {
