@@ -40,7 +40,8 @@ public final class PatheticNavigator {
                 npc,
                 this,
                 null,
-                1f);
+                target,
+                1F);
 
         this.currentTask = scheduler.runTaskTimer(PatheticCitizens.getInstance(), () -> {
             if (navigationStrategy.arrived()) currentTask.cancel();

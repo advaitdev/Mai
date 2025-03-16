@@ -18,12 +18,14 @@ public class PatheticNavigationStrategy {
     private final PatheticNPC patheticNPC;
     private final PatheticNavigator patheticNavigator;
     private Deque<Location> path;
+    private final Location destination;
     private float speed;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path, float speed) {
+    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path, Location destination, float speed) {
         this.patheticNPC = patheticNPC;
         this.patheticNavigator = patheticNavigator;
         this.path = path;
+        this.destination = destination;
         this.speed = speed;
     }
 
@@ -44,23 +46,25 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        Location currentLocation = patheticNPC.getLocation();
-        Location destination = path.peek();
 
-        if (destination == null) {
+        Location nextLocation = path.peek();
+        Util.faceLocation(citizensNPC.getEntity(), nextLocation);
+
+        Location currentLocation = patheticNPC.getLocation();
+
+        if (nextLocation == null) {
             patheticNavigator.setNavigating(false);
             return;
         }
 
-        Vector direction = destination.toVector().subtract(currentLocation.toVector()).normalize().multiply(speed);
+        Vector direction = nextLocation.toVector().subtract(currentLocation.toVector()).normalize().multiply(speed);
 
         if (citizensNPC.getEntity() != null) {
             citizensNPC.getEntity().setVelocity(direction);
         }
 
-        Util.faceLocation(citizensNPC.getEntity(), destination);
 
-        if (currentLocation.distance(destination) < 0.5) {
+        if (currentLocation.distance(nextLocation) < 0.5) {
             path.remove();
         }
 
@@ -68,8 +72,6 @@ public class PatheticNavigationStrategy {
     }
 
     public boolean arrived() {
-        if (path == null) return false;
-        if (path.peekLast() == null) return false;
-        return patheticNPC.getLocation().distance(path.peekLast()) <= 1;
+        return patheticNPC.getLocation().distance(destination) <= 1;
     }
 }
