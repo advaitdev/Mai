@@ -46,7 +46,6 @@ public class PatheticNavigationStrategy {
         }
 
         Location destination = Util.getCenterLocation(path.remove().getBlock());
-        System.out.println(destination);
         patheticNavigator.setNavigating(true);
         Util.faceLocation(citizensNPC.getEntity(), destination);
         NMS.setDestination(
