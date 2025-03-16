@@ -56,8 +56,9 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        // setNMSDestination(citizensNPC, center(nextLocation), speed);
-        citizensNPC.getNavigator().setTarget(nextLocation);
+        // TODO: why isn't this working consistently?
+        // TODO: stop NPC from banging into things
+        setNMSDestination(citizensNPC, center(nextLocation), speed);
 
         if (center(currentLocation).equals(nextLocation)) {
             path.remove();
