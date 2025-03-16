@@ -7,6 +7,7 @@ import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.citizensnpcs.util.NMS;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Deque;
@@ -33,12 +34,8 @@ public class PatheticNavigationStrategy {
     public void tick() {
         NPC citizensNPC = patheticNPC.getCitizensNPC();
 
-        if (path == null) {
+        if (path == null || path.isEmpty()) {
             patheticNavigator.setNavigating(false);
-            return;
-        }
-
-        if (path.isEmpty()) {
             return;
         }
 
@@ -47,16 +44,27 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        Location destination = Util.getCenterLocation(path.remove().getBlock());
-        patheticNavigator.setNavigating(true);
+        Location currentLocation = patheticNPC.getLocation();
+        Location destination = path.peek();
+
+        if (destination == null) {
+            patheticNavigator.setNavigating(false);
+            return;
+        }
+
+        Vector direction = destination.toVector().subtract(currentLocation.toVector()).normalize().multiply(speed);
+
+        if (citizensNPC.getEntity() != null) {
+            citizensNPC.getEntity().setVelocity(direction);
+        }
+
         Util.faceLocation(citizensNPC.getEntity(), destination);
 
+        if (currentLocation.distance(destination) < 0.5) {
+            path.remove();
+        }
 
-
-//        NMS.setDestination(
-//                citizensNPC.getEntity(),
-//                destination.getX(), destination.getY(), destination.getZ(),
-//                speed);
+        patheticNavigator.setNavigating(true);
     }
 
     public boolean arrived() {

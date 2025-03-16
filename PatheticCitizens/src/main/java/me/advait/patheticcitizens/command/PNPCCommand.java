@@ -56,7 +56,6 @@ public class PNPCCommand extends BaseCommand {
         NMS.updatePathfindingRange(npc.getCitizensNPC(), 500f);
         NMS.setDestination(npc.getCitizensNPC().getEntity(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), 2.0F);
         player.sendMessage(Component.text(npc.getName() + " is walking to you via NMS... (Destination:" + NMS.getDestination(npc.getCitizensNPC().getEntity()) + ")", NamedTextColor.GREEN));
-
     }
 
 }
