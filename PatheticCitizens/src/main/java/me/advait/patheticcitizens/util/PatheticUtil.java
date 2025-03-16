@@ -2,19 +2,20 @@ package me.advait.patheticcitizens.util;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
-import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
-import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
+import io.papermc.paper.util.Tick;
+import me.advait.patheticcitizens.PatheticCitizens;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class PatheticUtil {
@@ -75,8 +76,18 @@ public final class PatheticUtil {
     }
 
     public static void sendDebugPath(Player player, Location location) {
-        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 127, 255), 1.0F);
-        player.spawnParticle(Particle.DUST_COLOR_TRANSITION, location, 50, dustOptions);
+        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.ORANGE, 1.0F);
+
+        AtomicInteger totalTimeInTicks = new AtomicInteger(20);
+        Bukkit.getScheduler().runTaskTimer(PatheticCitizens.getInstance(), task -> {
+            if (totalTimeInTicks.get() == 0) {
+                task.cancel();
+                return;
+            }
+            player.spawnParticle(Particle.DUST, location, 50, dustOptions);
+            totalTimeInTicks.getAndDecrement();
+        }, 0, 20);
+
     }
 
 }
