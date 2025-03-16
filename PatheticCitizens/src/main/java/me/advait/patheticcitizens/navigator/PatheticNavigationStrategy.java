@@ -56,7 +56,7 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        setNMSDestination(citizensNPC, center(currentLocation), speed);
+        setNMSDestination(citizensNPC, center(nextLocation), speed);
 
         if (center(currentLocation).equals(nextLocation)) {
             path.remove();
