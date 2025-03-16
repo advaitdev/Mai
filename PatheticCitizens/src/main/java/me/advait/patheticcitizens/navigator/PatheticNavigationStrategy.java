@@ -61,7 +61,7 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        NMS.setDestination(citizensNPC.getEntity(), nextLocation.getX(), nextLocation.getY(), nextLocation.getZ(), speed);
+        setNMSDestination(citizensNPC, nextLocation, speed);
 
         if (currentLocation.distance(nextLocation) <= 1) {
             path.remove();

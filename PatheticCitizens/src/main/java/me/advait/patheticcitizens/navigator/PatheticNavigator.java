@@ -1,26 +1,20 @@
 package me.advait.patheticcitizens.navigator;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
-import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
 import me.advait.patheticcitizens.util.PatheticUtil;
-import net.citizensnpcs.api.NMSHelper;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.npc.ai.CitizensNavigator;
-import net.citizensnpcs.util.NMS;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PatheticNavigator {
 
@@ -43,11 +37,14 @@ public final class PatheticNavigator {
                 target,
                 1F);
 
+        int PATHETIC_ITERATIONS = 20;  // Pathetic will run every 20 ticks
+        AtomicInteger CURRENT_ITERATION = new AtomicInteger();
+        CURRENT_ITERATION.set(20);
+
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
             if (navigationStrategy.arrived()) task.cancel();
 
-            else {
-                // TODO: We're running Pathetic every tick, is this necessary?
+            if (CURRENT_ITERATION.get() == PATHETIC_ITERATIONS) {
                 var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
 
                 Deque<Location> locationQueue = new ArrayDeque<>();
@@ -64,10 +61,10 @@ public final class PatheticNavigator {
 
                         navigationStrategy.setPath(locationQueue);
                     }
-
-                    navigationStrategy.tick();
                 });
             }
+            CURRENT_ITERATION.getAndIncrement();
+            navigationStrategy.tick();
         }, 0, 1);
 
     }
