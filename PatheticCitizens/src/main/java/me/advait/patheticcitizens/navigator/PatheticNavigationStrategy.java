@@ -41,6 +41,7 @@ public class PatheticNavigationStrategy {
         }
 
         if (arrived()) {
+            System.out.println("NPC arrived.");
             patheticNavigator.setNavigating(false);
             return;
         }
@@ -48,6 +49,7 @@ public class PatheticNavigationStrategy {
         Location destination = Util.getCenterLocation(path.peekFirst().getBlock());
         System.out.println(destination);
         patheticNavigator.setNavigating(true);
+        Util.faceLocation(citizensNPC.getEntity(), destination);
         NMS.setDestination(
                 citizensNPC.getEntity(),
                 destination.getX(), destination.getY(), destination.getZ(),
