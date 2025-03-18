@@ -7,6 +7,7 @@ import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
 import me.advait.patheticcitizens.util.PatheticUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -56,7 +57,11 @@ public final class PatheticNavigator {
                         for (PathPosition pathPosition : path) {
                             Location bukkitLocation = BukkitMapper.toLocation(pathPosition);
                             locationQueue.add(bukkitLocation);
-                            for (Player player : Bukkit.getOnlinePlayers()) PatheticUtil.sendDebugPath(player, bukkitLocation);
+
+                            for (Player player : Bukkit.getOnlinePlayers()) {
+                                PatheticUtil.sendDebugPath(player, bukkitLocation);
+                                player.sendMessage(Component.text("Debugging..."));
+                            }
                         }
 
                         navigationStrategy.setPath(locationQueue);
