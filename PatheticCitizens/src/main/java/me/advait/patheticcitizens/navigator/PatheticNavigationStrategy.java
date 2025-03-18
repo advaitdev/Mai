@@ -48,6 +48,11 @@ public class PatheticNavigationStrategy {
             return;
         }
 
+        // if (center(currentLocation).equals(next)) {
+        if (arrivedAtNext()) {
+            path.remove();
+        }
+
         this.next = path.peek();
         // Util.faceLocation(citizensNPC.getEntity(), nextLocation);
 
@@ -59,11 +64,6 @@ public class PatheticNavigationStrategy {
         // TODO: why isn't this working consistently?
         // TODO: stop NPC from banging into things
         setNMSDestination(citizensNPC, center(next), speed);
-
-        // if (center(currentLocation).equals(next)) {
-        if (arrivedAtNext()) {
-            path.remove();
-        }
 
         patheticNavigator.setNavigating(true);
     }
