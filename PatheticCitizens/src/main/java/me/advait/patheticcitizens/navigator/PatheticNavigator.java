@@ -38,12 +38,15 @@ public final class PatheticNavigator {
                 target,
                 1F);
 
-        int PATHETIC_ITERATIONS = 20;  // Pathetic will run every 20 ticks
+        int PATHETIC_ITERATIONS = 1;  // Pathetic will run every 1 tick
         AtomicInteger CURRENT_ITERATION = new AtomicInteger();
-        CURRENT_ITERATION.set(20);
+        CURRENT_ITERATION.set(PATHETIC_ITERATIONS);
 
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
-            if (navigationStrategy.arrived()) task.cancel();
+            if (navigationStrategy.arrived()) {
+                Bukkit.broadcast(Component.text("Arrived!"));
+                task.cancel();
+            }
 
             if (CURRENT_ITERATION.get() == PATHETIC_ITERATIONS) {
                 var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
@@ -65,15 +68,13 @@ public final class PatheticNavigator {
                         }
 
                         navigationStrategy.setPath(locationQueue);
+                        CURRENT_ITERATION.set(0);
+                        CURRENT_ITERATION.getAndIncrement();
+                        navigationStrategy.tick();
                     }
 
                 });
             }
-
-            CURRENT_ITERATION.set(0);
-            CURRENT_ITERATION.getAndIncrement();
-            navigationStrategy.tick();
-
         }, 0, 1);
 
     }
