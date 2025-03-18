@@ -69,7 +69,7 @@ public class PatheticNavigationStrategy {
 
     public boolean arrived() {
         // return center(patheticNPC.getLocation()).equals(destination);
-        return patheticNPC.getLocation().distance(destination) <= 1;
+        return patheticNPC.getLocation().distance(destination) <= 2;
     }
 
     private Location center(Location location) {

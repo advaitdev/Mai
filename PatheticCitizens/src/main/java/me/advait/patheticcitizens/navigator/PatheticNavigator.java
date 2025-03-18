@@ -7,6 +7,7 @@ import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
 import me.advait.patheticcitizens.util.PatheticUtil;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
