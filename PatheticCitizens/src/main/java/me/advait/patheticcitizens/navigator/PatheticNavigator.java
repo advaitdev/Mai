@@ -43,10 +43,7 @@ public final class PatheticNavigator {
         CURRENT_ITERATION.set(20);
 
         scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
-            if (navigationStrategy.arrived()) {
-                Bukkit.broadcast(Component.text("Arrived."));
-                task.cancel();
-            }
+            if (navigationStrategy.arrived()) task.cancel();
 
             if (CURRENT_ITERATION.get() == PATHETIC_ITERATIONS) {
                 var groundPathResult = AGENT.getGroundPath(npc.getLocation(), target);
@@ -70,11 +67,12 @@ public final class PatheticNavigator {
                         navigationStrategy.setPath(locationQueue);
                     }
 
-                    CURRENT_ITERATION.getAndIncrement();
-                    navigationStrategy.tick();
-
                 });
             }
+
+            CURRENT_ITERATION.set(0);
+            CURRENT_ITERATION.getAndIncrement();
+            navigationStrategy.tick();
 
         }, 0, 1);
 
