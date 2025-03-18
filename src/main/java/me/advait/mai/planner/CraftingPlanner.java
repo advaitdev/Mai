@@ -74,47 +74,79 @@ public class CraftingPlanner {
     }
 
     public String craftItem(String name, int amount){
-        for(ItemStack inventorySlot : inventory){
-            if(inventorySlot != null) {Bukkit.broadcastMessage(inventorySlot.toString());}
-            else{Bukkit.broadcastMessage("Null");}
-        }
         Material material = Material.getMaterial(name);
         ItemStack goal;
         if (material == null)
             return ("Unable to find material " + name);
         else
             goal = new ItemStack(material, amount);
-        ArrayList<ItemStack> temp = new ArrayList<ItemStack>();
-        ArrayList<ItemStack> queue = new ArrayList<ItemStack>();
-        queue.add(goal);
-        while (!queue.isEmpty()){
-            ItemStack currentItem = queue.removeFirst();
+        ArrayList<ItemStack> ingredients = getIngredients(goal);
+        if(ingredients.isEmpty()){Bukkit.broadcastMessage("Item Not Craftable");}
+        while(!ingredients.isEmpty()){
+            ItemStack currentStack = ingredients.getFirst();
             for(int i = 0; i < inventory.size(); i++){
-                if (inventory.get(i) == null){
-                    Bukkit.broadcastMessage("MUSTAAAAAAAAAAAARD");
-                    inventory.set(i,currentItem);
-                    break;
+                if(currentStack.getType().equals(inventory.get(i).getType())){
+                    if(currentStack.getAmount() < inventory.get(i).getAmount()){
+                        inventory.set(i, new ItemStack(inventory.get(i).getType(),
+                                inventory.get(i).getAmount() - currentStack.getAmount()));
+                        ingredients.removeFirst();
+                        break;
+                    }
+                    else if(currentStack.getAmount() > inventory.get(i).getAmount()){
+                        ingredients.set(0, new ItemStack(currentStack.getType(),
+                                currentStack.getAmount() - inventory.get(i).getAmount()));
+                        currentStack = ingredients.getFirst();
+                        ingredients.set(i, null);
+                    }
+                    else{
+                        ingredients.removeFirst();
+                        inventory.set(i, null);
+                        break;
+                    }
                 }
             }
-            temp = getIngredients(currentItem);
-            if(!temp.isEmpty()){
-                queue.addAll(temp);
-            }
-        }
-        for(ItemStack inventorySlot : inventory){
-            if(inventorySlot != null) {Bukkit.broadcastMessage(inventorySlot.toString());}
-            else{Bukkit.broadcastMessage("Null");}
         }
 
-        String test = "";
-        for(ItemStack ingredient : inventory){
-            if (ingredient != null){
-                test += ingredient.toString();
-            }
-        }
-
-        return test;
-        //return "Item crafted successfully";
+        if(!ingredients.isEmpty()){Bukkit.broadcastMessage("Not Enough space");}
+        Bukkit.broadcastMessage(inventory.toString());
+        return "end";
+//        Material material = Material.getMaterial(name);
+//        ItemStack goal;
+//        if (material == null)
+//            return ("Unable to find material " + name);
+//        else
+//            goal = new ItemStack(material, amount);
+//        ArrayList<ItemStack> temp = new ArrayList<ItemStack>();
+//        ArrayList<ItemStack> queue = new ArrayList<ItemStack>();
+//        queue.add(goal);
+//        while (!queue.isEmpty()){
+//            ItemStack currentItem = queue.removeFirst();
+//            for(int i = 0; i < inventory.size(); i++){
+//                if (inventory.get(i) == null){
+//                    Bukkit.broadcastMessage("MUSTAAAAAAAAAAAARD");
+//                    inventory.set(i,currentItem);
+//                    break;
+//                }
+//            }
+//            temp = getIngredients(currentItem);
+//            if(!temp.isEmpty()){
+//                queue.addAll(temp);
+//            }
+//        }
+//        for(ItemStack inventorySlot : inventory){
+//            if(inventorySlot != null) {Bukkit.broadcastMessage(inventorySlot.toString());}
+//            else{Bukkit.broadcastMessage("Null");}
+//        }
+//
+//        String test = "";
+//        for(ItemStack ingredient : inventory){
+//            if (ingredient != null){
+//                test += ingredient.toString();
+//            }
+//        }
+//
+//        return test;
+//        //return "Item crafted successfully";
     }
 
 }
