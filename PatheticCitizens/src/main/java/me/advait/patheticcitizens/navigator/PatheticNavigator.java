@@ -46,6 +46,7 @@ public final class PatheticNavigator {
             if (navigationStrategy.arrived()) {
                 Bukkit.broadcast(Component.text("Arrived!"));
                 task.cancel();
+                return;
             }
 
             if (CURRENT_ITERATION.get() == PATHETIC_ITERATIONS) {
