@@ -63,18 +63,21 @@ public final class PatheticNavigator {
 
                             for (Player player : Bukkit.getOnlinePlayers()) {
                                 PatheticUtil.sendDebugPath(player, bukkitLocation);
-                                player.sendMessage(Component.text("Debugging..."));
                             }
                         }
 
                         navigationStrategy.setPath(locationQueue);
                         CURRENT_ITERATION.set(0);
-                        CURRENT_ITERATION.getAndIncrement();
-                        navigationStrategy.tick();
                     }
-
                 });
             }
+
+            else {
+                CURRENT_ITERATION.getAndIncrement();
+            }
+
+            navigationStrategy.tick();
+
         }, 0, 1);
 
     }
