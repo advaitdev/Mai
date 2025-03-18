@@ -51,8 +51,6 @@ public class PatheticNavigationStrategy {
         this.next = path.peek();
         // Util.faceLocation(citizensNPC.getEntity(), nextLocation);
 
-        Location currentLocation = patheticNPC.getLocation();
-
         if (next == null) {
             patheticNavigator.setNavigating(false);
             return;
@@ -81,7 +79,7 @@ public class PatheticNavigationStrategy {
         double dY = next.getY() - current.getY();
         double xzDistance = Math.sqrt(dX * dX + dZ * dZ);
 
-        return Math.abs(dY) < 1.0f && xzDistance <= 2.0F;
+        return Math.abs(dY) < 1.0f && xzDistance <= 2.0f;
     }
 
     public boolean arrived() {
@@ -100,8 +98,8 @@ public class PatheticNavigationStrategy {
                 task.cancel();
                 return;
             }
-            // if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
-            if (arrivedAtNext()) {  // Effectively the same as saying arrived at nmsDestination
+            if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
+           //  if (arrivedAtNext()) {  // Effectively the same as saying arrived at nmsDestination
                 if (!path.isEmpty()) path.remove();
                 task.cancel();
                 return;
