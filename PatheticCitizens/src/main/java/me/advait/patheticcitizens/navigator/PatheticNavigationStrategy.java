@@ -17,6 +17,7 @@ public class PatheticNavigationStrategy {
     private final PatheticNavigator patheticNavigator;
     private Deque<Location> path;
     private final Location destination;
+    private Location next;
     private float speed;
 
     private final BukkitScheduler scheduler = Bukkit.getScheduler();
@@ -26,6 +27,7 @@ public class PatheticNavigationStrategy {
         this.patheticNavigator = patheticNavigator;
         this.path = path;
         this.destination = destination;
+        this.next = null;
         this.speed = speed;
     }
 
@@ -46,30 +48,45 @@ public class PatheticNavigationStrategy {
             return;
         }
 
-        Location nextLocation = path.peek();
+        this.next = path.peek();
         // Util.faceLocation(citizensNPC.getEntity(), nextLocation);
 
         Location currentLocation = patheticNPC.getLocation();
 
-        if (nextLocation == null) {
+        if (next == null) {
             patheticNavigator.setNavigating(false);
             return;
         }
 
         // TODO: why isn't this working consistently?
         // TODO: stop NPC from banging into things
-        setNMSDestination(citizensNPC, center(nextLocation), speed);
+        setNMSDestination(citizensNPC, center(next), speed);
 
-        if (center(currentLocation).equals(nextLocation)) {
+        // if (center(currentLocation).equals(next)) {
+        if (arrivedAtNext()) {
             path.remove();
         }
 
         patheticNavigator.setNavigating(true);
     }
 
+    public boolean arrivedAtNext() {
+        // From Citizens AStarNavigationStrategy
+        if (next == null) return false;
+
+        Location current = patheticNPC.getLocation();
+
+        double dX = next.getX() - current.getX();
+        double dZ = next.getZ() - current.getZ();
+        double dY = next.getY() - current.getY();
+        double xzDistance = Math.sqrt(dX * dX + dZ * dZ);
+
+        return Math.abs(dY) < 1.0f && xzDistance <= 2.0F;
+    }
+
     public boolean arrived() {
         // return center(patheticNPC.getLocation()).equals(destination);
-        return patheticNPC.getLocation().distance(destination) <= 2;
+        return patheticNPC.getLocation().distance(destination) <= 1;
     }
 
     private Location center(Location location) {
@@ -83,7 +100,8 @@ public class PatheticNavigationStrategy {
                 task.cancel();
                 return;
             }
-            if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
+            // if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
+            if (arrivedAtNext()) {  // Effectively the same as saying arrived at nmsDestination
                 if (!path.isEmpty()) path.remove();
                 task.cancel();
                 return;
