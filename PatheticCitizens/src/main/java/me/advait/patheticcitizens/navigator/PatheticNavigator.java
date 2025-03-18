@@ -39,7 +39,7 @@ public final class PatheticNavigator {
                 target,
                 1F);
 
-        int PATHETIC_ITERATIONS = 1;  // Pathetic will run every 1 tick
+        int PATHETIC_ITERATIONS = 20;  // Pathetic will run every 20 ticks
         AtomicInteger CURRENT_ITERATION = new AtomicInteger();
         CURRENT_ITERATION.set(PATHETIC_ITERATIONS);
 
