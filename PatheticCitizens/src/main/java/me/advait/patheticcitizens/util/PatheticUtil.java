@@ -6,6 +6,8 @@ import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import io.papermc.paper.util.Tick;
 import me.advait.patheticcitizens.PatheticCitizens;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -22,6 +24,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class PatheticUtil {
 
+    public static void debugMessage(String message) {
+        Bukkit.broadcast(Component.text("[PC Debug] " + message).color(NamedTextColor.YELLOW));
+    }
 
     /**
      * Attempts to convert a Pathetic path into a queue of Bukkit locations.

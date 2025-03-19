@@ -3,6 +3,7 @@ package me.advait.patheticcitizens.navigator;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.patheticcitizens.PatheticCitizens;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
+import me.advait.patheticcitizens.util.PatheticUtil;
 import net.citizensnpcs.api.ai.AbstractPathStrategy;
 import net.citizensnpcs.api.ai.NavigatorParameters;
 import net.citizensnpcs.api.ai.TargetType;
@@ -16,6 +17,8 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static me.advait.patheticcitizens.util.PatheticUtil.debugMessage;
 
 public class PatheticNavigationStrategy extends AbstractPathStrategy {
 
@@ -66,7 +69,14 @@ public class PatheticNavigationStrategy extends AbstractPathStrategy {
             if (result.successful()) {
                 Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
                     List<Vector> pathVectors = new ArrayList<>();
-                    result.getPath().forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
+                    result.getPath().forEach(pathPosition -> {
+                        pathVectors.add(BukkitMapper.toVector(pathPosition.toVector()));
+
+                        if (citizensParams.debug()) {
+                            Bukkit.getServer().getOnlinePlayers().forEach(player -> PatheticUtil.sendDebugPath(player, BukkitMapper.toLocation(pathPosition)));
+                        }
+
+                    });
                     this.citizensPlan = new Path(pathVectors);
                     isPathfinding = false;
                 });
@@ -84,7 +94,10 @@ public class PatheticNavigationStrategy extends AbstractPathStrategy {
         }
 
         if (isPathfinding) return false;
-        else calculatePath();
+        else {
+            calculatePath();
+            if (citizensParams.debug()) debugMessage("Calculating path...");
+        }
 
         if (this.citizensPlan != null && !this.citizensPlan.isComplete()) {
             Location loc = this.citizensNPC.getEntity().getLocation();
@@ -98,7 +111,7 @@ public class PatheticNavigationStrategy extends AbstractPathStrategy {
             double dY = dest.getY() - loc.getY();
             double xzDistance = Math.sqrt(dX * dX + dZ * dZ);
 
-            if (Math.abs(dY) < (double)1.0F && xzDistance <= this.citizensParams.distanceMargin()) {
+            if (Math.abs(dY) < (double) 1.0f && xzDistance <= this.citizensParams.distanceMargin()) {
                 this.citizensPlan.update(this.citizensNPC);
                 if (this.citizensPlan.isComplete()) {
                     return true;
@@ -111,6 +124,7 @@ public class PatheticNavigationStrategy extends AbstractPathStrategy {
 
             else {
                 NMS.setDestination(this.citizensNPC.getEntity(), dest.getX(), dest.getY(), dest.getZ(), this.citizensParams.speedModifier());
+                if (citizensParams.debug()) debugMessage("Setting NMS destination...");
             }
 
             this.citizensPlan.run(this.citizensNPC);
