@@ -1,10 +1,8 @@
 package me.advait.patheticcitizens.npc;
 
 import me.advait.patheticcitizens.navigator.PatheticNavigator;
-import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
-import org.bukkit.entity.EntityType;
 
 import java.util.UUID;
 

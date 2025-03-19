@@ -1,111 +1,122 @@
 package me.advait.patheticcitizens.navigator;
 
+import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.patheticcitizens.PatheticCitizens;
-import me.advait.patheticcitizens.npc.PatheticNPC;
+import me.advait.patheticcitizens.pathfinder.PatheticAgent;
+import net.citizensnpcs.api.ai.AbstractPathStrategy;
+import net.citizensnpcs.api.ai.NavigatorParameters;
+import net.citizensnpcs.api.ai.TargetType;
+import net.citizensnpcs.api.astar.pathfinder.Path;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.util.NMS;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.util.Vector;
 
-import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 
-public class PatheticNavigationStrategy {
+public class PatheticNavigationStrategy extends AbstractPathStrategy {
 
-    private final PatheticNPC patheticNPC;
-    private final PatheticNavigator patheticNavigator;
-    private Deque<Location> path;
+    private Location current;
     private final Location destination;
-    private Location next;
-    private float speed;
+    private final NPC citizensNPC;
+    private final NavigatorParameters citizensParams;
+    private Path citizensPlan;
 
-    private final BukkitScheduler scheduler = Bukkit.getScheduler();
+    private boolean isPathfinding = false;
 
-    public PatheticNavigationStrategy(PatheticNPC patheticNPC, PatheticNavigator patheticNavigator, Deque<Location> path, Location destination, float speed) {
-        this.patheticNPC = patheticNPC;
-        this.patheticNavigator = patheticNavigator;
-        this.path = path;
+    private final PatheticAgent AGENT = PatheticAgent.getInstance();
+
+    public PatheticNavigationStrategy(NPC citizensNPC, Location destination, NavigatorParameters citizensParams) {
+        super(TargetType.LOCATION);
+        this.citizensNPC = citizensNPC;
+        this.citizensParams = citizensParams;
         this.destination = destination;
-        this.next = null;
-        this.speed = speed;
     }
 
-    public void setPath(Deque<Location> path) {
-        this.path = path;
+    @Override
+    public Location getCurrentDestination() {
+        return this.current != null ? this.current : this.destination.clone();
     }
 
-    public void tick() {
-        NPC citizensNPC = patheticNPC.getCitizensNPC();
-
-        if (path == null || path.isEmpty()) {
-            patheticNavigator.setNavigating(false);
-            return;
-        }
-
-        if (arrived()) {
-            patheticNavigator.setNavigating(false);
-            return;
-        }
-
-        // if (center(currentLocation).equals(next)) {
-        if (arrivedAtNext()) {
-            path.remove();
-        }
-
-        this.next = path.peek();
-        // Util.faceLocation(citizensNPC.getEntity(), nextLocation);
-
-        if (next == null) {
-            patheticNavigator.setNavigating(false);
-            return;
-        }
-
-        // TODO: why isn't this working consistently?
-        // TODO: stop NPC from banging into things
-        setNMSDestination(citizensNPC, center(next), speed);
-
-        patheticNavigator.setNavigating(true);
+    @Override
+    public Iterable<Vector> getPath() {
+        return this.citizensPlan == null ? null : this.citizensPlan.getPath();
     }
 
-    public boolean arrivedAtNext() {
-        // From Citizens AStarNavigationStrategy
-        if (next == null) return false;
-
-        Location current = patheticNPC.getLocation();
-
-        double dX = next.getX() - current.getX();
-        double dZ = next.getZ() - current.getZ();
-        double dY = next.getY() - current.getY();
-        double xzDistance = Math.sqrt(dX * dX + dZ * dZ);
-
-        return Math.abs(dY) < 1.0f && xzDistance <= 2.0f;
+    @Override
+    public Location getTargetAsLocation() {
+        return this.destination;
     }
 
-    public boolean arrived() {
-        // return center(patheticNPC.getLocation()).equals(destination);
-        return patheticNPC.getLocation().distance(destination) <= 1; //
+    @Override
+    public void stop() {
+        this.citizensPlan = null;
     }
 
-    private Location center(Location location) {
-        return Util.getCenterLocation(location.getBlock());
+    public boolean isComplete() {
+        return citizensNPC.getStoredLocation().distance(destination) <= citizensParams.pathDistanceMargin();
     }
 
-    private void setNMSDestination(NPC citizensNPC, Location nmsDestination, float speed) {
-        NMS.updatePathfindingRange(citizensNPC, 1000f);
-        scheduler.runTaskTimer(PatheticCitizens.getInstance(), task -> {
-            if (arrived()) {
-                task.cancel();
-                return;
+    private void calculatePath() {
+        isPathfinding = true;
+        AGENT.getGroundPath(citizensNPC.getStoredLocation(), destination).thenAccept(result -> {
+            if (result.successful()) {
+                Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
+                    List<Vector> pathVectors = new ArrayList<>();
+                    result.getPath().forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
+                    this.citizensPlan = new Path(pathVectors);
+                    isPathfinding = false;
+                });
+            } else {
+                isPathfinding = false;  // TODO: Should this be true?
             }
-            if (center(citizensNPC.getStoredLocation()).equals(nmsDestination)) {
-           //  if (arrivedAtNext()) {  // Effectively the same as saying arrived at nmsDestination
-                if (!path.isEmpty()) path.remove();
-                task.cancel();
-                return;
-            }
-            NMS.setDestination(citizensNPC.getEntity(), nmsDestination.getX(), nmsDestination.getY(), nmsDestination.getZ(), speed);
-        }, 0, 1);
+        });
     }
 
+    @Override
+    public boolean update() {
+        if (this.isComplete()) {
+            stop();
+            return true;
+        }
+
+        if (isPathfinding) return false;
+        else calculatePath();
+
+        if (this.citizensPlan != null && !this.citizensPlan.isComplete()) {
+            Location loc = this.citizensNPC.getEntity().getLocation();
+
+            if (this.current == null) this.current = this.citizensPlan.getCurrentVector().toLocation(loc.getWorld());
+
+            Location dest = this.citizensPlan.isFinalEntry() ? this.current : Util.getCenterLocation(this.current.getBlock());
+
+            double dX = dest.getX() - loc.getX();
+            double dZ = dest.getZ() - loc.getZ();
+            double dY = dest.getY() - loc.getY();
+            double xzDistance = Math.sqrt(dX * dX + dZ * dZ);
+
+            if (Math.abs(dY) < (double)1.0F && xzDistance <= this.citizensParams.distanceMargin()) {
+                this.citizensPlan.update(this.citizensNPC);
+                if (this.citizensPlan.isComplete()) {
+                    return true;
+                } else {
+                    // This theoretically should never happen (?)
+                    this.current = null;
+                    return false;
+                }
+            }
+
+            else {
+                NMS.setDestination(this.citizensNPC.getEntity(), dest.getX(), dest.getY(), dest.getZ(), this.citizensParams.speedModifier());
+            }
+
+            this.citizensPlan.run(this.citizensNPC);
+            return false;
+        }
+
+        else return true;
+    }
 }

@@ -11,20 +11,24 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class PatheticUtil {
 
+
     /**
      * Attempts to convert a Pathetic path into a queue of Bukkit locations.
      * @param patheticPath The CompletionStage (async) path returned by Pathetic.
      * @return A queue (FIFO) of the path as locations; null if no path was found.
      */
+    @Deprecated
     public static @Nullable Deque<Location> toLocationQueue(CompletionStage<PathfinderResult> patheticPath) {
         AtomicReference<Deque<Location>> locations = new AtomicReference<>(new ArrayDeque<>());
         patheticPath.thenAccept(result -> {
@@ -39,7 +43,6 @@ public final class PatheticUtil {
         });
         return locations.get();
     }
-
 
     /**
      * Determines if the second parameter passed is a "subpath" of the first; meaning, all of the positions in the shorter
