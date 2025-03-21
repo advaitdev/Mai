@@ -28,17 +28,23 @@ public class PatheticNavigator {
     }
 
     public void setWalkableTarget(Location target) {
-        NPC citizensNPC = npc.getCitizensNPC();
-        AGENT.getGroundPath(citizensNPC.getStoredLocation(), target).thenAccept(result -> {
-            if (result.successful()) {
-                Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
-                    List<Vector> pathVectors = new ArrayList<>();
-                    result.getPath().forEach(pathPosition -> {
-                        pathVectors.add(BukkitMapper.toVector(pathPosition.toVector()));
+
+        npc.getCitizensNPC().getNavigator().setTarget(target);
+        npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(() -> {
+            NPC citizensNPC = npc.getCitizensNPC();
+            if (citizensNPC.getNavigator().getTargetAsLocation() == null) return;
+            AGENT.getGroundPath(citizensNPC.getStoredLocation(), target).thenAccept(result -> {
+                if (result.successful()) {
+                    Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
+                        List<Vector> pathVectors = new ArrayList<>();
+                        result.getPath().forEach(pathPosition -> {
+                            pathVectors.add(BukkitMapper.toVector(pathPosition.toVector()));
+                            Bukkit.broadcastMessage("Called agent lol");
+                        });
+                        citizensNPC.getNavigator().setTarget(pathVectors);
                     });
-                    citizensNPC.getNavigator().setTarget(pathVectors);
-                });
-            }
+                }
+            });
         });
 
 //        PatheticNavigationStrategy patheticNavigationStrategy = new PatheticNavigationStrategy(npc.getCitizensNPC(), target, new NavigatorParameters());
