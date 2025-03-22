@@ -57,6 +57,8 @@ public final class PatheticUtil {
      * @param shorter The shorter path.
      */
     public static boolean isSubpathEquivalent(Path longer, Path shorter) {
+        if (longer == null || shorter == null) return false;
+
         int lengthDifference = longer.length() - shorter.length();
         if (lengthDifference < 0) return false; // If the "shorter" path is somehow longer, the actual path was 100% recalculated
 
