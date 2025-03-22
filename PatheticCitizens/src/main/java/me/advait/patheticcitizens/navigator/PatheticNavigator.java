@@ -7,8 +7,11 @@ import me.advait.patheticcitizens.pathfinder.PatheticAgent;
 import me.advait.patheticcitizens.util.PatheticUtil;
 import net.citizensnpcs.api.ai.NavigatorParameters;
 import net.citizensnpcs.api.ai.PathfinderType;
+import net.citizensnpcs.api.ai.event.CancelReason;
+import net.citizensnpcs.api.ai.event.NavigatorCallback;
 import net.citizensnpcs.api.astar.pathfinder.Path;
 import net.citizensnpcs.api.npc.NPC;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -35,8 +38,9 @@ public class PatheticNavigator {
 
         npc.getCitizensNPC().getNavigator().getDefaultParameters().debug(true);
         npc.getCitizensNPC().getNavigator().setTarget(target);
+
         npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(() -> {
-            System.out.println("Run callback ran at " + System.currentTimeMillis());
+            for (Player player : Bukkit.getOnlinePlayers()) player.sendActionBar(Component.text("runCallback ran at " + System.currentTimeMillis()));
 
             NPC citizensNPC = npc.getCitizensNPC();
 
