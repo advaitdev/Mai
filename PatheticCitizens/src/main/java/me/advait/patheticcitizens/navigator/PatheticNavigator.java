@@ -15,6 +15,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
 
@@ -36,35 +37,40 @@ public class PatheticNavigator {
     public void setWalkableTarget(Location target) {
         // TODO: why does this throw an error lol
         // npc.getCitizensNPC().getNavigator().getDefaultParameters().pathfinderType(PathfinderType.PLUGIN);
+        npc.getCitizensNPC().getNavigator().getDefaultParameters().useNewPathfinder(true);
 
         npc.getCitizensNPC().getNavigator().getDefaultParameters().debug(true);
         npc.getCitizensNPC().getNavigator().setTarget(target);
 
         AtomicInteger counter = new AtomicInteger(20);
 
-        npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(() -> {
-            for (Player player : Bukkit.getOnlinePlayers()) player.sendActionBar(Component.text("runCallback ran at " + System.currentTimeMillis()));
+        npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(new BukkitRunnable() {
 
-            NPC citizensNPC = npc.getCitizensNPC();
+            @Override
+            public void run() {
+                for (Player player : Bukkit.getOnlinePlayers()) player.sendActionBar(Component.text("runCallback ran at " + System.currentTimeMillis()));
+                NPC citizensNPC = npc.getCitizensNPC();
 
-            if (citizensNPC.getStoredLocation().distance(target) <= 1) return;
+                if (citizensNPC.getStoredLocation().distance(target) <= 1) {
+                    citizensNPC.getNavigator().cancelNavigation();
+                    cancel();
+                    return;
+                }
 
-            if (counter.get() == 20) {
-                AGENT.getGroundPath(citizensNPC.getStoredLocation(), target).thenAccept(result -> {
-                    if (result.successful()) {
-                        Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
-                            List<Vector> pathVectors = new ArrayList<>();
-                            result.getPath().forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
-                            citizensNPC.getNavigator().setTarget(pathVectors);
-                        });
-                    }
-                });
-                counter.set(0);
-            } else
-                counter.getAndIncrement();
-
-
-
+                if (counter.get() == 20) {
+                    AGENT.getGroundPath(citizensNPC.getStoredLocation(), target).thenAccept(result -> {
+                        if (result.successful()) {
+                            Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
+                                List<Vector> pathVectors = new ArrayList<>();
+                                result.getPath().forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
+                                citizensNPC.getNavigator().setTarget(pathVectors);
+                            });
+                        }
+                    });
+                    counter.set(0);
+                } else
+                    counter.getAndIncrement();
+            }
         });
 
 //        PatheticNavigationStrategy patheticNavigationStrategy = new PatheticNavigationStrategy(npc.getCitizensNPC(), target, new NavigatorParameters());
