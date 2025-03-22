@@ -30,7 +30,9 @@ public class PatheticNavigator {
     }
 
     public void setWalkableTarget(Location target) {
-        npc.getCitizensNPC().getNavigator().getDefaultParameters().pathfinderType(PathfinderType.PLUGIN);
+        // TODO: why does this throw an error lol
+        // npc.getCitizensNPC().getNavigator().getDefaultParameters().pathfinderType(PathfinderType.PLUGIN);
+
         npc.getCitizensNPC().getNavigator().getDefaultParameters().debug(true);
         npc.getCitizensNPC().getNavigator().setTarget(target);
         npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(() -> {
