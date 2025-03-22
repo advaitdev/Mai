@@ -6,6 +6,7 @@ import me.advait.patheticcitizens.npc.PatheticNPC;
 import me.advait.patheticcitizens.pathfinder.PatheticAgent;
 import me.advait.patheticcitizens.util.PatheticUtil;
 import net.citizensnpcs.api.ai.NavigatorParameters;
+import net.citizensnpcs.api.ai.PathfinderType;
 import net.citizensnpcs.api.astar.pathfinder.Path;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -29,9 +30,11 @@ public class PatheticNavigator {
     }
 
     public void setWalkableTarget(Location target) {
-        npc.getCitizensNPC().getNavigator().getDefaultParameters().useNewPathfinder(true);
+        npc.getCitizensNPC().getNavigator().getDefaultParameters().pathfinderType(PathfinderType.PLUGIN);
+        npc.getCitizensNPC().getNavigator().getDefaultParameters().debug(true);
         npc.getCitizensNPC().getNavigator().setTarget(target);
         npc.getCitizensNPC().getNavigator().getDefaultParameters().addRunCallback(() -> {
+            System.out.println("Run callback ran at " + System.currentTimeMillis());
 
             NPC citizensNPC = npc.getCitizensNPC();
 
@@ -41,13 +44,7 @@ public class PatheticNavigator {
                 if (result.successful()) {
                     Bukkit.getScheduler().runTask(PatheticCitizens.getInstance(), () -> {
                         List<Vector> pathVectors = new ArrayList<>();
-                        result.getPath().forEach(pathPosition -> {
-                            pathVectors.add(BukkitMapper.toVector(pathPosition.toVector()));
-
-                            for (Player player : Bukkit.getOnlinePlayers()) PatheticUtil.sendDebugPath(player, BukkitMapper.toLocation(pathPosition));
-
-                            Bukkit.broadcastMessage("Called agent lol");
-                        });
+                        result.getPath().forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
                         citizensNPC.getNavigator().setTarget(pathVectors);
                     });
                 }
