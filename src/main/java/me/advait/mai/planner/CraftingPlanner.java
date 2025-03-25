@@ -23,18 +23,12 @@ https://docs.oracle.com/javase/8/docs/api/java/util/List.html
  */
 
 public class CraftingPlanner {
-    private ArrayList<ItemStack> inventory;
+    private Inventory inventory;
     public CraftingPlanner(Humanoid humanoid){
-        this.inventory = new ArrayList<ItemStack>();
-        for(ItemStack inventorySlot : humanoid.getInventory()){
-            this.inventory.add(inventorySlot);
-        }
+        this.inventory = humanoid.getInventory();
     }
     public CraftingPlanner(Player player){
-        this.inventory = new ArrayList<ItemStack>();
-        for(ItemStack inventorySlot : player.getInventory()){
-            this.inventory.add(inventorySlot);
-        }
+        this.inventory = player.getInventory();
     }
 
     private ArrayList<ItemStack> getIngredients(ItemStack goal){
@@ -82,32 +76,38 @@ public class CraftingPlanner {
             goal = new ItemStack(material, amount);
         ArrayList<ItemStack> ingredients = getIngredients(goal);
         if(ingredients.isEmpty()){Bukkit.broadcastMessage("Item Not Craftable");}
+
         while(!ingredients.isEmpty()){
-            ItemStack currentStack = ingredients.getFirst();
-            for(int i = 0; i < inventory.size(); i++){
-                if(currentStack.getType().equals(inventory.get(i).getType())){
-                    if(currentStack.getAmount() < inventory.get(i).getAmount()){
-                        inventory.set(i, new ItemStack(inventory.get(i).getType(),
-                                inventory.get(i).getAmount() - currentStack.getAmount()));
-                        ingredients.removeFirst();
+            ItemStack currentStack = ingredients.removeFirst();
+            for(int i = 0; i < inventory.getSize(); i++){
+                ItemStack slotStack = inventory.getItem(i);
+                if(slotStack != null && slotStack.getType().equals(currentStack.getType())){
+                    if(slotStack.getAmount() > currentStack.getAmount()){
+                        slotStack.setAmount(slotStack.getAmount()-currentStack.getAmount());
+                        currentStack = null;
                         break;
-                    }
-                    else if(currentStack.getAmount() > inventory.get(i).getAmount()){
-                        ingredients.set(0, new ItemStack(currentStack.getType(),
-                                currentStack.getAmount() - inventory.get(i).getAmount()));
-                        currentStack = ingredients.getFirst();
-                        ingredients.set(i, null);
-                    }
-                    else{
-                        ingredients.removeFirst();
-                        inventory.set(i, null);
+                    } else if (currentStack.getAmount() > slotStack.getAmount()) {
+                        currentStack.setAmount(currentStack.getAmount()-slotStack.getAmount());
+                        slotStack.setAmount(0);
+                    } else {
+                        currentStack = null;
+                        slotStack.setAmount(0);
                         break;
                     }
                 }
             }
+            if(currentStack != null){
+                ArrayList<ItemStack> temp = getIngredients(currentStack);
+                if(temp.isEmpty()){Bukkit.broadcastMessage("Not Enough Materials"); return "end";}
+                ingredients.addAll(temp);
+            }
         }
-
-        if(!ingredients.isEmpty()){Bukkit.broadcastMessage("Not Enough space");}
+        for(int i = 0; i < inventory.getSize(); i++){
+            if(inventory.getItem(i) == null){
+                inventory.setItem(i, goal);
+                break;
+            }
+        }
         Bukkit.broadcastMessage(inventory.toString());
         return "end";
 //        Material material = Material.getMaterial(name);
