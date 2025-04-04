@@ -8,6 +8,7 @@ import me.advait.patheticcitizens.util.PatheticUtil;
 import net.citizensnpcs.api.ai.NavigatorParameters;
 import net.citizensnpcs.api.astar.pathfinder.Path;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.npc.ai.CitizensNavigator;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
