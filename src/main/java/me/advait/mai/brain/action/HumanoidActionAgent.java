@@ -1,7 +1,5 @@
 package me.advait.mai.brain.action;
 
-import me.advait.mai.Mai;
-import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.monitor.Monitor;
 
@@ -21,7 +19,7 @@ public final class HumanoidActionAgent {
     private boolean isProcessing;
     private CompletableFuture<HumanoidActionResult> processingFuture = CompletableFuture.completedFuture(new HumanoidActionResult(true, "The action queue has been initialized!"));
 
-    public synchronized CompletableFuture<HumanoidActionResult> addAction(HumanoidAction... actions) {
+    public synchronized CompletableFuture<HumanoidActionResult> addActions(HumanoidAction... actions) {
         if (actions == null || actions.length == 0) {
             Monitor.logError("HumanoidActionChain requires at least one action, but 0 were provided.");
             throw new IllegalArgumentException("At least one action must be provided.");

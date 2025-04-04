@@ -12,7 +12,6 @@ import org.bukkit.World;
 
 import java.util.Iterator;
 
-@Deprecated
 public final class PatheticUtil {
 
     /**

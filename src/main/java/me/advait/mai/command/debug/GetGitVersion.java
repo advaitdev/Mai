@@ -6,9 +6,9 @@ import me.advait.mai.Mai;
 import me.advait.mai.util.Messages;
 import org.bukkit.entity.Player;
 
-public class GetPCVersionCommand extends BaseCommand {
+public class GetGitVersion extends BaseCommand {
 
-    @CommandAlias("getpcversion")
+    @CommandAlias("getgitversion")
     public void run(Player player) {
         Messages.sendMessage(player, "&a" + Mai.getInstance().getDescription().getVersion());
     }

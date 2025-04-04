@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-@Deprecated
 public final class PatheticAgent {
 
     private static final PatheticAgent INSTANCE = new PatheticAgent();

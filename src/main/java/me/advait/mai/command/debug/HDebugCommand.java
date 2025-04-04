@@ -92,7 +92,7 @@ public class HDebugCommand extends BaseCommand {
         var walkToAction = new HumanoidWalkToAction(humanoid, player.getLocation());
         var mineAction = new HumanoidMineAction(humanoid, player.getTargetBlockExact(3), true);
 
-        HumanoidActionAgent.getInstance().addAction(walkToAction, mineAction).thenAccept(result -> {
+        HumanoidActionAgent.getInstance().addActions(walkToAction, mineAction).thenAccept(result -> {
                     if (result.isSuccess()) {
                         Messages.sendMessage(player, "&agoToAndMine completed successfully!");
                     } else {
@@ -123,7 +123,7 @@ public class HDebugCommand extends BaseCommand {
 
         var buildAction = new HumanoidBuildAction(humanoid, player.getTargetBlockExact(3).getLocation(), humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
 
-        HumanoidActionAgent.getInstance().addAction(walkToAction, buildAction).thenAccept(result -> {
+        HumanoidActionAgent.getInstance().addActions(walkToAction, buildAction).thenAccept(result -> {
                     if (result.isSuccess()) {
                         Messages.sendMessage(player, "&agoToAndBuild completed successfully!");
                     } else {
