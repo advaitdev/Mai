@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
  * This should be used in plugins where Pathetic acts as a substitute for an entity-realistic pathfinder, such as Citizens.
  */
 
-@Deprecated  // Implemented in PatheticCitizens
 public class NavigationRealismFilter implements PathFilter {
 
     @Override

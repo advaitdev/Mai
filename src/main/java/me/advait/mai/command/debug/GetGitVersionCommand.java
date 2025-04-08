@@ -6,7 +6,7 @@ import me.advait.mai.Mai;
 import me.advait.mai.util.Messages;
 import org.bukkit.entity.Player;
 
-public class GetGitVersion extends BaseCommand {
+public class GetGitVersionCommand extends BaseCommand {
 
     @CommandAlias("getgitversion")
     public void run(Player player) {
