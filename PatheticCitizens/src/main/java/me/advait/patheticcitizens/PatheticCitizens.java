@@ -26,10 +26,10 @@ public final class PatheticCitizens extends JavaPlugin {
         getLogger().info("Pathetic version:" + Pathetic.getEngineVersion());
 
         INSTANCE = this;
-
-        registerCommands();
-        initializePathetic();
-        initializeCitizensTraits();
+//
+//        registerCommands();
+//        initializePathetic();
+//        initializeCitizensTraits();
     }
 
     @Override
