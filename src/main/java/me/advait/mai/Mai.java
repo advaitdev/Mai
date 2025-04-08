@@ -53,7 +53,7 @@ public final class Mai extends JavaPlugin {
         paperCommandManager.registerCommand(new GetGitVersionCommand());
         paperCommandManager.registerCommand(new PatheticTestCommand());
 
-//        getCommand("pathetictest").setExecutor(new PatheticTestCommand());
+        // getCommand("pathetictest").setExecutor(new PatheticTestCommand());
 //        getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
 //        getCommand("patheticnavigationtest").setExecutor(new PatheticNavigationTestCommand());
     }
