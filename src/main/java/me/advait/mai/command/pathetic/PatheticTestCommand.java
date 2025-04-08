@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 
+@CommandAlias("pathetictest")
 public class PatheticTestCommand extends BaseCommand {
 
     private static final Map<UUID, PlayerSession> SESSION_MAP = new HashMap<>();
