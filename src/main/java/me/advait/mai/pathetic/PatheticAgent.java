@@ -9,6 +9,7 @@ import de.metaphoriker.pathetic.api.pathing.result.PathfinderResult;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
+import de.metaphoriker.pathetic.engine.Offset;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
 import me.advait.mai.monitor.Monitor;
 import org.bukkit.Location;
