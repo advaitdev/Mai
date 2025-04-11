@@ -4,10 +4,12 @@ import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguratio
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilter;
 import de.metaphoriker.pathetic.api.pathing.filter.PathFilterStage;
 import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
+import de.metaphoriker.pathetic.api.wrapper.Depth;
 import de.metaphoriker.pathetic.api.wrapper.PathPosition;
 import de.metaphoriker.pathetic.api.wrapper.PathVector;
 import de.metaphoriker.pathetic.engine.Node;
 import de.metaphoriker.pathetic.engine.pathfinder.AStarPathfinder;
+import de.metaphoriker.pathetic.shaded.jheaps.tree.FibonacciHeap;
 
 import java.util.*;
 
@@ -21,6 +23,22 @@ public class HumanoidPathfinder extends AStarPathfinder {
         super(navigationPointProvider, pathfinderConfiguration);
     }
 
+    @Override
+    protected void tick(PathPosition start, PathPosition target, Node currentNode, Depth depth, FibonacciHeap<Double, Node> nodeQueue, List<PathFilter> filters, List<PathFilterStage> filterStages) {
+        this.evaluateNewNodes(nodeQueue, currentNode, filters, filterStages);
+        depth.increment();
+    }
+
+    /** OVERRIDING PATHETIC */
+    protected void evaluateNewNodes(FibonacciHeap<Double, Node> nodeQueue, Node currentNode, List<PathFilter> filters, List<PathFilterStage> filterStages) {
+        for (Node newNode : this.fetchValidNeighbours(currentNode, filters, filterStages)) {
+            double nodeCost = newNode.getHeuristic().get();
+            nodeQueue.insert(nodeCost, newNode);
+        }
+
+    }
+
+    /** OVERRIDING PATHETIC */
     protected Collection<Node> fetchValidNeighbours(Node currentNode, List<PathFilter> filters, List<PathFilterStage> filterStages) {
         Set<Node> newNodes = new HashSet<>();
 

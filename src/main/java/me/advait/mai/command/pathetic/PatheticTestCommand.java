@@ -138,7 +138,7 @@ public class PatheticTestCommand extends BaseCommand {
 
         pathfinderResult.thenAccept(
                 result -> {
-                    player.sendMessage(Component.text("BETA: Humanoid path testing results... " + result.getPathState().name()).color(NamedTextColor.YELLOW));
+                    player.sendMessage(Component.text("BETA: Humanoid path testing results...").color(NamedTextColor.YELLOW));
                     player.sendMessage(Component.text("State: " + result.getPathState().name()).color(NamedTextColor.GOLD));
                     player.sendMessage(Component.text("Path length: " + result.getPath().length()).color(NamedTextColor.GREEN));
 
