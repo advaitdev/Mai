@@ -1,4 +1,4 @@
-package me.advait.mai.brain.cerebrum;
+package me.advait.mai.brain.cerebrum.movement;
 
 import me.advait.mai.brain.action.HumanoidAction;
 import me.advait.mai.brain.action.result.HumanoidActionResult;

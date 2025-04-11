@@ -1,5 +1,6 @@
 package me.advait.mai.pathetic;
 
+import com.google.common.annotations.Beta;
 import de.metaphoriker.pathetic.api.factory.PathfinderFactory;
 import de.metaphoriker.pathetic.api.pathing.Pathfinder;
 import de.metaphoriker.pathetic.api.pathing.configuration.PathfinderConfiguration;
@@ -11,6 +12,7 @@ import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
 import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.metaphoriker.pathetic.engine.Offset;
 import de.metaphoriker.pathetic.engine.factory.AStarPathfinderFactory;
+import me.advait.mai.brain.cerebrum.movement.pathfinding.HumanoidPathfinder;
 import me.advait.mai.monitor.Monitor;
 import org.bukkit.Location;
 
@@ -53,6 +55,20 @@ public final class PatheticAgent {
                 start,
                 end,
                 List.of(new SolidGroundFilter(), new PassablePathFilter(), new WalkablePathFilter())
+        );
+        return pathfindingResult;
+    }
+
+    @Beta
+    public CompletionStage<PathfinderResult> getHumanoidPath(Location origin, Location dest) {
+        HumanoidPathfinder humanoidPathfinder = new HumanoidPathfinder(CONFIG.getProvider(), CONFIG);
+
+        PathPosition start = BukkitMapper.toPathPosition(origin);
+        PathPosition end = BukkitMapper.toPathPosition(dest);
+        CompletionStage<PathfinderResult> pathfindingResult = humanoidPathfinder.findPath(
+                start,
+                end,
+                List.of()
         );
         return pathfindingResult;
     }

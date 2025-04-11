@@ -4,7 +4,7 @@ import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.brain.cerebrum.MotorCortex;
+import me.advait.mai.brain.cerebrum.movement.MotorCortex;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.scheduler.BukkitScheduler;
