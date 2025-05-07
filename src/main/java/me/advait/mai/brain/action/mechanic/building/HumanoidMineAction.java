@@ -1,24 +1,22 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic.building;
 
 import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
+import me.advait.mai.brain.action.mechanic.building.runnable.HumanoidBlockBreakerRunnable;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidMineActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.InventoryUtil;
-import me.advait.mai.brain.action.runnable.HumanoidBlockBreakerRunnable;
-import me.advait.mai.util.LocationUtil;
 import net.citizensnpcs.api.npc.BlockBreaker;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.Util;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.CompletableFuture;
 

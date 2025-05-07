@@ -1,10 +1,10 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic.inventory;
 
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidCraftActionEvent;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import org.bukkit.inventory.Recipe;
 
 import java.util.concurrent.CompletableFuture;
 

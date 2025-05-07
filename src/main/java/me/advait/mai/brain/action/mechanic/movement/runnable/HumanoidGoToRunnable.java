@@ -1,4 +1,4 @@
-package me.advait.mai.brain.action.runnable;
+package me.advait.mai.brain.action.mechanic.movement.runnable;
 
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;

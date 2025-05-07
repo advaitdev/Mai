@@ -1,23 +1,20 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic.building;
 
 import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidBuildActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.monitor.Monitor;
 import me.advait.mai.util.LocationUtil;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import net.citizensnpcs.util.PlayerAnimation;
 import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 public class HumanoidBuildAction extends HumanoidAction {
 

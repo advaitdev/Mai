@@ -1,5 +1,6 @@
 package me.advait.mai.brain.action;
 
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.monitor.Monitor;
 

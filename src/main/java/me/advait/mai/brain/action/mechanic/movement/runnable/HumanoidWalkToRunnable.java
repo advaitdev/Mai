@@ -1,4 +1,4 @@
-package me.advait.mai.brain.action.runnable;
+package me.advait.mai.brain.action.mechanic.movement.runnable;
 
 import de.metaphoriker.pathetic.api.pathing.result.Path;
 import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
@@ -13,7 +13,6 @@ import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;

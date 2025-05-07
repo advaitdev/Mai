@@ -1,11 +1,12 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic.movement;
 
 import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidWalkToActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.brain.action.runnable.HumanoidWalkToRunnable;
+import me.advait.mai.brain.action.mechanic.movement.runnable.HumanoidWalkToRunnable;
 import org.bukkit.Location;
 
 import java.util.concurrent.CompletableFuture;

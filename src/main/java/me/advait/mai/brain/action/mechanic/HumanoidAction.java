@@ -1,4 +1,4 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic;
 
 import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;

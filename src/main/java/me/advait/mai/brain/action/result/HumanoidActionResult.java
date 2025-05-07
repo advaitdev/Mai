@@ -1,10 +1,7 @@
 package me.advait.mai.brain.action.result;
 
-import me.advait.mai.Mai;
-import me.advait.mai.brain.action.HumanoidAction;
-import me.advait.mai.brain.action.event.HumanoidActionResultEvent;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.monitor.Monitor;
-import org.bukkit.Bukkit;
 
 public class HumanoidActionResult {
 

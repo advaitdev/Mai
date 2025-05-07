@@ -1,6 +1,7 @@
-package me.advait.mai.brain.action;
+package me.advait.mai.brain.action.mechanic.movement;
 
 import me.advait.mai.body.Humanoid;
+import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidGoToActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
