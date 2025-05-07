@@ -117,6 +117,47 @@ public class PatheticTestCommand extends BaseCommand {
                 });
     }
 
+    @CommandAlias("start humanoid")
+    public void runHumanoidStart(Player player) {
+        PlayerSession session = SESSION_MAP.computeIfAbsent(player.getUniqueId(), k -> new PlayerSession());
+        if (!session.isComplete()) {
+            player.sendMessage(Component.text("Set both locations first!").color(NamedTextColor.RED));
+            return;
+        }
+
+        Location start = session.getPos1();
+        Location end = session.getPos2();
+
+        player.sendMessage(Component.text("Starting ").color(NamedTextColor.GREEN)
+                .append(Component.text("ground path ").color(NamedTextColor.GOLD))
+                .append(Component.text("test...").color(NamedTextColor.GREEN)));
+        player.sendMessage(
+                Component.text("Calculating path... [Distance: " + start.distance(end) + "]").color(NamedTextColor.GREEN));
+
+        CompletionStage<PathfinderResult> pathfinderResult = patheticAgent.getHumanoidPath(start, end);
+
+        pathfinderResult.thenAccept(
+                result -> {
+                    player.sendMessage(Component.text("BETA: Humanoid path testing results...").color(NamedTextColor.YELLOW));
+                    player.sendMessage(Component.text("State: " + result.getPathState().name()).color(NamedTextColor.GOLD));
+                    player.sendMessage(Component.text("Path length: " + result.getPath().length()).color(NamedTextColor.GREEN));
+
+                    // If pathfinding is successful, show the path to the player
+                    if (result.successful() || result.hasFallenBack()) {
+                        result
+                                .getPath()
+                                .forEach(
+                                        position -> {
+                                            Location location = BukkitMapper.toLocation(position);
+                                            player.sendBlockChange(
+                                                    location, Material.YELLOW_STAINED_GLASS.createBlockData());
+                                        });
+                    } else {
+                        player.sendMessage(Component.text("Path not found!").color(NamedTextColor.RED));
+                    }
+                });
+    }
+
     private static class PlayerSession {
 
         private Location pos1;

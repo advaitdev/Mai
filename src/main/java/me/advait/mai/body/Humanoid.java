@@ -2,6 +2,8 @@ package me.advait.mai.body;
 
 import me.advait.mai.brain.Brain;
 import me.advait.mai.brain.cerebrum.*;
+import me.advait.mai.brain.cerebrum.movement.HumanoidMotorCortex;
+import me.advait.mai.brain.cerebrum.movement.MotorCortex;
 import me.advait.mai.npc.trait.HumanoidTrait;
 import me.advait.mai.util.InventoryUtil;
 import net.citizensnpcs.api.CitizensAPI;
@@ -12,8 +14,6 @@ import net.citizensnpcs.trait.DropsTrait;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.mcmonkey.sentinel.SentinelTrait;
 
 public class Humanoid {

@@ -1,7 +1,7 @@
 package me.advait.mai.brain;
 
 import me.advait.mai.brain.cerebrum.BrocasArea;
-import me.advait.mai.brain.cerebrum.MotorCortex;
+import me.advait.mai.brain.cerebrum.movement.MotorCortex;
 import me.advait.mai.brain.cerebrum.PrefrontalCortex;
 
 public class Brain {
