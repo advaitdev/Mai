@@ -1,7 +1,7 @@
 package me.advait.mai;
 
 import co.aikar.commands.PaperCommandManager;
-import de.metaphoriker.pathetic.bukkit.PatheticBukkit;
+import de.bsommerfeld.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.debug.GetGitVersionCommand;
 import me.advait.mai.command.debug.HDebugCommand;
 import me.advait.mai.command.pathetic.PatheticTestCommand;

@@ -1,17 +1,13 @@
 package me.advait.mai.util;
 
-import de.metaphoriker.pathetic.api.pathing.result.Path;
-import de.metaphoriker.pathetic.api.provider.NavigationPointProvider;
-import de.metaphoriker.pathetic.api.wrapper.PathPosition;
-import de.metaphoriker.pathetic.bukkit.provider.BukkitNavigationPoint;
-import de.metaphoriker.pathetic.bukkit.provider.LoadingNavigationPointProvider;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import de.bsommerfeld.pathetic.api.pathing.result.Path;
+import de.bsommerfeld.pathetic.api.provider.NavigationPointProvider;
+import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import de.bsommerfeld.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 
 import java.util.Iterator;
 
+@Deprecated
 public final class PatheticUtil {
 
     /**

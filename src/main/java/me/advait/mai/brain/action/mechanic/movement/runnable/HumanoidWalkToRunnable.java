@@ -1,7 +1,7 @@
 package me.advait.mai.brain.action.mechanic.movement.runnable;
 
-import de.metaphoriker.pathetic.api.pathing.result.Path;
-import de.metaphoriker.pathetic.bukkit.mapper.BukkitMapper;
+import de.bsommerfeld.pathetic.api.pathing.result.Path;
+import de.bsommerfeld.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.mai.Settings;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
