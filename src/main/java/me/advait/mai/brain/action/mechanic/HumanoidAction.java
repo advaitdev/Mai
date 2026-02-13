@@ -9,6 +9,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.scheduler.BukkitScheduler;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -73,6 +74,15 @@ public abstract class HumanoidAction {
 
     public Humanoid getHumanoid() {
         return humanoid;
+    }
+
+
+    /**
+     * Returns a set of actions that this specific action is incompatible with (mainly useful when running actions in parallel via HumanoidMultiAction; for instance, you can't block your shield and swing your sword at the same time).
+     * @return An empty set by default, or a set of objects that extend HumanoidAction if this method is overridden in another HumanoidAction subclass.
+     */
+    public Set<Class<? extends HumanoidAction>> incompatibleWith() {
+        return Set.of();
     }
 
 

@@ -219,7 +219,6 @@ public class HDebugCommand extends BaseCommand {
             ex.printStackTrace();
             return null;
         });
-
     }
 
 }
