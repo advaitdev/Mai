@@ -44,13 +44,13 @@ public class HumanoidMoveRelativeToTargetAction extends HumanoidAction {
 
             if (entity.isDead()) {
                 task.cancel();
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_SUCCESS));
+                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_FAILURE));
                 return;
             }
 
             if (traveled >= squaredDistance) {
                 task.cancel();
-                resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_FAILURE));
+                resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_SUCCESS));
                 return;
             }
 

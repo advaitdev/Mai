@@ -2,6 +2,7 @@ package me.advait.mai.brain.action.mechanic.movement.runnable;
 
 import de.bsommerfeld.pathetic.api.pathing.result.Path;
 import de.bsommerfeld.pathetic.bukkit.mapper.BukkitMapper;
+import me.advait.mai.Mai;
 import me.advait.mai.Settings;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
@@ -32,7 +33,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     private Path previousPath = null;
-
     private int timeStuck = 0;
     private Location previousLocation = null;
 
@@ -55,41 +55,50 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             return;
         }
 
-        if (timeStuck >= Settings.HUMANOID_PATHFINDING_TIMEOUT && previousLocation.equals(npc.getStoredLocation())) {
+        if (previousLocation != null && timeStuck >= Settings.HUMANOID_PATHFINDING_TIMEOUT
+                && previousLocation.getBlockX() == npc.getStoredLocation().getBlockX()
+                && previousLocation.getBlockY() == npc.getStoredLocation().getBlockY()
+                && previousLocation.getBlockZ() == npc.getStoredLocation().getBlockZ()) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_STUCK));
             navigator.cancelNavigation();
             cancel();
             return;
         }
 
-        if (previousLocation != null && previousLocation.getBlockX() == npc.getStoredLocation().getBlockX() && previousLocation.getBlockZ() == npc.getStoredLocation().getBlockZ()) {
+        if (previousLocation != null && previousLocation.getBlockX() == npc.getStoredLocation().getBlockX()
+                && previousLocation.getBlockZ() == npc.getStoredLocation().getBlockZ()) {
             timeStuck++;
         } else {
             timeStuck = 0;
         }
 
-        previousLocation = npc.getStoredLocation();
+        previousLocation = npc.getStoredLocation().clone();
 
-        var pathfindingResult = PatheticAgent.getInstance().getGroundPath(npc.getEntity().getLocation(), target);
-        pathfindingResult.thenAccept(result -> {
-            if (result.successful()) {
-                Path path = result.getPath();
-                List<Vector> pathVectors = new ArrayList<>();
-                if (previousPath != null) {
-                    if (PatheticUtil.isSubpathEquivalent(previousPath, path)) return;
-                }
-
-                path.forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
-                navigator.setTarget(pathVectors);
-                previousPath = path;
-            }
-
-            else {
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
-                navigator.cancelNavigation();
-                cancel();
-            }
-        });
+        PatheticAgent.getInstance().getGroundPath(npc.getEntity().getLocation(), target)
+                .thenAccept(result -> Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
+                    if (result.successful()) {
+                        Path path = result.getPath();
+                        if (previousPath != null && PatheticUtil.isSubpathEquivalent(previousPath, path)) {
+                            return;
+                        }
+                        List<Vector> pathVectors = new ArrayList<>();
+                        path.forEach(pathPosition -> pathVectors.add(BukkitMapper.toVector(pathPosition.toVector())));
+                        navigator.setTarget(pathVectors);
+                        previousPath = path;
+                    } else {
+                        resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
+                        navigator.cancelNavigation();
+                        cancel();
+                    }
+                }))
+                .exceptionally(ex -> {
+                    Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
+                        resultFuture.complete(new HumanoidActionResult(false,
+                                HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE + " (" + ex.getMessage() + ")"));
+                        navigator.cancelNavigation();
+                        cancel();
+                    });
+                    return null;
+                });
     }
-
 }

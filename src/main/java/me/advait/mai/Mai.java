@@ -4,7 +4,6 @@ import co.aikar.commands.PaperCommandManager;
 import de.bsommerfeld.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.debug.GetGitVersionCommand;
 import me.advait.mai.command.debug.HDebugCommand;
-import me.advait.mai.command.pathetic.PatheticTestCommand;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.npc.trait.HumanoidTrait;
@@ -51,11 +50,6 @@ public final class Mai extends JavaPlugin {
 
         paperCommandManager.registerCommand(new HDebugCommand());
         paperCommandManager.registerCommand(new GetGitVersionCommand());
-        paperCommandManager.registerCommand(new PatheticTestCommand());
-
-        // getCommand("pathetictest").setExecutor(new PatheticTestCommand());
-//        getCommand("patheticgroundtest").setExecutor(new PatheticGroundTestCommand());
-//        getCommand("patheticnavigationtest").setExecutor(new PatheticNavigationTestCommand());
     }
 
     public void initializeCitizens() {
