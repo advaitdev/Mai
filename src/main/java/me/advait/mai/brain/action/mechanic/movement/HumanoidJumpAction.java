@@ -19,7 +19,11 @@ public class HumanoidJumpAction extends HumanoidAction {
 
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
-        LivingEntity entity = (LivingEntity) humanoid.getNpc().getEntity();
+        if (humanoid.getEntity() == null) {
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned"));
+            return;
+        }
+        LivingEntity entity = humanoid.getEntity();
 
         // Must be on ground to jump
         if (!entity.isOnGround()) {

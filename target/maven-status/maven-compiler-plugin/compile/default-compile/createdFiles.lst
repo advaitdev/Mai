@@ -1,5 +1,4 @@
 me/advait/mai/command/debug/HDebugCommand.class
-me/advait/mai/brain/cerebrum/movement/pathfinding/impl/HumanoidAStarPathfinder.class
 me/advait/mai/brain/cerebrum/movement/pathfinding/impl/Scenario$4.class
 me/advait/mai/brain/ml/PvPAction.class
 me/advait/mai/brain/action/mechanic/building/HumanoidBuildAction.class
@@ -30,7 +29,6 @@ me/advait/mai/brain/action/mechanic/inventory/HumanoidCraftAction.class
 me/advait/mai/listener/ChatListener.class
 me/advait/mai/brain/cerebrum/movement/pathfinding/impl/Scenario.class
 me/advait/mai/brain/cerebrum/movement/MotorCortex.class
-me/advait/mai/brain/action/mechanic/building/runnable/HumanoidBlockBreakerRunnable.class
 me/advait/mai/brain/action/event/HumanoidCraftActionEvent.class
 me/advait/mai/brain/action/event/HumanoidGoToActionEvent.class
 me/advait/mai/brain/Brain.class
@@ -59,13 +57,12 @@ me/advait/mai/util/MovementUtil.class
 me/advait/mai/brain/action/result/HumanoidActionMessage.class
 me/advait/mai/util/Messages.class
 me/advait/mai/util/InventoryUtil.class
+me/advait/mai/npc/MannequinBlockBreaker.class
 me/advait/mai/brain/action/event/HumanoidAttackActionEvent.class
 me/advait/mai/brain/action/mechanic/HumanoidMultiAction.class
 me/advait/mai/brain/cerebrum/movement/pathfinding/impl/Scenario$2.class
 me/advait/mai/brain/ml/RandomPvPPolicy.class
 me/advait/mai/brain/cerebrum/movement/pathfinding/impl/Scenario$8.class
-me/advait/mai/npc/HumanoidUtil$TaskRunnable.class
-me/advait/mai/npc/trait/HumanoidTrait.class
 me/advait/mai/Catalog.class
 me/advait/mai/brain/action/mechanic/pvp/HumanoidMoveRelativeToTargetAction.class
 me/advait/mai/brain/action/event/HumanoidActionEvent.class

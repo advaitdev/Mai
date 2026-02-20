@@ -4,82 +4,89 @@ import me.advait.mai.brain.Brain;
 import me.advait.mai.brain.cerebrum.*;
 import me.advait.mai.brain.cerebrum.movement.HumanoidMotorCortex;
 import me.advait.mai.brain.cerebrum.movement.MotorCortex;
-import me.advait.mai.npc.trait.HumanoidTrait;
 import me.advait.mai.util.InventoryUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.trait.trait.Equipment;
-import net.citizensnpcs.api.trait.trait.Inventory;
-import net.citizensnpcs.trait.DropsTrait;
-import net.citizensnpcs.trait.SkinTrait;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
-import org.mcmonkey.sentinel.SentinelTrait;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mannequin;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 public class Humanoid {
 
-    private final NPC npc;
-
+    private Mannequin mannequin;
+    private final Inventory inventory;
     private final Brain brain;
     private final BrocasArea brocasArea;
     private final MotorCortex motorCortex;
     private final PrefrontalCortex prefrontalCortex;
 
-    public Humanoid(String npcName) {
-        this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, npcName);
-
+    public Humanoid(String name) {
+        this.inventory = Bukkit.createInventory(null, 36, name + "'s Inventory");
         this.brocasArea = new HumanoidBrocasArea();
         this.motorCortex = new HumanoidMotorCortex();
         this.prefrontalCortex = new HumanoidPrefrontalCortex();
         this.brain = new Brain(brocasArea, motorCortex, prefrontalCortex);
-
-        npc.getOrAddTrait(HumanoidTrait.class);
-        npc.getOrAddTrait(SentinelTrait.class);
-
-        npc.getOrAddTrait(Inventory.class);
-        npc.getOrAddTrait(Equipment.class);
-        npc.getOrAddTrait(DropsTrait.class);
-
-        //npc.getNavigator().getLocalParameters().stuckAction(new HumanoidStuckAction());
-        npc.getNavigator().getLocalParameters().useNewPathfinder(true);
-
-        SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
-        skinTrait.setSkinName("WeNeedToGoDeeper", true);
-
     }
 
-    public NPC getNpc() {
-        return npc;
+    /**
+     * Spawns the humanoid's mannequin at the given location. Creates the entity if not yet spawned.
+     */
+    public Mannequin spawn(Location location) {
+        if (location.getWorld() == null) throw new IllegalArgumentException("Location must have a world");
+        if (this.mannequin != null) {
+            this.mannequin.remove();
+        }
+        Mannequin m = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
+        m.setCustomName("Mai");
+        m.setCustomNameVisible(true);
+        m.setAI(false);
+        m.setInvulnerable(true);
+        m.setImmovable(false);
+        m.setRemoveWhenFarAway(false);
+        // Skin can be set via m.setProfile(ResolvableProfile) if needed (Paper API)
+        this.mannequin = m;
+        return m;
+    }
+
+    /** Returns the living entity (mannequin) for this humanoid. May be null if not spawned. */
+    public LivingEntity getEntity() {
+        return mannequin;
+    }
+
+    /** Returns the mannequin entity. May be null if not spawned. */
+    public Mannequin getMannequin() {
+        return mannequin;
+    }
+
+    /** @deprecated Use getEntity() or getMannequin(). */
+    public Mannequin getNpc() {
+        return mannequin;
     }
 
     public Brain getBrain() {
         return brain;
     }
 
-
-    // "Bukkit-equivalent" methods
-    public org.bukkit.inventory.Inventory getInventory() {
-        return npc.getOrAddTrait(Inventory.class).getInventoryView();
+    public Inventory getInventory() {
+        return inventory;
     }
 
-    public Equipment getEquipment() {
-        return npc.getOrAddTrait(Equipment.class);
+    public EntityEquipment getEquipment() {
+        return mannequin != null ? mannequin.getEquipment() : null;
     }
 
     /**
-     * Sets an item in the humanoid's main hand.
-     * @param itemSlot The inventory slot of the item which should be set in the humanoid's main hand; the current item in the main hand will be swapped into this slot.
+     * Sets the item in the humanoid's main hand from the given inventory slot.
+     * Swaps the current main hand item into that slot.
      */
     public void setItemInMainHand(int itemSlot) {
-        InventoryUtil.swapItems((Player) npc.getEntity(), 0, itemSlot);
-//        ItemStack toPut = getInventory().getItem(itemSlot);
-//        ItemStack currentMainHand = getEquipment().get(Equipment.EquipmentSlot.HAND);
-//        System.out.println("To put: " + toPut);
-//        System.out.println("Current mainhand: " + currentMainHand);
-//        getEquipment().set(Equipment.EquipmentSlot.HAND, toPut);
-//        getInventory().setItem(itemSlot, currentMainHand);
-//        System.out.println("New to put: " + toPut);
-//        System.out.println("New current mainhand: " + currentMainHand);
+        if (mannequin == null) return;
+        ItemStack fromSlot = inventory.getItem(itemSlot);
+        ItemStack currentMain = mannequin.getEquipment().getItemInMainHand();
+        mannequin.getEquipment().setItemInMainHand(fromSlot);
+        inventory.setItem(itemSlot, currentMain);
     }
-
 }

@@ -6,9 +6,6 @@ import me.advait.mai.command.debug.GetGitVersionCommand;
 import me.advait.mai.command.debug.HDebugCommand;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.listener.ChatListener;
-import me.advait.mai.npc.trait.HumanoidTrait;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.trait.TraitInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,9 +33,9 @@ public final class Mai extends JavaPlugin {
         this.settingsFile = new SettingsFile("settings.yml");
 
         registerCommands();
-        initializeCitizens();
         initializePathetic();
         registerListeners();
+        spawnDefaultHumanoid();
 
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
 
@@ -52,10 +49,8 @@ public final class Mai extends JavaPlugin {
         paperCommandManager.registerCommand(new GetGitVersionCommand());
     }
 
-    public void initializeCitizens() {
-        CitizensAPI.getTraitFactory().registerTrait(TraitInfo.create(HumanoidTrait.class));
-        getLogger().info("Citizens's registered traits: " + CitizensAPI.getTraitFactory().getRegisteredTraits());
-        Bukkit.getScheduler().runTaskLater(JavaPlugin.getPlugin(Mai.class), () -> {
+    public void spawnDefaultHumanoid() {
+        Bukkit.getScheduler().runTaskLater(this, () -> {
             Catalog.getInstance().killAll();
             Catalog.getInstance().registerHumanoid("Mai");
         }, 20);

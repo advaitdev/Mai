@@ -1,9 +1,7 @@
 name: Mai
 version: '1.0-SNAPSHOT'
 main: me.advait.mai.Mai
-api-version: '1.21'
+api-version: '1.21.11'
 authors: [Advait]
-depend:
-  - Citizens
 description: Creating an AI-powered world in Minecraft.
 commands:

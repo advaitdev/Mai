@@ -1,10 +1,7 @@
 package me.advait.mai;
 
 import me.advait.mai.body.Humanoid;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.EntityType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +18,7 @@ public class Catalog {
 
     public void registerHumanoid(String npcName) {
         Humanoid humanoid = new Humanoid(npcName);
-        humanoid.getNpc().spawn(Bukkit.getWorlds().getFirst().getSpawnLocation());
+        humanoid.spawn(Bukkit.getWorlds().getFirst().getSpawnLocation());
         humanoids.add(humanoid);
     }
 
@@ -30,7 +27,11 @@ public class Catalog {
     }
 
     public void killAll() {
-        CitizensAPI.getNPCRegistries().forEach(registry -> registry.sorted().forEach(NPC::destroy));
+        for (Humanoid h : humanoids) {
+            if (h.getEntity() != null && h.getEntity().isValid()) {
+                h.getEntity().remove();
+            }
+        }
         humanoids.clear();
     }
 

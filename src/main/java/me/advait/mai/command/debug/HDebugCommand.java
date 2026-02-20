@@ -9,10 +9,8 @@ import me.advait.mai.brain.action.mechanic.building.HumanoidBuildAction;
 import me.advait.mai.brain.action.mechanic.building.HumanoidMineAction;
 import me.advait.mai.brain.action.mechanic.movement.HumanoidWalkToAction;
 import me.advait.mai.npc.HumanoidUtil;
+import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.util.Messages;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.trait.trait.Equipment;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -21,43 +19,45 @@ import org.bukkit.inventory.ItemStack;
 @CommandAlias("hdebug")
 public class HDebugCommand extends BaseCommand {
 
+    private static Humanoid getSelectedHumanoid(Player player) {
+        var list = Catalog.getInstance().getAllHumanoids();
+        return list.isEmpty() ? null : list.get(0);
+    }
+
     @CommandAlias("jump")
     public void runJump(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = getSelectedHumanoid(player);
+        if (humanoid == null || humanoid.getEntity() == null) {
+            Messages.sendMessage(player, "&cYou have no humanoid / mannequin!");
             return;
         }
-
-        HumanoidUtil.jump(npc, 0.5);
+        HumanoidUtil.jump(humanoid.getEntity(), 0.5);
     }
 
     @CommandAlias("pile")
     public void runPile(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = getSelectedHumanoid(player);
+        if (humanoid == null || humanoid.getEntity() == null) {
+            Messages.sendMessage(player, "&cYou have no humanoid / mannequin!");
             return;
         }
-
-        boolean didPile = HumanoidUtil.pileUp(npc);
-        if (!didPile) Messages.sendMessage(player, "&cNPC could not place the block below!");
+        boolean didPile = HumanoidUtil.pileUp(humanoid.getEntity());
+        if (!didPile) Messages.sendMessage(player, "&cHumanoid could not place the block below!");
     }
 
     @CommandAlias("dig")
     public void runDig(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = getSelectedHumanoid(player);
+        if (humanoid == null || humanoid.getEntity() == null) {
+            Messages.sendMessage(player, "&cYou have no humanoid / mannequin!");
             return;
         }
-
-        HumanoidUtil.mineBlock(npc, npc.getEntity().getLocation().clone().subtract(0, 1, 0), new ItemStack(Material.DIAMOND_PICKAXE));
+        HumanoidUtil.mineBlock(humanoid.getEntity(), humanoid.getEntity().getLocation().clone().subtract(0, 1, 0), new ItemStack(Material.DIAMOND_PICKAXE));
     }
 
     @CommandAlias("mine")
     public void runMine(Player player) {
-        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        Humanoid humanoid = getSelectedHumanoid(player);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
@@ -75,7 +75,7 @@ public class HDebugCommand extends BaseCommand {
                 Messages.sendMessage(player, "&c" + result);
             }
         }).exceptionally(ex -> {
-            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            Messages.sendMessage(player, "&cAn error occurred: " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });
@@ -83,7 +83,7 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("gotoandmine")
     public void runGotoAndMine(Player player) {
-        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        Humanoid humanoid = getSelectedHumanoid(player);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
@@ -108,7 +108,7 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("gotoandbuild")
     public void runGotoAndBuild(Player player) {
-        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        Humanoid humanoid = getSelectedHumanoid(player);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
@@ -121,7 +121,8 @@ public class HDebugCommand extends BaseCommand {
             return;
         }
 
-        var buildAction = new HumanoidBuildAction(humanoid, player.getTargetBlockExact(3).getLocation(), humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND));
+        ItemStack inHand = humanoid.getEquipment() != null ? humanoid.getEquipment().getItemInMainHand() : null;
+        var buildAction = new HumanoidBuildAction(humanoid, player.getTargetBlockExact(3).getLocation(), inHand);
 
         HumanoidActionAgent.getInstance().addActions(walkToAction, buildAction).thenAccept(result -> {
                     if (result.isSuccess()) {
@@ -134,13 +135,12 @@ public class HDebugCommand extends BaseCommand {
                     Messages.sendMessage(player, "&cAn error occurred during the action chain: " + ex.getMessage());
                     ex.printStackTrace();
                     return null;
-        });
-
+                });
     }
 
     @CommandAlias("minewithtool")
     public void runMineWithTool(Player player) {
-        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        Humanoid humanoid = getSelectedHumanoid(player);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
@@ -158,7 +158,7 @@ public class HDebugCommand extends BaseCommand {
                 Messages.sendMessage(player, "&c" + result + " - Block: " + inFront);
             }
         }).exceptionally(ex -> {
-            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            Messages.sendMessage(player, "&cAn error occurred: " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });
@@ -166,15 +166,14 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("bridge")
     public void runBridge(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = getSelectedHumanoid(player);
+        if (humanoid == null || humanoid.getEntity() == null) {
+            Messages.sendMessage(player, "&cYou have no humanoid / mannequin!");
             return;
         }
-
-        boolean didBridge = HumanoidUtil.bridgeTowardsTarget(npc, player.getLocation(), Material.DIAMOND_BLOCK);
+        boolean didBridge = HumanoidUtil.bridgeTowardsTarget(humanoid.getEntity(), player.getLocation(), Material.DIAMOND_BLOCK);
         if (!didBridge) {
-            Messages.sendMessage(player, "&cNPC could not bridge to your location!");
+            Messages.sendMessage(player, "&cHumanoid could not bridge to your location!");
         }
     }
 
@@ -185,21 +184,26 @@ public class HDebugCommand extends BaseCommand {
 
     @CommandAlias("ispathpossible")
     public void runIsPathPossible(Player player) {
-        NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
-        if (npc == null) {
-            Messages.sendMessage(player, "&cYou have no NPC selected!");
+        Humanoid humanoid = getSelectedHumanoid(player);
+        if (humanoid == null || humanoid.getEntity() == null) {
+            Messages.sendMessage(player, "&cYou have no humanoid / mannequin!");
             return;
         }
-
         long startTime = System.currentTimeMillis();
-        boolean canNavigateTo = npc.getNavigator().canNavigateTo(player.getLocation());
-        long elapsedTime = (System.currentTimeMillis() - startTime);
-        Messages.sendMessage(player, "&aResult for path: " + canNavigateTo + " (" + elapsedTime + " ms)");
+        PatheticAgent.getInstance().getGroundPath(humanoid.getEntity().getLocation(), player.getLocation())
+                .thenAccept(result -> {
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    Messages.sendMessage(player, "&aResult for path: " + result.successful() + " (" + elapsed + " ms)");
+                })
+                .exceptionally(ex -> {
+                    Messages.sendMessage(player, "&cPath check failed: " + ex.getMessage());
+                    return null;
+                });
     }
 
     @CommandAlias("gotome")
     public void runGoToMe(Player player) {
-        Humanoid humanoid = Catalog.getInstance().getAllHumanoids().get(0);
+        Humanoid humanoid = getSelectedHumanoid(player);
         if (humanoid == null) {
             Messages.sendMessage(player, "&cNo humanoid exists in this world!");
             return;
@@ -215,7 +219,7 @@ public class HDebugCommand extends BaseCommand {
                 Messages.sendMessage(player, "&c" + result);
             }
         }).exceptionally(ex -> {
-            Messages.sendMessage(player, "&An error occurred: " + ex.getMessage());
+            Messages.sendMessage(player, "&cAn error occurred: " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });

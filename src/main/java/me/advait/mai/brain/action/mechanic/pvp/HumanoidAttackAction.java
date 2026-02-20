@@ -7,9 +7,8 @@ import me.advait.mai.brain.action.event.HumanoidAttackActionEvent;
 import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.ItemUtil;
-import net.citizensnpcs.util.Util;
+import me.advait.mai.util.LocationUtil;
 import org.bukkit.Material;
-import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -33,34 +32,30 @@ public class HumanoidAttackAction extends HumanoidAction {
 
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
-        HumanEntity bot = (HumanEntity) humanoid.getNpc().getEntity();
+        if (humanoid.getEntity() == null) {
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned"));
+            return;
+        }
+        LivingEntity bot = humanoid.getEntity();
+        // Mannequin has no attack cooldown; wait a short delay then attack
+        scheduler.runTaskLater(Mai.getInstance(), () -> {
+            if (!bot.isValid() || target.isDead()) {
+                resultFuture.complete(new HumanoidActionResult(false, "Target or entity invalid"));
+                return;
+            }
+            ItemStack weapon = bot.getEquipment() != null ? bot.getEquipment().getItemInMainHand() : null;
+            Material type = weapon != null ? weapon.getType() : Material.AIR;
+            double baseDamage = weapon != null ? ItemUtil.getWeaponDamage(weapon) : 1.0;
+            double finalDamage = baseDamage * power;
 
-        waitUntilReady(bot, 0, resultFuture); // start check loop
-    }
-
-    private void waitUntilReady(HumanEntity bot, int ticksWaited, CompletableFuture<HumanoidActionResult> resultFuture) {
-        float cooldown = bot.getAttackCooldown(); // 0.0 - 1.0
-
-        if (cooldown >= power || ticksWaited >= MAX_WAIT_TICKS) {
-            ItemStack weapon = bot.getEquipment().getItemInMainHand();
-            Material type = weapon.getType();
-            double baseDamage = ItemUtil.getWeaponDamage(weapon);
-            double finalDamage = baseDamage * cooldown;
-
-            Util.faceLocation(bot, target.getLocation());
+            LocationUtil.faceLocation(bot, target.getLocation());
             bot.swingMainHand();
             target.damage(finalDamage, bot);
 
             resultFuture.complete(new HumanoidActionResult(true,
-                    "Attacked %s with %s (%.2f damage, cooldown %.2f)"
-                            .formatted(target.getName(), type.name(), finalDamage, cooldown)
+                    "Attacked %s with %s (%.2f damage)".formatted(target.getName(), type.name(), finalDamage)
             ));
-
-        } else {
-            // Try again in 1 tick
-            scheduler.runTaskLater(Mai.getInstance(), () ->
-                    waitUntilReady(bot, ticksWaited + 1, resultFuture), 1L);
-        }
+        }, Math.min(MAX_WAIT_TICKS, 10L));
     }
 
     @Override

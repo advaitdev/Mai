@@ -7,15 +7,11 @@ import me.advait.mai.brain.action.event.HumanoidBuildActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.LocationUtil;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.trait.trait.Equipment;
-import net.citizensnpcs.util.PlayerAnimation;
-import net.citizensnpcs.util.Util;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.concurrent.CompletableFuture;
+
 public class HumanoidBuildAction extends HumanoidAction {
 
     private final Location location;
@@ -33,43 +29,39 @@ public class HumanoidBuildAction extends HumanoidAction {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NULL));
             return;
         }
-
         if (!LocationUtil.isBuildable(location)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_INVALID_LOCATION));
             return;
         }
+        if (humanoid.getEntity() == null) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.NPC_IS_NULL));
+            return;
+        }
 
-        NPC npc = humanoid.getNpc();
+        LocationUtil.faceLocation(humanoid.getEntity(), location);
 
-        Util.faceLocation(npc.getEntity(), location);
-
-        if (!LocationUtil.isBlockTargetable(npc.getStoredLocation(), location.getBlock())) {
+        if (!LocationUtil.isBlockTargetable(humanoid.getEntity().getLocation(), location.getBlock())) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_TOO_FAR));
             return;
         }
 
-        // TODO: fix broken code
-//        if (!LocationUtil.canSeeLocation((LivingEntity) npc.getEntity(), location)) {
-//            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_OUT_OF_SIGHT));
-//            return;
-//        }
-
-        if (humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND) == null || !humanoid.getEquipment().get(Equipment.EquipmentSlot.HAND).equals(block)) {
+        ItemStack mainHand = humanoid.getEquipment() != null ? humanoid.getEquipment().getItemInMainHand() : null;
+        if (mainHand == null || !mainHand.equals(block)) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_HOLDING_BLOCK));
             return;
         }
-
         if (!block.getType().isBlock()) {
             resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_PLACEABLE));
             return;
         }
 
-        // Actually place the block
-        PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());
+        humanoid.getEntity().swingMainHand();
         location.getBlock().setType(block.getType());
 
         block.setAmount(block.getAmount() - 1);
-        humanoid.getEquipment().set(Equipment.EquipmentSlot.HAND, block);
+        if (humanoid.getEquipment() != null) {
+            humanoid.getEquipment().setItemInMainHand(block);
+        }
 
         resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.BUILD_MESSAGE_SUCCESS));
     }

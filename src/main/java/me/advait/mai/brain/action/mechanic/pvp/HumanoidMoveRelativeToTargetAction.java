@@ -34,7 +34,11 @@ public class HumanoidMoveRelativeToTargetAction extends HumanoidAction {
 
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
-        LivingEntity entity = (LivingEntity) humanoid.getNpc().getEntity();
+        if (humanoid.getEntity() == null) {
+            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_FAILURE));
+            return;
+        }
+        LivingEntity entity = humanoid.getEntity();
         Location start = entity.getLocation().clone();
 
         final double squaredDistance = distance * distance;

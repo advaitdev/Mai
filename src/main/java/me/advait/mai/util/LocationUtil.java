@@ -13,6 +13,22 @@ import java.util.EnumSet;
 public final class LocationUtil {
 
     /**
+     * Makes an entity look at the given location (sets yaw/pitch).
+     */
+    public static void faceLocation(Entity entity, Location target) {
+        Location loc = entity.getLocation();
+        Vector dir = target.clone().add(0.5, 0.5, 0.5)
+                .subtract(entity instanceof LivingEntity le
+                        ? loc.clone().add(0, le.getEyeHeight(), 0)
+                        : loc.clone())
+                .toVector();
+        if (dir.lengthSquared() > 0) {
+            loc.setDirection(dir);
+            entity.teleport(loc);
+        }
+    }
+
+    /**
      * Determines whether a block is targetable (using Minecraft's reach limit of about 4.5 blocks).
      * @param standingLocation
      * @param block
