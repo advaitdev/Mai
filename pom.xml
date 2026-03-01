@@ -43,12 +43,10 @@
                             <relocations>
                                 <!-- Moves bstats into the Mai package to avoid conflicts. -->
                                 <relocation>
-                                    <pattern>org.bstats.bukkit</pattern>
+                                    <pattern>org.bstats</pattern>
                                     <shadedPattern>me.advait.mai.shaded.bstats</shadedPattern>
                                 </relocation>
                             </relocations>
-                            <!-- This bit tells Maven to try to not include any classes that aren't used by the plugin. -->
-                            <minimizeJar>true</minimizeJar>
                         </configuration>
                     </execution>
                 </executions>
