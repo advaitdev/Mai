@@ -13,6 +13,7 @@ import me.advait.mai.util.NPCUtil;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -187,26 +188,52 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // Face the waypoint
         LocationUtil.faceLocation(humanoid.getEntity(), waypointLoc);
 
-        // Calculate movement direction
+        // Calculate movement direction (horizontal only)
         Vector direction = waypoint.clone().subtract(current.toVector());
-        double yDiff = direction.getY();
-        direction.setY(0).normalize();
+        direction.setY(0);
+        if (direction.lengthSquared() > 0) {
+            direction.normalize();
+        }
 
-        // Apply horizontal movement
+        // Apply horizontal movement, preserve Y velocity (engine handles gravity)
         Vector velocity = direction.multiply(MOVE_SPEED);
+        velocity.setY(humanoid.getEntity().getVelocity().getY());
 
-        // Handle jumping for upward movement
+        // Check if we need to jump
         boolean onGround = humanoid.getEntity().isOnGround();
-        if (yDiff > 0.3 && onGround && jumpCooldown == 0) {
-            // Need to jump up
+        if (onGround && jumpCooldown == 0 && shouldJump(current, direction)) {
             velocity.setY(JUMP_VELOCITY);
-            jumpCooldown = 10; // Cooldown to prevent spam jumping
-        } else {
-            // Preserve current Y velocity for gravity
-            velocity.setY(humanoid.getEntity().getVelocity().getY());
+            jumpCooldown = 10;
         }
 
         humanoid.getEntity().setVelocity(velocity);
+    }
+
+    /**
+     * Determines if the humanoid should jump based on blocks ahead.
+     */
+    private boolean shouldJump(Location current, Vector direction) {
+        if (current.getWorld() == null || direction.lengthSquared() == 0) return false;
+
+        // Check block ahead at foot level
+        Location ahead = current.clone().add(direction.clone().normalize().multiply(0.5));
+        Block blockAhead = ahead.getBlock();
+        Block blockAboveAhead = ahead.clone().add(0, 1, 0).getBlock();
+
+        // Jump if there's a solid block at foot level but space above it
+        if (blockAhead.getType().isSolid() && !blockAboveAhead.getType().isSolid()) {
+            return true;
+        }
+
+        // Also check if next waypoint is significantly higher
+        if (pathIndex < waypoints.size()) {
+            double yDiff = waypoints.get(pathIndex).getY() - current.getY();
+            if (yDiff > 0.5) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void showDebugParticles(Location current) {

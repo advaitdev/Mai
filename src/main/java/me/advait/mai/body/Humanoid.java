@@ -77,7 +77,7 @@ public class Humanoid {
         m.setCustomName(this.name);
         m.setCustomNameVisible(true);
         m.setDescription(null);  // Remove "NPC" text below name
-        m.setAI(false);
+        m.setAI(true);
         m.setInvulnerable(true);
         m.setImmovable(false);
         m.setRemoveWhenFarAway(false);
