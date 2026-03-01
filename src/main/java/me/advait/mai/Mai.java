@@ -39,6 +39,8 @@ public final class Mai extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
 
+        // Test commit
+
     }
 
     public void registerCommands() {
