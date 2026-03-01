@@ -101,7 +101,7 @@ public class HumanoidInfoGUI implements InventoryHolder {
     private ItemStack createTeleportButton() {
         List<String> lore = new ArrayList<>();
         lore.add(colorize("&7Click to teleport to"));
-        lore.add(colorize("&7this humanoid's location."));
+        lore.add(colorize("&7this Humanoid's location."));
 
         if (humanoid.getMannequin() == null) {
             lore.add("");
@@ -114,14 +114,14 @@ public class HumanoidInfoGUI implements InventoryHolder {
     private ItemStack createInventoryButton() {
         List<String> lore = new ArrayList<>();
         lore.add(colorize("&7Click to view and edit"));
-        lore.add(colorize("&7this humanoid's inventory."));
+        lore.add(colorize("&7this Humanoid's inventory."));
 
         return createItem(Material.CHEST, "&eView Inventory", lore);
     }
 
     private ItemStack createRenameButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to rename this humanoid."));
+        lore.add(colorize("&7Click to rename this Humanoid."));
         lore.add(colorize("&7Type the new name in chat."));
 
         return createItem(Material.NAME_TAG, "&bRename", lore);
@@ -129,7 +129,7 @@ public class HumanoidInfoGUI implements InventoryHolder {
 
     private ItemStack createDeleteButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to delete this humanoid."));
+        lore.add(colorize("&7Click to delete this Humanoid."));
         lore.add("");
         lore.add(colorize("&c&lThis action cannot be undone!"));
 
@@ -138,7 +138,7 @@ public class HumanoidInfoGUI implements InventoryHolder {
 
     private ItemStack createBackButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Return to humanoid list."));
+        lore.add(colorize("&7Return to Humanoid list."));
 
         return createItem(Material.ARROW, "&7Back", lore);
     }

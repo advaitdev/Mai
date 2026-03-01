@@ -21,12 +21,12 @@ public class HumanoidCommand extends BaseCommand {
     @Description("Spawn a new humanoid at your location")
     public void onSpawn(Player player, String name) {
         if (Catalog.getInstance().nameExists(name)) {
-            Messages.sendMessage(player, "&cA humanoid with that name already exists!");
+            Messages.sendMessage(player, "&cA Humanoid with that name already exists!");
             return;
         }
 
         Humanoid humanoid = Catalog.getInstance().register(name, player.getLocation());
-        Messages.sendMessage(player, "&aSpawned humanoid '&e" + name + "&a' at your location.");
+        Messages.sendMessage(player, "&aSpawned Humanoid '&e" + name + "&a' at your location.");
         Messages.sendMessage(player, "&7UUID: " + humanoid.getUuid().toString());
     }
 
@@ -36,13 +36,13 @@ public class HumanoidCommand extends BaseCommand {
     @Description("Spawn a new humanoid at specific coordinates")
     public void onSpawnAt(Player player, String name, double x, double y, double z) {
         if (Catalog.getInstance().nameExists(name)) {
-            Messages.sendMessage(player, "&cA humanoid with that name already exists!");
+            Messages.sendMessage(player, "&cA Humanoid with that name already exists!");
             return;
         }
 
         Location location = new Location(player.getWorld(), x, y, z);
         Humanoid humanoid = Catalog.getInstance().register(name, location);
-        Messages.sendMessage(player, "&aSpawned humanoid '&e" + name + "&a' at " + LocationSerializer.toReadableString(location));
+        Messages.sendMessage(player, "&aSpawned Humanoid '&e" + name + "&a' at " + LocationSerializer.toReadableString(location));
     }
 
     @Subcommand("list")
@@ -59,17 +59,17 @@ public class HumanoidCommand extends BaseCommand {
     public void onTeleport(Player player, String name) {
         Humanoid humanoid = Catalog.getInstance().getByName(name);
         if (humanoid == null) {
-            Messages.sendMessage(player, "&cNo humanoid found with name '&e" + name + "&c'");
+            Messages.sendMessage(player, "&cNo Humanoid found with name '&e" + name + "&c'");
             return;
         }
 
         if (humanoid.getMannequin() == null) {
-            Messages.sendMessage(player, "&cThat humanoid is not currently spawned!");
+            Messages.sendMessage(player, "&cThat Humanoid is not currently spawned!");
             return;
         }
 
         player.teleport(humanoid.getMannequin().getLocation());
-        Messages.sendMessage(player, "&aTeleported to humanoid '&e" + name + "&a'");
+        Messages.sendMessage(player, "&aTeleported to Humanoid '&e" + name + "&a'");
     }
 
     @Subcommand("delete|remove")
@@ -79,12 +79,12 @@ public class HumanoidCommand extends BaseCommand {
     public void onDelete(Player player, String name) {
         Humanoid humanoid = Catalog.getInstance().getByName(name);
         if (humanoid == null) {
-            Messages.sendMessage(player, "&cNo humanoid found with name '&e" + name + "&c'");
+            Messages.sendMessage(player, "&cNo Humanoid found with name '&e" + name + "&c'");
             return;
         }
 
         Catalog.getInstance().unregister(humanoid);
-        Messages.sendMessage(player, "&aDeleted humanoid '&e" + name + "&a'");
+        Messages.sendMessage(player, "&aDeleted Humanoid '&e" + name + "&a'");
     }
 
     @Subcommand("info")
@@ -94,7 +94,7 @@ public class HumanoidCommand extends BaseCommand {
     public void onInfo(Player player, String name) {
         Humanoid humanoid = Catalog.getInstance().getByName(name);
         if (humanoid == null) {
-            Messages.sendMessage(player, "&cNo humanoid found with name '&e" + name + "&c'");
+            Messages.sendMessage(player, "&cNo Humanoid found with name '&e" + name + "&c'");
             return;
         }
 
@@ -106,7 +106,7 @@ public class HumanoidCommand extends BaseCommand {
     @Description("Force save all humanoids to file")
     public void onSave(Player player) {
         Catalog.getInstance().saveAll();
-        Messages.sendMessage(player, "&aSaved " + Catalog.getInstance().getCount() + " humanoid(s) to file.");
+        Messages.sendMessage(player, "&aSaved " + Catalog.getInstance().getCount() + " Humanoid(s) to file.");
     }
 
     @Subcommand("rename")
@@ -116,31 +116,31 @@ public class HumanoidCommand extends BaseCommand {
     public void onRename(Player player, String oldName, String newName) {
         Humanoid humanoid = Catalog.getInstance().getByName(oldName);
         if (humanoid == null) {
-            Messages.sendMessage(player, "&cNo humanoid found with name '&e" + oldName + "&c'");
+            Messages.sendMessage(player, "&cNo Humanoid found with name '&e" + oldName + "&c'");
             return;
         }
 
         if (Catalog.getInstance().nameExists(newName)) {
-            Messages.sendMessage(player, "&cA humanoid with name '&e" + newName + "&c' already exists!");
+            Messages.sendMessage(player, "&cA Humanoid with name '&e" + newName + "&c' already exists!");
             return;
         }
 
         humanoid.setName(newName);
         Catalog.getInstance().save(humanoid);
-        Messages.sendMessage(player, "&aRenamed humanoid from '&e" + oldName + "&a' to '&e" + newName + "&a'");
+        Messages.sendMessage(player, "&aRenamed Humanoid from '&e" + oldName + "&a' to '&e" + newName + "&a'");
     }
 
     @Default
     @CatchUnknown
     public void onDefault(Player player) {
         Messages.sendMessage(player, "&6=== Humanoid Commands ===");
-        Messages.sendMessage(player, "&e/humanoid spawn <name> &7- Spawn a humanoid at your location");
+        Messages.sendMessage(player, "&e/humanoid spawn <name> &7- Spawn a Humanoid at your location");
         Messages.sendMessage(player, "&e/humanoid spawnat <name> <x> <y> <z> &7- Spawn at coordinates");
         Messages.sendMessage(player, "&e/humanoid list &7- Open management GUI");
-        Messages.sendMessage(player, "&e/humanoid tp <name> &7- Teleport to a humanoid");
-        Messages.sendMessage(player, "&e/humanoid info <name> &7- View humanoid info");
-        Messages.sendMessage(player, "&e/humanoid delete <name> &7- Delete a humanoid");
-        Messages.sendMessage(player, "&e/humanoid rename <old> <new> &7- Rename a humanoid");
+        Messages.sendMessage(player, "&e/humanoid tp <name> &7- Teleport to a Humanoid");
+        Messages.sendMessage(player, "&e/humanoid info <name> &7- View Humanoid info");
+        Messages.sendMessage(player, "&e/humanoid delete <name> &7- Delete a Humanoid");
+        Messages.sendMessage(player, "&e/humanoid rename <old> <new> &7- Rename a Humanoid");
         Messages.sendMessage(player, "&e/humanoid save &7- Force save all to file");
     }
 }

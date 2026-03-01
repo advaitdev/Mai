@@ -142,7 +142,7 @@ public class HumanoidListGUI implements InventoryHolder {
             List<String> lore = new ArrayList<>();
             lore.add(colorize("&7Total humanoids: &f" + Catalog.getInstance().getCount()));
             lore.add("");
-            lore.add(colorize("&7Click a humanoid head to"));
+            lore.add(colorize("&7Click a Humanoid head to"));
             lore.add(colorize("&7view and manage it."));
             meta.setLore(lore);
             item.setItemMeta(meta);

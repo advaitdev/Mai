@@ -7,6 +7,7 @@ import me.advait.mai.brain.cerebrum.movement.MotorCortex;
 import me.advait.mai.util.InventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
@@ -76,11 +77,15 @@ public class Humanoid {
         Mannequin m = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
         m.setCustomName(this.name);
         m.setCustomNameVisible(true);
+        m.setDescription(null);  // Remove "NPC" text below name
         m.setAI(false);
         m.setInvulnerable(true);
         m.setImmovable(false);
         m.setRemoveWhenFarAway(false);
-        // Skin can be set via m.setProfile(ResolvableProfile) if needed (Paper API)
+
+        // Set skin based on player name (will resolve texture from Mojang)
+        m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
+
         this.mannequin = m;
         return m;
     }

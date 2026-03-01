@@ -24,9 +24,9 @@ import java.util.concurrent.CompletableFuture;
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
-    private static final double WAYPOINT_RADIUS = 0.7;
-    private static final double MOVE_SPEED = 0.25;
-    private static final int PATH_UPDATE_INTERVAL = 15;
+    private static final double WAYPOINT_RADIUS = 0.5;
+    private static final double MOVE_SPEED = 0.21;  // Approx Minecraft walking speed
+    private static final int PATH_UPDATE_INTERVAL = 20;  // Recalculate every second (20 ticks)
 
     private final Humanoid humanoid;
     private final Location target;
@@ -61,7 +61,9 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             return;
         }
 
-        if (previousLocation != null && timeStuck >= Settings.HUMANOID_PATHFINDING_TIMEOUT
+        // Stuck detection - timeout is in seconds, we run every tick (20 ticks = 1 second)
+        int timeoutTicks = Settings.HUMANOID_PATHFINDING_TIMEOUT * 20;
+        if (previousLocation != null && timeStuck >= timeoutTicks
                 && previousLocation.getBlockX() == current.getBlockX()
                 && previousLocation.getBlockY() == current.getBlockY()
                 && previousLocation.getBlockZ() == current.getBlockZ()) {
@@ -107,7 +109,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                         });
                         return null;
                     });
-            return;
+            // Don't return early if we have waypoints - continue moving while path updates
+            if (waypoints.isEmpty() || pathIndex >= waypoints.size()) {
+                return;
+            }
         }
 
         if (pathIndex < waypoints.size()) {

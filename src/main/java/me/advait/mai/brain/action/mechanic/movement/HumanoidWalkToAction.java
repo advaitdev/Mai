@@ -23,7 +23,7 @@ public class HumanoidWalkToAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         var walkToRunnable = new HumanoidWalkToRunnable(humanoid, destination, resultFuture);
-        walkToRunnable.runTaskTimer(Mai.getInstance(), 0, 20);
+        walkToRunnable.runTaskTimer(Mai.getInstance(), 0, 1);
     }
 
     @Override

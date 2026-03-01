@@ -100,12 +100,12 @@ public class GUIListener implements Listener {
         switch (slot) {
             case HumanoidInfoGUI.SLOT_TELEPORT -> {
                 if (humanoid.getMannequin() == null) {
-                    Messages.sendMessage(player, "&cThis humanoid is not currently spawned!");
+                    Messages.sendMessage(player, "&cThis Humanoid is not currently spawned!");
                     return;
                 }
                 player.closeInventory();
                 player.teleport(humanoid.getMannequin().getLocation());
-                Messages.sendMessage(player, "&aTeleported to humanoid '&e" + humanoid.getName() + "&a'");
+                Messages.sendMessage(player, "&aTeleported to Humanoid '&e" + humanoid.getName() + "&a'");
             }
 
             case HumanoidInfoGUI.SLOT_INVENTORY -> {
@@ -128,7 +128,7 @@ public class GUIListener implements Listener {
                     String name = humanoid.getName();
                     Catalog.getInstance().unregister(humanoid);
                     pendingDeletes.remove(player.getUniqueId());
-                    Messages.sendMessage(player, "&aDeleted humanoid '&e" + name + "&a'");
+                    Messages.sendMessage(player, "&aDeleted Humanoid '&e" + name + "&a'");
                 } else {
                     // First click - ask for confirmation
                     pendingDeletes.put(player.getUniqueId(), humanoid.getUuid());
@@ -192,19 +192,19 @@ public class GUIListener implements Listener {
             Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
                 Humanoid humanoid = Catalog.getInstance().getByUuid(humanoidUuid);
                 if (humanoid == null) {
-                    Messages.sendMessage(player, "&cThat humanoid no longer exists!");
+                    Messages.sendMessage(player, "&cThat Humanoid no longer exists!");
                     return;
                 }
 
                 if (Catalog.getInstance().nameExists(input) && !humanoid.getName().equalsIgnoreCase(input)) {
-                    Messages.sendMessage(player, "&cA humanoid with that name already exists!");
+                    Messages.sendMessage(player, "&cA Humanoid with that name already exists!");
                     return;
                 }
 
                 String oldName = humanoid.getName();
                 humanoid.setName(input);
                 Catalog.getInstance().save(humanoid);
-                Messages.sendMessage(player, "&aRenamed humanoid from '&e" + oldName + "&a' to '&e" + input + "&a'");
+                Messages.sendMessage(player, "&aRenamed Humanoid from '&e" + oldName + "&a' to '&e" + input + "&a'");
             });
         }
     }
