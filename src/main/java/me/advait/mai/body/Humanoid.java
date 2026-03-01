@@ -4,7 +4,6 @@ import me.advait.mai.brain.Brain;
 import me.advait.mai.brain.cerebrum.*;
 import me.advait.mai.brain.cerebrum.movement.HumanoidMotorCortex;
 import me.advait.mai.brain.cerebrum.movement.MotorCortex;
-import me.advait.mai.util.InventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
@@ -97,11 +96,6 @@ public class Humanoid {
 
     /** Returns the mannequin entity. May be null if not spawned. */
     public Mannequin getMannequin() {
-        return mannequin;
-    }
-
-    /** @deprecated Use getEntity() or getMannequin(). */
-    public Mannequin getNpc() {
         return mannequin;
     }
 

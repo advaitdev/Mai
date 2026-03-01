@@ -10,23 +10,29 @@ import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.util.LocationUtil;
 import me.advait.mai.util.NPCUtil;
-import me.advait.mai.util.PatheticUtil;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Moves a humanoid's mannequin to a target by pathfinding and applying setVelocity each tick.
+ * Moves a humanoid's mannequin to a target by pathfinding and applying velocity each tick.
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private static final double WAYPOINT_RADIUS = 0.5;
-    private static final double MOVE_SPEED = 0.21;  // Approx Minecraft walking speed
-    private static final int PATH_UPDATE_INTERVAL = 20;  // Recalculate every second (20 ticks)
+    private static final double MOVE_SPEED = 0.22;
+    private static final double JUMP_VELOCITY = 0.42;  // Vanilla jump velocity
+    private static final int PATH_UPDATE_INTERVAL = 40;  // Recalculate every 2 seconds
+
+    // Debug mode - show particles for path
+    private static boolean debugMode = false;
 
     private final Humanoid humanoid;
     private final Location target;
@@ -34,15 +40,24 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private List<Vector> waypoints = new ArrayList<>();
     private int pathIndex = 0;
-    private Path previousPath = null;
     private int timeStuck = 0;
     private Location previousLocation = null;
-    private int ticksSincePathUpdate = 0;
+    private int ticksSincePathUpdate = PATH_UPDATE_INTERVAL; // Force initial path calculation
+    private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
+    private int jumpCooldown = 0;
 
     public HumanoidWalkToRunnable(Humanoid humanoid, Location target, CompletableFuture<HumanoidActionResult> resultFuture) {
         this.humanoid = humanoid;
         this.target = target;
         this.resultFuture = resultFuture;
+    }
+
+    public static void setDebugMode(boolean enabled) {
+        debugMode = enabled;
+    }
+
+    public static boolean isDebugMode() {
+        return debugMode;
     }
 
     @Override
@@ -55,13 +70,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         Location current = humanoid.getEntity().getLocation();
 
+        // Check if we've reached the destination
         if (NPCUtil.isEntityNearDestination(current, target)) {
             resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.WALK_TO_MESSAGE_SUCCESS));
             cancel();
             return;
         }
 
-        // Stuck detection - timeout is in seconds, we run every tick (20 ticks = 1 second)
+        // Stuck detection
         int timeoutTicks = Settings.HUMANOID_PATHFINDING_TIMEOUT * 20;
         if (previousLocation != null && timeStuck >= timeoutTicks
                 && previousLocation.getBlockX() == current.getBlockX()
@@ -80,58 +96,137 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
         previousLocation = current.clone();
 
+        // Decrease jump cooldown
+        if (jumpCooldown > 0) jumpCooldown--;
+
+        // Path recalculation
         ticksSincePathUpdate++;
         boolean needPath = waypoints.isEmpty() || pathIndex >= waypoints.size() || ticksSincePathUpdate >= PATH_UPDATE_INTERVAL;
 
-        if (needPath) {
-            ticksSincePathUpdate = 0;
-            PatheticAgent.getInstance().getGroundPath(current, target)
-                    .thenAccept(result -> Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
-                        if (result.successful()) {
-                            Path path = result.getPath();
-                            if (previousPath != null && PatheticUtil.isSubpathEquivalent(previousPath, path)) {
-                                return;
-                            }
-                            waypoints = new ArrayList<>();
-                            path.forEach(pp -> waypoints.add(BukkitMapper.toVector(pp.toVector())));
-                            previousPath = path;
-                            pathIndex = 0;
-                        } else {
-                            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
-                            cancel();
-                        }
-                    }))
-                    .exceptionally(ex -> {
-                        Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
-                            resultFuture.complete(new HumanoidActionResult(false,
-                                    HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE + " (" + ex.getMessage() + ")"));
-                            cancel();
-                        });
-                        return null;
-                    });
-            // Don't return early if we have waypoints - continue moving while path updates
-            if (waypoints.isEmpty() || pathIndex >= waypoints.size()) {
-                return;
-            }
+        if (needPath && !pathfindingInProgress.get()) {
+            requestNewPath(current);
         }
 
-        if (pathIndex < waypoints.size()) {
-            Vector waypoint = waypoints.get(pathIndex);
-            Location waypointLoc = current.getWorld() != null
-                    ? new Location(current.getWorld(), waypoint.getX(), waypoint.getY(), waypoint.getZ())
-                    : null;
-            if (waypointLoc != null) {
-                double dist = current.distance(waypointLoc);
-                if (dist < WAYPOINT_RADIUS) {
-                    pathIndex++;
-                } else {
-                    LocationUtil.faceLocation(humanoid.getEntity(), waypointLoc);
-                    Vector dir = waypoint.clone().subtract(current.toVector()).normalize();
-                    Vector velocity = dir.multiply(MOVE_SPEED).setY(0);
-                    humanoid.getEntity().setVelocity(velocity);
-                }
-            }
+        // Move along the path
+        moveAlongPath(current);
+
+        // Debug particles
+        if (debugMode) {
+            showDebugParticles(current);
         }
     }
 
+    private void requestNewPath(Location current) {
+        pathfindingInProgress.set(true);
+        ticksSincePathUpdate = 0;
+
+        PatheticAgent.getInstance().getGroundPath(current, target)
+                .thenAccept(result -> Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
+                    pathfindingInProgress.set(false);
+                    if (result.successful()) {
+                        Path path = result.getPath();
+                        List<Vector> newWaypoints = new ArrayList<>();
+                        path.forEach(pp -> newWaypoints.add(BukkitMapper.toVector(pp.toVector())));
+
+                        // Find where we are in the new path to avoid resetting progress
+                        int newStartIndex = findClosestWaypointIndex(newWaypoints, current);
+                        waypoints = newWaypoints;
+                        pathIndex = newStartIndex;
+                    } else {
+                        resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE));
+                        cancel();
+                    }
+                }))
+                .exceptionally(ex -> {
+                    Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
+                        pathfindingInProgress.set(false);
+                        resultFuture.complete(new HumanoidActionResult(false,
+                                HumanoidActionMessage.WALK_TO_MESSAGE_FAILURE + " (" + ex.getMessage() + ")"));
+                        cancel();
+                    });
+                    return null;
+                });
+    }
+
+    private int findClosestWaypointIndex(List<Vector> newWaypoints, Location current) {
+        if (newWaypoints.isEmpty()) return 0;
+
+        Vector currentVec = current.toVector();
+        double minDist = Double.MAX_VALUE;
+        int closestIndex = 0;
+
+        // Find the closest waypoint that's ahead of us (not behind)
+        for (int i = 0; i < newWaypoints.size(); i++) {
+            double dist = newWaypoints.get(i).distanceSquared(currentVec);
+            if (dist < minDist) {
+                minDist = dist;
+                closestIndex = i;
+            }
+        }
+
+        return closestIndex;
+    }
+
+    private void moveAlongPath(Location current) {
+        if (pathIndex >= waypoints.size()) return;
+
+        Vector waypoint = waypoints.get(pathIndex);
+        Location waypointLoc = new Location(current.getWorld(), waypoint.getX(), waypoint.getY(), waypoint.getZ());
+
+        double horizontalDist = Math.sqrt(
+                Math.pow(current.getX() - waypointLoc.getX(), 2) +
+                Math.pow(current.getZ() - waypointLoc.getZ(), 2)
+        );
+
+        // Check if we've reached this waypoint
+        if (horizontalDist < WAYPOINT_RADIUS && Math.abs(current.getY() - waypointLoc.getY()) < 1.5) {
+            pathIndex++;
+            return;
+        }
+
+        // Face the waypoint
+        LocationUtil.faceLocation(humanoid.getEntity(), waypointLoc);
+
+        // Calculate movement direction
+        Vector direction = waypoint.clone().subtract(current.toVector());
+        double yDiff = direction.getY();
+        direction.setY(0).normalize();
+
+        // Apply horizontal movement
+        Vector velocity = direction.multiply(MOVE_SPEED);
+
+        // Handle jumping for upward movement
+        boolean onGround = humanoid.getEntity().isOnGround();
+        if (yDiff > 0.3 && onGround && jumpCooldown == 0) {
+            // Need to jump up
+            velocity.setY(JUMP_VELOCITY);
+            jumpCooldown = 10; // Cooldown to prevent spam jumping
+        } else {
+            // Preserve current Y velocity for gravity
+            velocity.setY(humanoid.getEntity().getVelocity().getY());
+        }
+
+        humanoid.getEntity().setVelocity(velocity);
+    }
+
+    private void showDebugParticles(Location current) {
+        if (current.getWorld() == null) return;
+
+        // Show current position (green)
+        current.getWorld().spawnParticle(Particle.DUST, current.clone().add(0, 1, 0),
+                1, new Particle.DustOptions(Color.GREEN, 1));
+
+        // Show target (red)
+        target.getWorld().spawnParticle(Particle.DUST, target.clone().add(0, 1, 0),
+                1, new Particle.DustOptions(Color.RED, 1));
+
+        // Show path waypoints
+        for (int i = pathIndex; i < Math.min(pathIndex + 10, waypoints.size()); i++) {
+            Vector wp = waypoints.get(i);
+            Location wpLoc = new Location(current.getWorld(), wp.getX(), wp.getY() + 0.5, wp.getZ());
+
+            Color color = (i == pathIndex) ? Color.YELLOW : Color.AQUA;
+            current.getWorld().spawnParticle(Particle.DUST, wpLoc, 1, new Particle.DustOptions(color, 0.7f));
+        }
+    }
 }

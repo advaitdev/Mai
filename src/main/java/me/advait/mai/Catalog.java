@@ -172,14 +172,6 @@ public class Catalog {
     }
 
     /**
-     * @deprecated Use register(String, Location) instead.
-     */
-    @Deprecated
-    public void registerHumanoid(String npcName) {
-        register(npcName, Bukkit.getWorlds().getFirst().getSpawnLocation());
-    }
-
-    /**
      * Gets all registered humanoids.
      *
      * @return unmodifiable list of humanoids

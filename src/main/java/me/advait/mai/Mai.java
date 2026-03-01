@@ -3,8 +3,6 @@ package me.advait.mai;
 import co.aikar.commands.PaperCommandManager;
 import de.bsommerfeld.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HumanoidCommand;
-import me.advait.mai.command.debug.GetGitVersionCommand;
-import me.advait.mai.command.debug.HDebugCommand;
 import me.advait.mai.file.HumanoidsFile;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.gui.GUIListener;
@@ -61,8 +59,6 @@ public final class Mai extends JavaPlugin {
         );
 
         // Register commands
-        commandManager.registerCommand(new HDebugCommand());
-        commandManager.registerCommand(new GetGitVersionCommand());
         commandManager.registerCommand(new HumanoidCommand());
     }
 

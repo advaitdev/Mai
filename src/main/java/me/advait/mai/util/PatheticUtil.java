@@ -1,14 +1,16 @@
 package me.advait.mai.util;
 
 import de.bsommerfeld.pathetic.api.pathing.result.Path;
-import de.bsommerfeld.pathetic.api.provider.NavigationPointProvider;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import de.bsommerfeld.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 
 import java.util.Iterator;
 
-@Deprecated
+/**
+ * Utility methods for working with Pathetic paths.
+ */
 public final class PatheticUtil {
+
+    private PatheticUtil() {}
 
     /**
      * Determines if the second parameter passed is a "subpath" of the first; meaning, all of the positions in the shorter
@@ -16,12 +18,12 @@ public final class PatheticUtil {
      *
      * @param longer The longer path.
      * @param shorter The shorter path.
+     * @return true if shorter is a subpath of longer
      */
     public static boolean isSubpathEquivalent(Path longer, Path shorter) {
         int lengthDifference = longer.length() - shorter.length();
-        if (lengthDifference < 0) return false; // If the "shorter" path is somehow longer, the actual path was 100% recalculated
+        if (lengthDifference < 0) return false;
 
-        // Iterate over the paths, starting from the trimmed position in the longer path
         Iterator<PathPosition> longerIterator = longer.iterator();
         Iterator<PathPosition> shorterIterator = shorter.iterator();
 
@@ -40,19 +42,6 @@ public final class PatheticUtil {
             }
         }
 
-        // If we exhaust both iterators without mismatch, the paths are equivalent
         return !shorterIterator.hasNext() && !longerIterator.hasNext();
     }
-
-    public static boolean isTraversable(Path path) {
-        NavigationPointProvider navigationPointProvider = new LoadingNavigationPointProvider();
-
-        for (PathPosition pathPosition : path)
-            if (!navigationPointProvider.getNavigationPoint(pathPosition).isTraversable()) return false;
-
-        return true;
-    }
-
-
-
 }
