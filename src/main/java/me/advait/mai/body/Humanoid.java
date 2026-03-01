@@ -14,8 +14,12 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.UUID;
+
 public class Humanoid {
 
+    private final UUID uuid;
+    private String name;
     private Mannequin mannequin;
     private final Inventory inventory;
     private final Brain brain;
@@ -24,11 +28,41 @@ public class Humanoid {
     private final PrefrontalCortex prefrontalCortex;
 
     public Humanoid(String name) {
+        this(UUID.randomUUID(), name);
+    }
+
+    public Humanoid(UUID uuid, String name) {
+        this.uuid = uuid;
+        this.name = name;
         this.inventory = Bukkit.createInventory(null, 36, name + "'s Inventory");
         this.brocasArea = new HumanoidBrocasArea();
         this.motorCortex = new HumanoidMotorCortex();
         this.prefrontalCortex = new HumanoidPrefrontalCortex();
         this.brain = new Brain(brocasArea, motorCortex, prefrontalCortex);
+    }
+
+    /**
+     * Returns the unique identifier for this humanoid.
+     */
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    /**
+     * Returns the name of this humanoid.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Sets the name of this humanoid and updates the display name if spawned.
+     */
+    public void setName(String name) {
+        this.name = name;
+        if (mannequin != null) {
+            mannequin.setCustomName(name);
+        }
     }
 
     /**
@@ -40,7 +74,7 @@ public class Humanoid {
             this.mannequin.remove();
         }
         Mannequin m = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
-        m.setCustomName("Mai");
+        m.setCustomName(this.name);
         m.setCustomNameVisible(true);
         m.setAI(false);
         m.setInvulnerable(true);
