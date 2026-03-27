@@ -17,13 +17,12 @@ mvn -f "$PROJECT_DIR/pom.xml" clean package -q
 echo "Copying $JAR_NAME to plugins..."
 cp "$PROJECT_DIR/target/$JAR_NAME" "$PLUGINS_DIR/$JAR_NAME"
 
-# Stop server if running
-SERVER_PIDS=$(lsof -ti :25565 2>/dev/null || true)
-if [ -n "$SERVER_PIDS" ]; then
-    echo "Stopping server..."
-    echo "$SERVER_PIDS" | xargs kill 2>/dev/null || true
-    # Wait for processes to exit
-    for pid in $SERVER_PIDS; do
+# Stop server if running (only kill the server.jar process, not the Minecraft client)
+SERVER_PID=$(pgrep -f "server\.jar" 2>/dev/null || true)
+if [ -n "$SERVER_PID" ]; then
+    echo "Stopping server (PID $SERVER_PID)..."
+    kill $SERVER_PID 2>/dev/null || true
+    for pid in $SERVER_PID; do
         while kill -0 "$pid" 2>/dev/null; do sleep 1; done
     done
     echo "Server stopped."

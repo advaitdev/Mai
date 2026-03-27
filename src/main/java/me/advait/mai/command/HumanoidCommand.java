@@ -16,12 +16,27 @@ import me.advait.mai.util.Messages;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import me.advait.mai.Mai;
+import me.advait.mai.brain.action.HumanoidActionAgent;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @CommandAlias("humanoid|h|npc")
 @Description("Manage Humanoid NPCs")
 public class HumanoidCommand extends BaseCommand {
+
+    // Live action bar task per player
+    private static final Map<UUID, BukkitTask> queueWatchers = new HashMap<>();
 
     // ===== MANAGEMENT COMMANDS =====
 
@@ -178,7 +193,7 @@ public class HumanoidCommand extends BaseCommand {
         }
 
         Messages.sendMessage(player, "&7Sending '&e" + humanoid.getName() + "&7' to your location...");
-        new HumanoidWalkToAction(humanoid, player.getLocation()).run()
+        humanoid.getActionAgent().addActions(new HumanoidWalkToAction(humanoid, player.getLocation()))
                 .thenAccept(result -> Messages.sendMessage(player,
                         result.success() ? "&a" + humanoid.getName() + " arrived!" : "&c" + result.message()))
                 .exceptionally(ex -> {
@@ -223,7 +238,7 @@ public class HumanoidCommand extends BaseCommand {
         }
 
         Messages.sendMessage(player, "&7Mining " + target.getType() + "...");
-        new HumanoidMineAction(humanoid, target, true).run()
+        humanoid.getActionAgent().addActions(new HumanoidMineAction(humanoid, target, true))
                 .thenAccept(result -> Messages.sendMessage(player,
                         result.success() ? "&aBlock mined!" : "&c" + result.message()))
                 .exceptionally(ex -> {
@@ -257,7 +272,7 @@ public class HumanoidCommand extends BaseCommand {
         }
 
         Messages.sendMessage(player, "&7Placing " + inHand.getType() + "...");
-        new HumanoidBuildAction(humanoid, target.getLocation(), inHand).run()
+        humanoid.getActionAgent().addActions(new HumanoidBuildAction(humanoid, target.getLocation(), inHand))
                 .thenAccept(result -> Messages.sendMessage(player,
                         result.success() ? "&aBlock placed!" : "&c" + result.message()))
                 .exceptionally(ex -> {
@@ -325,6 +340,94 @@ public class HumanoidCommand extends BaseCommand {
                 });
     }
 
+    @Subcommand("debug queue")
+    @CommandPermission("mai.humanoid.debug")
+    @CommandCompletion("@humanoids")
+    @Syntax("[name]")
+    @Description("Show current action queue for a Humanoid")
+    public void onDebugQueue(Player player, @Optional String name) {
+        Humanoid humanoid = resolveHumanoid(player, name);
+        if (humanoid == null) return;
+
+        HumanoidActionAgent agent = humanoid.getActionAgent();
+        String currentAction = agent.getCurrentActionName();
+        List<String> queued = agent.getQueuedActionNames();
+
+        Messages.sendMessage(player, "&6=== " + humanoid.getName() + " Action Queue ===");
+        if (currentAction != null) {
+            Messages.sendMessage(player, "&a> Running: &f" + currentAction);
+        } else {
+            Messages.sendMessage(player, "&7> Idle");
+        }
+        if (queued.isEmpty()) {
+            Messages.sendMessage(player, "&7  (no queued actions)");
+        } else {
+            for (int i = 0; i < queued.size(); i++) {
+                Messages.sendMessage(player, "&e  " + (i + 1) + ". " + queued.get(i));
+            }
+        }
+    }
+
+    @Subcommand("debug cancel")
+    @CommandPermission("mai.humanoid.debug")
+    @CommandCompletion("@humanoids")
+    @Syntax("[name]")
+    @Description("Cancel all actions for a Humanoid")
+    public void onDebugCancel(Player player, @Optional String name) {
+        Humanoid humanoid = resolveHumanoid(player, name);
+        if (humanoid == null) return;
+
+        humanoid.getActionAgent().cancelAll();
+        Messages.sendMessage(player, "&aCancelled all actions for '&e" + humanoid.getName() + "&a'");
+    }
+
+    @Subcommand("debug watch")
+    @CommandPermission("mai.humanoid.debug")
+    @CommandCompletion("@humanoids")
+    @Syntax("[name]")
+    @Description("Toggle live action bar showing queue state")
+    public void onDebugWatch(Player player, @Optional String name) {
+        UUID playerId = player.getUniqueId();
+
+        // Toggle off if already watching
+        if (queueWatchers.containsKey(playerId)) {
+            queueWatchers.remove(playerId).cancel();
+            Messages.sendMessage(player, "&7Queue watcher &cdisabled");
+            player.sendActionBar(Component.empty());
+            return;
+        }
+
+        Humanoid humanoid = resolveHumanoid(player, name);
+        if (humanoid == null) return;
+
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(Mai.getInstance(), () -> {
+            Player p = Bukkit.getPlayer(playerId);
+            if (p == null || !p.isOnline()) {
+                BukkitTask t = queueWatchers.remove(playerId);
+                if (t != null) t.cancel();
+                return;
+            }
+
+            HumanoidActionAgent agent = humanoid.getActionAgent();
+            String current = agent.getCurrentActionName();
+            int queueSize = agent.getQueueSize();
+
+            Component bar;
+            if (current != null) {
+                bar = Component.text(humanoid.getName() + " ", NamedTextColor.GOLD)
+                        .append(Component.text(current, NamedTextColor.GREEN, TextDecoration.BOLD))
+                        .append(Component.text(" [" + queueSize + " in queue]", NamedTextColor.GRAY));
+            } else {
+                bar = Component.text(humanoid.getName() + " ", NamedTextColor.GOLD)
+                        .append(Component.text("Idle", NamedTextColor.GRAY));
+            }
+            p.sendActionBar(bar);
+        }, 0L, 5L);
+
+        queueWatchers.put(playerId, task);
+        Messages.sendMessage(player, "&7Queue watcher &aenabled &7for '&e" + humanoid.getName() + "&7'");
+    }
+
     // ===== HELP =====
 
     @Subcommand("debug")
@@ -338,6 +441,9 @@ public class HumanoidCommand extends BaseCommand {
         Messages.sendMessage(player, "&e/h debug build [name] &7- Place block");
         Messages.sendMessage(player, "&e/h debug pathcheck [name] &7- Check path");
         Messages.sendMessage(player, "&e/h debug gotoandmine [name] &7- Walk + mine");
+        Messages.sendMessage(player, "&e/h debug queue [name] &7- Show action queue");
+        Messages.sendMessage(player, "&e/h debug cancel [name] &7- Cancel all actions");
+        Messages.sendMessage(player, "&e/h debug watch [name] &7- Toggle live queue bar");
     }
 
     @HelpCommand

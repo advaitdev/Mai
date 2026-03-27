@@ -55,10 +55,15 @@ public class Humanoid {
         m.setCustomName(this.name);
         m.setCustomNameVisible(true);
         m.setDescription(null);
-        m.setAI(true);
-        m.setInvulnerable(true);
+
+        // Disable mob AI so it doesn't fight our manual movement,
+        // but keep gravity and physics enabled for natural falling/collision.
+        m.setAI(false);
+        m.setGravity(true);
+        m.setInvulnerable(false);
         m.setImmovable(false);
         m.setRemoveWhenFarAway(false);
+
         m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
 
         this.mannequin = m;

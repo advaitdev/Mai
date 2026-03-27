@@ -30,7 +30,6 @@ me/advait/mai/Settings.class
 me/advait/mai/brain/action/mechanic/movement/HumanoidWalkToAction.class
 me/advait/mai/brain/ml/PvPAction$Type.class
 me/advait/mai/file/HumanoidsFile.class
-me/advait/mai/util/PatheticUtil.class
 me/advait/mai/pathetic/Scenario$1.class
 me/advait/mai/pathetic/Scenario$7.class
 me/advait/mai/file/serialization/InventorySerializer.class

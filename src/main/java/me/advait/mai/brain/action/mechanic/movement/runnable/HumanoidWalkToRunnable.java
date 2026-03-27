@@ -1,7 +1,5 @@
 package me.advait.mai.brain.action.mechanic.movement.runnable;
 
-import de.bsommerfeld.pathetic.api.pathing.result.Path;
-import de.bsommerfeld.pathetic.bukkit.mapper.BukkitMapper;
 import me.advait.mai.Mai;
 import me.advait.mai.Settings;
 import me.advait.mai.body.Humanoid;
@@ -12,6 +10,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -21,13 +20,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Moves a humanoid's mannequin to a target by pathfinding and applying velocity each tick.
+ * Moves a humanoid's mannequin to a target using pathfinding with vanilla-like physics.
+ *
+ * Gravity and collision are handled by the server (Mannequin has gravity=true, AI=false).
+ * This runnable only applies horizontal velocity and jump impulses — it never touches Y
+ * velocity except when jumping, so gravity accumulates naturally.
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
+    // Vanilla-like movement constants
+    private static final double WALK_ACCELERATION = 0.1;   // ground acceleration per tick
+    private static final double GROUND_DRAG = 0.546;        // 0.6 (slipperiness) * 0.91 (drag)
+    private static final double AIR_ACCELERATION = 0.02;    // air control per tick
+    private static final double AIR_DRAG = 0.91;            // horizontal drag in air
+    private static final double JUMP_VELOCITY = 0.42;       // vanilla jump Y velocity
     private static final double WAYPOINT_RADIUS = 0.5;
-    private static final double MOVE_SPEED = 0.22;
-    private static final double JUMP_VELOCITY = 0.42;
     private static final int PATH_UPDATE_INTERVAL = 40;
 
     private static boolean debugMode = false;
@@ -60,6 +67,12 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     @Override
     public void run() {
+        // Stop if future was completed externally (e.g. cancelled)
+        if (resultFuture.isDone()) {
+            cancel();
+            return;
+        }
+
         if (humanoid.getEntity() == null || !humanoid.getEntity().isValid()) {
             resultFuture.complete(new HumanoidActionResult(false, "Entity is no longer valid."));
             cancel();
@@ -117,10 +130,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         PatheticAgent.getInstance().getGroundPath(current, target)
                 .thenAccept(result -> Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
                     pathfindingInProgress.set(false);
+                    if (resultFuture.isDone()) return;
+
                     if (result.successful()) {
-                        Path path = result.getPath();
-                        List<Vector> newWaypoints = new ArrayList<>();
-                        path.forEach(pp -> newWaypoints.add(BukkitMapper.toVector(pp.toVector())));
+                        List<Vector> newWaypoints = PatheticAgent.processPath(result.getPath());
 
                         int newStartIndex = findClosestWaypointIndex(newWaypoints, current);
                         waypoints = newWaypoints;
@@ -161,6 +174,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private void moveAlongPath(Location current) {
         if (pathIndex >= waypoints.size()) return;
 
+        LivingEntity entity = humanoid.getEntity();
         Vector waypoint = waypoints.get(pathIndex);
         Location waypointLoc = new Location(current.getWorld(), waypoint.getX(), waypoint.getY(), waypoint.getZ());
 
@@ -174,37 +188,55 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             return;
         }
 
-        LocationUtil.faceLocation(humanoid.getEntity(), waypointLoc);
+        // Face the waypoint (uses setRotation, does NOT reset velocity)
+        LocationUtil.faceLocation(entity, waypointLoc);
 
-        Vector direction = waypoint.clone().subtract(current.toVector());
-        direction.setY(0);
-        if (direction.lengthSquared() > 0) {
-            direction.normalize();
+        // Desired horizontal direction
+        double dx = waypoint.getX() - current.getX();
+        double dz = waypoint.getZ() - current.getZ();
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len > 0) { dx /= len; dz /= len; }
+
+        boolean onGround = entity.isOnGround();
+        Vector currentVelocity = entity.getVelocity();
+
+        // Vanilla-like horizontal movement with acceleration + drag
+        double vx, vz;
+        if (onGround) {
+            vx = currentVelocity.getX() * GROUND_DRAG + dx * WALK_ACCELERATION;
+            vz = currentVelocity.getZ() * GROUND_DRAG + dz * WALK_ACCELERATION;
+        } else {
+            // Reduced air control (vanilla behavior)
+            vx = currentVelocity.getX() * AIR_DRAG + dx * AIR_ACCELERATION;
+            vz = currentVelocity.getZ() * AIR_DRAG + dz * AIR_ACCELERATION;
         }
 
-        Vector velocity = direction.multiply(MOVE_SPEED);
-        velocity.setY(humanoid.getEntity().getVelocity().getY());
+        // Y velocity — don't touch it, let the server apply gravity.
+        // Only override when jumping.
+        double vy = currentVelocity.getY();
 
-        boolean onGround = humanoid.getEntity().isOnGround();
-        if (onGround && jumpCooldown == 0 && shouldJump(current, direction)) {
-            velocity.setY(JUMP_VELOCITY);
+        if (onGround && jumpCooldown == 0 && shouldJump(current, dx, dz)) {
+            vy = JUMP_VELOCITY;
             jumpCooldown = 10;
         }
 
-        humanoid.getEntity().setVelocity(velocity);
+        entity.setVelocity(new Vector(vx, vy, vz));
     }
 
-    private boolean shouldJump(Location current, Vector direction) {
-        if (current.getWorld() == null || direction.lengthSquared() == 0) return false;
+    private boolean shouldJump(Location current, double dirX, double dirZ) {
+        if (current.getWorld() == null) return false;
 
-        Location ahead = current.clone().add(direction.clone().normalize().multiply(0.5));
+        // Check block ahead at foot level
+        Location ahead = current.clone().add(dirX * 0.6, 0, dirZ * 0.6);
         Block blockAhead = ahead.getBlock();
         Block blockAboveAhead = ahead.clone().add(0, 1, 0).getBlock();
 
+        // Jump if solid block at feet but space above
         if (blockAhead.getType().isSolid() && !blockAboveAhead.getType().isSolid()) {
             return true;
         }
 
+        // Jump if next waypoint is higher
         if (pathIndex < waypoints.size()) {
             double yDiff = waypoints.get(pathIndex).getY() - current.getY();
             if (yDiff > 0.5) {

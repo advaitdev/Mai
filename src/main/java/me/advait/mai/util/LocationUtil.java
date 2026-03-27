@@ -15,19 +15,24 @@ public final class LocationUtil {
     private LocationUtil() {}
 
     /**
-     * Makes an entity look at the given location (sets yaw/pitch).
+     * Makes an entity look at the given location by setting yaw/pitch.
+     * Uses setRotation instead of teleport to avoid resetting velocity.
      */
     public static void faceLocation(Entity entity, Location target) {
-        Location loc = entity.getLocation();
-        Vector dir = target.clone().add(0.5, 0.5, 0.5)
-                .subtract(entity instanceof LivingEntity le
-                        ? loc.clone().add(0, le.getEyeHeight(), 0)
-                        : loc.clone())
-                .toVector();
-        if (dir.lengthSquared() > 0) {
-            loc.setDirection(dir);
-            entity.teleport(loc);
+        Location eye = entity.getLocation();
+        if (entity instanceof LivingEntity le) {
+            eye = eye.clone().add(0, le.getEyeHeight(), 0);
         }
+
+        double dx = target.getX() + 0.5 - eye.getX();
+        double dy = target.getY() + 0.5 - eye.getY();
+        double dz = target.getZ() + 0.5 - eye.getZ();
+
+        double horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float pitch = (float) Math.toDegrees(-Math.atan2(dy, horizontalDist));
+
+        entity.setRotation(yaw, pitch);
     }
 
     /**
