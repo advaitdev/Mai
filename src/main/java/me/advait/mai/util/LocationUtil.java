@@ -1,16 +1,18 @@
 package me.advait.mai.util;
 
+import me.advait.mai.Settings;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.EnumSet;
 
 public final class LocationUtil {
+
+    private LocationUtil() {}
 
     /**
      * Makes an entity look at the given location (sets yaw/pitch).
@@ -29,24 +31,24 @@ public final class LocationUtil {
     }
 
     /**
-     * Determines whether a block is targetable (using Minecraft's reach limit of about 4.5 blocks).
-     * @param standingLocation
-     * @param block
-     * @return
+     * Whether a block is within reach (4.5 blocks).
      */
     public static boolean isBlockTargetable(Location standingLocation, Block block) {
-        return !(standingLocation.distance(block.getLocation()) > 4.5);
+        return standingLocation.distance(block.getLocation()) <= 4.5;
     }
 
-    public static boolean canSeeLocation(LivingEntity entity, Location location) {
-        return entity.getLineOfSight(null, 10).contains(location.getBlock());
+    /**
+     * Whether the entity is within the configured "near target" distance.
+     */
+    public static boolean isNearDestination(Location entityLocation, Location destination) {
+        return entityLocation.distance(destination) <= Settings.HUMANOID_NEAR_TARGET_DISTANCE;
     }
 
     private static final EnumSet<Material> BUILDABLE_MATERIALS = EnumSet.of(
-            Material.AIR, Material.SHORT_GRASS, Material.TALL_GRASS, Material.SEAGRASS, Material.DEAD_BUSH, Material.FERN);
+            Material.AIR, Material.SHORT_GRASS, Material.TALL_GRASS,
+            Material.SEAGRASS, Material.DEAD_BUSH, Material.FERN);
 
     public static boolean isBuildable(Location location) {
         return BUILDABLE_MATERIALS.contains(location.getBlock().getType());
     }
-
 }

@@ -2,9 +2,7 @@ package me.advait.mai.brain.action.mechanic.pvp;
 
 import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
-import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.mechanic.HumanoidAction;
-import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.MovementUtil;
 import org.bukkit.Bukkit;
@@ -35,37 +33,27 @@ public class HumanoidMoveRelativeToTargetAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         if (humanoid.getEntity() == null) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_FAILURE));
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned."));
             return;
         }
         LivingEntity entity = humanoid.getEntity();
         Location start = entity.getLocation().clone();
-
         final double squaredDistance = distance * distance;
 
         Bukkit.getScheduler().runTaskTimer(Mai.getInstance(), task -> {
-            double traveled = entity.getLocation().distanceSquared(start);
-
             if (entity.isDead()) {
                 task.cancel();
-                resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_FAILURE));
+                resultFuture.complete(new HumanoidActionResult(false, "Entity died during movement."));
                 return;
             }
 
-            if (traveled >= squaredDistance) {
+            if (entity.getLocation().distanceSquared(start) >= squaredDistance) {
                 task.cancel();
-                resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.MOVE_RELATIVE_TO_TARGET_SUCCESS));
+                resultFuture.complete(new HumanoidActionResult(true, "Reached target distance."));
                 return;
             }
 
             MovementUtil.applyWASDMovement(entity, forward, strafe, speed);
-        }, 0L, 1L); // every tick
+        }, 0L, 1L);
     }
-
-    @Override
-    public HumanoidActionEvent getEvent() {
-        // TODO: add respective event
-        return null;
-    }
-
 }

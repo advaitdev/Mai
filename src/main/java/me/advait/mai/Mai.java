@@ -1,5 +1,6 @@
 package me.advait.mai;
 
+import co.aikar.commands.MessageType;
 import co.aikar.commands.PaperCommandManager;
 import de.bsommerfeld.pathetic.bukkit.PatheticBukkit;
 import me.advait.mai.command.HumanoidCommand;
@@ -26,58 +27,41 @@ public final class Mai extends JavaPlugin {
 
     private SettingsFile settingsFile;
     private HumanoidsFile humanoidsFile;
-    private PaperCommandManager commandManager;
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
         INSTANCE = this;
 
         this.settingsFile = new SettingsFile("settings.yml");
         this.humanoidsFile = new HumanoidsFile("humanoids.yml");
 
-        // Set up persistence before loading humanoids
         Catalog.getInstance().setHumanoidsFile(humanoidsFile);
 
-        initializePathetic();
+        PatheticBukkit.initialize(this);
         registerCommands();
         registerListeners();
 
-        // Load humanoids from file after a tick to ensure worlds are loaded
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            Catalog.getInstance().loadAll();
-        }, 20);
+        Bukkit.getScheduler().runTaskLater(this, () -> Catalog.getInstance().loadAll(), 20);
     }
 
-    public void registerCommands() {
-        // Initialize ACF
-        commandManager = new PaperCommandManager(this);
-
-        // Register tab completions
+    private void registerCommands() {
+        PaperCommandManager commandManager = new PaperCommandManager(this);
+        commandManager.enableUnstableAPI("help");
         commandManager.getCommandCompletions().registerCompletion("humanoids", c ->
                 Catalog.getInstance().getAllNames()
         );
-
-        // Register commands
         commandManager.registerCommand(new HumanoidCommand());
     }
 
-    public void registerListeners() {
+    private void registerListeners() {
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
     }
 
-    public void initializePathetic() {
-        // Initialize Pathetic's mapper
-        PatheticBukkit.initialize(this);
-    }
-
     @Override
     public void onDisable() {
-        // Save all humanoids before shutdown
         Catalog.getInstance().saveAll();
         Catalog.getInstance().killAll();
-
         INSTANCE = null;
     }
 

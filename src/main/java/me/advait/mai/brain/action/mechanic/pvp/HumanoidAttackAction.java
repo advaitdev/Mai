@@ -18,10 +18,10 @@ import java.util.concurrent.CompletableFuture;
 public class HumanoidAttackAction extends HumanoidAction {
 
     private final LivingEntity target;
-    private final double angle;  // direction to attack in relative to target
-    private final double power;  // desired cooldown threshold (0.0–1.0)
+    private final double angle;
+    private final double power;
 
-    private static final int MAX_WAIT_TICKS = 40; // ~2 seconds max wait
+    private static final int MAX_WAIT_TICKS = 40;
 
     public HumanoidAttackAction(Humanoid humanoid, Player target, double angle, double power) {
         super(humanoid);
@@ -33,14 +33,14 @@ public class HumanoidAttackAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         if (humanoid.getEntity() == null) {
-            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned"));
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned."));
             return;
         }
         LivingEntity bot = humanoid.getEntity();
-        // Mannequin has no attack cooldown; wait a short delay then attack
+
         scheduler.runTaskLater(Mai.getInstance(), () -> {
             if (!bot.isValid() || target.isDead()) {
-                resultFuture.complete(new HumanoidActionResult(false, "Target or entity invalid"));
+                resultFuture.complete(new HumanoidActionResult(false, "Target or entity invalid."));
                 return;
             }
             ItemStack weapon = bot.getEquipment() != null ? bot.getEquipment().getItemInMainHand() : null;
@@ -53,13 +53,12 @@ public class HumanoidAttackAction extends HumanoidAction {
             target.damage(finalDamage, bot);
 
             resultFuture.complete(new HumanoidActionResult(true,
-                    "Attacked %s with %s (%.2f damage)".formatted(target.getName(), type.name(), finalDamage)
-            ));
+                    "Attacked %s with %s (%.2f damage)".formatted(target.getName(), type.name(), finalDamage)));
         }, Math.min(MAX_WAIT_TICKS, 10L));
     }
 
     @Override
-    protected HumanoidActionEvent getEvent() {
+    protected HumanoidActionEvent createEvent() {
         return new HumanoidAttackActionEvent(humanoid, target);
     }
 }

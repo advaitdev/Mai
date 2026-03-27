@@ -1,8 +1,5 @@
 package me.advait.mai.brain.action.mechanic;
 
-import me.advait.mai.brain.action.event.HumanoidActionEvent;
-import me.advait.mai.brain.action.event.HumanoidMultiActionEvent;
-import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 
 import java.util.ArrayList;
@@ -17,7 +14,7 @@ public final class HumanoidMultiAction extends HumanoidAction {
     private final List<HumanoidAction> actions;
 
     public HumanoidMultiAction(List<HumanoidAction> actions) {
-        super(actions.getFirst().getHumanoid()); // assume all actions belong to the same humanoid
+        super(actions.getFirst().getHumanoid());
         this.actions = actions;
     }
 
@@ -40,18 +37,13 @@ public final class HumanoidMultiAction extends HumanoidAction {
         CompletableFuture
                 .allOf(futures.toArray(new CompletableFuture[0]))
                 .thenAccept(v -> {
-                    boolean allSuccess = futures.stream().allMatch(f -> f.join().isSuccess());
-                    resultFuture.complete(new HumanoidActionResult(allSuccess, HumanoidActionMessage.MULTI_ACTION_MESSAGE_SUCCESS));
+                    boolean allSuccess = futures.stream().allMatch(f -> f.join().success());
+                    resultFuture.complete(new HumanoidActionResult(allSuccess,
+                            allSuccess ? "All actions completed." : "One or more actions failed."));
                 })
                 .exceptionally(ex -> {
-                    resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.MULTI_ACTION_MESSAGE_FAILURE + " (error: " + ex.getMessage() + ")"));
+                    resultFuture.complete(new HumanoidActionResult(false, "Multi-action failed: " + ex.getMessage()));
                     return null;
                 });
     }
-
-    @Override
-    protected HumanoidActionEvent getEvent() {
-        return new HumanoidMultiActionEvent(humanoid);
-    }
-
 }

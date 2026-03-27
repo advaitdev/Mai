@@ -27,7 +27,7 @@ public class HumanoidWalkToAction extends HumanoidAction {
     }
 
     @Override
-    protected HumanoidActionEvent getEvent() {
+    protected HumanoidActionEvent createEvent() {
         return new HumanoidWalkToActionEvent(humanoid, destination);
     }
 }

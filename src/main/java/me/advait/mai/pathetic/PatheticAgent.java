@@ -10,7 +10,7 @@ import de.bsommerfeld.pathetic.bukkit.context.BukkitEnvironmentContext;
 import de.bsommerfeld.pathetic.bukkit.mapper.BukkitMapper;
 import de.bsommerfeld.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.bsommerfeld.pathetic.engine.factory.AStarPathfinderFactory;
-import me.advait.mai.brain.cerebrum.movement.pathfinding.impl.HumanoidCostProcessor;
+import me.advait.mai.pathetic.HumanoidCostProcessor;
 import org.bukkit.Location;
 import org.bukkit.World;
 

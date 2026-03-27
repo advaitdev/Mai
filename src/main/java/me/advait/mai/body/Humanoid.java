@@ -1,9 +1,6 @@
 package me.advait.mai.body;
 
-import me.advait.mai.brain.Brain;
-import me.advait.mai.brain.cerebrum.*;
-import me.advait.mai.brain.cerebrum.movement.HumanoidMotorCortex;
-import me.advait.mai.brain.cerebrum.movement.MotorCortex;
+import me.advait.mai.brain.action.HumanoidActionAgent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
@@ -22,10 +19,7 @@ public class Humanoid {
     private String name;
     private Mannequin mannequin;
     private final Inventory inventory;
-    private final Brain brain;
-    private final BrocasArea brocasArea;
-    private final MotorCortex motorCortex;
-    private final PrefrontalCortex prefrontalCortex;
+    private final HumanoidActionAgent actionAgent;
 
     public Humanoid(String name) {
         this(UUID.randomUUID(), name);
@@ -35,29 +29,17 @@ public class Humanoid {
         this.uuid = uuid;
         this.name = name;
         this.inventory = Bukkit.createInventory(null, 36, name + "'s Inventory");
-        this.brocasArea = new HumanoidBrocasArea();
-        this.motorCortex = new HumanoidMotorCortex();
-        this.prefrontalCortex = new HumanoidPrefrontalCortex();
-        this.brain = new Brain(brocasArea, motorCortex, prefrontalCortex);
+        this.actionAgent = new HumanoidActionAgent();
     }
 
-    /**
-     * Returns the unique identifier for this humanoid.
-     */
     public UUID getUuid() {
         return uuid;
     }
 
-    /**
-     * Returns the name of this humanoid.
-     */
     public String getName() {
         return name;
     }
 
-    /**
-     * Sets the name of this humanoid and updates the display name if spawned.
-     */
     public void setName(String name) {
         this.name = name;
         if (mannequin != null) {
@@ -65,42 +47,34 @@ public class Humanoid {
         }
     }
 
-    /**
-     * Spawns the humanoid's mannequin at the given location. Creates the entity if not yet spawned.
-     */
     public Mannequin spawn(Location location) {
         if (location.getWorld() == null) throw new IllegalArgumentException("Location must have a world");
-        if (this.mannequin != null) {
-            this.mannequin.remove();
-        }
+        if (this.mannequin != null) this.mannequin.remove();
+
         Mannequin m = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
         m.setCustomName(this.name);
         m.setCustomNameVisible(true);
-        m.setDescription(null);  // Remove "NPC" text below name
+        m.setDescription(null);
         m.setAI(true);
         m.setInvulnerable(true);
         m.setImmovable(false);
         m.setRemoveWhenFarAway(false);
-
-        // Set skin based on player name (will resolve texture from Mojang)
         m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
 
         this.mannequin = m;
         return m;
     }
 
-    /** Returns the living entity (mannequin) for this humanoid. May be null if not spawned. */
     public LivingEntity getEntity() {
         return mannequin;
     }
 
-    /** Returns the mannequin entity. May be null if not spawned. */
     public Mannequin getMannequin() {
         return mannequin;
     }
 
-    public Brain getBrain() {
-        return brain;
+    public HumanoidActionAgent getActionAgent() {
+        return actionAgent;
     }
 
     public Inventory getInventory() {
@@ -111,10 +85,6 @@ public class Humanoid {
         return mannequin != null ? mannequin.getEquipment() : null;
     }
 
-    /**
-     * Sets the item in the humanoid's main hand from the given inventory slot.
-     * Swaps the current main hand item into that slot.
-     */
     public void setItemInMainHand(int itemSlot) {
         if (mannequin == null) return;
         ItemStack fromSlot = inventory.getItem(itemSlot);

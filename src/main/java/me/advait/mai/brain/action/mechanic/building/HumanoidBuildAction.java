@@ -4,7 +4,6 @@ import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidBuildActionEvent;
-import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.util.LocationUtil;
 import org.bukkit.Location;
@@ -26,32 +25,32 @@ public class HumanoidBuildAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         if (location == null) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NULL));
+            resultFuture.complete(new HumanoidActionResult(false, "Target location is null."));
             return;
         }
         if (!LocationUtil.isBuildable(location)) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_INVALID_LOCATION));
+            resultFuture.complete(new HumanoidActionResult(false, "Cannot place a block here."));
             return;
         }
         if (humanoid.getEntity() == null) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.NPC_IS_NULL));
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned."));
             return;
         }
 
         LocationUtil.faceLocation(humanoid.getEntity(), location);
 
         if (!LocationUtil.isBlockTargetable(humanoid.getEntity().getLocation(), location.getBlock())) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_TOO_FAR));
+            resultFuture.complete(new HumanoidActionResult(false, "Block is too far away to reach."));
             return;
         }
 
         ItemStack mainHand = humanoid.getEquipment() != null ? humanoid.getEquipment().getItemInMainHand() : null;
         if (mainHand == null || !mainHand.equals(block)) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_HOLDING_BLOCK));
+            resultFuture.complete(new HumanoidActionResult(false, "Required block is not in main hand."));
             return;
         }
         if (!block.getType().isBlock()) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.BUILD_MESSAGE_FAILURE_NOT_PLACEABLE));
+            resultFuture.complete(new HumanoidActionResult(false, "Held item is not a placeable block."));
             return;
         }
 
@@ -63,12 +62,11 @@ public class HumanoidBuildAction extends HumanoidAction {
             humanoid.getEquipment().setItemInMainHand(block);
         }
 
-        resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.BUILD_MESSAGE_SUCCESS));
+        resultFuture.complete(new HumanoidActionResult(true, "Block placed successfully."));
     }
 
     @Override
-    protected HumanoidActionEvent getEvent() {
+    protected HumanoidActionEvent createEvent() {
         return new HumanoidBuildActionEvent(humanoid, location, block);
     }
-
 }

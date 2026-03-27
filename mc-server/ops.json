@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "uuid": "77650ee0-db83-4d65-b6bf-9666041a461c",
+    "name": "advaits",
+    "level": 4,
+    "bypassesPlayerLimit": false
+  }
+]

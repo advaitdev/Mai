@@ -2,77 +2,52 @@ package me.advait.mai.brain.action;
 
 import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.monitor.Monitor;
 
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Executes actions sequentially for a single humanoid.
+ * Each Humanoid owns its own ActionAgent instance.
+ */
 public final class HumanoidActionAgent {
 
-    private static final HumanoidActionAgent INSTANCE = new HumanoidActionAgent();
-    private HumanoidActionAgent() {}
-    public static HumanoidActionAgent getInstance() {
-        return INSTANCE;
-    }
-
     private final Queue<HumanoidAction> actionQueue = new ConcurrentLinkedQueue<>();
-    private boolean isProcessing;
-    private CompletableFuture<HumanoidActionResult> processingFuture = CompletableFuture.completedFuture(new HumanoidActionResult(true, "The action queue has been initialized!"));
+    private CompletableFuture<HumanoidActionResult> processingFuture =
+            CompletableFuture.completedFuture(new HumanoidActionResult(true, "Action queue initialized."));
 
     public synchronized CompletableFuture<HumanoidActionResult> addActions(HumanoidAction... actions) {
         if (actions == null || actions.length == 0) {
-            Monitor.logError("HumanoidActionChain requires at least one action, but 0 were provided.");
             throw new IllegalArgumentException("At least one action must be provided.");
         }
-
         for (HumanoidAction action : actions) {
-            if (action == null) {
-                Monitor.logError("Attempted to add a null action to the queue.");
-                throw new IllegalArgumentException("Cannot add a null action to the queue.");
-            }
+            if (action == null) throw new IllegalArgumentException("Cannot add a null action.");
             actionQueue.add(action);
         }
 
         processingFuture = processingFuture.thenCompose(result -> processQueue());
-
         return processingFuture;
     }
 
-    private synchronized CompletableFuture<HumanoidActionResult> processQueue() {
-        if (isProcessing) {
-            return processingFuture;
-        }
+    private CompletableFuture<HumanoidActionResult> processQueue() {
+        CompletableFuture<HumanoidActionResult> chain =
+                CompletableFuture.completedFuture(new HumanoidActionResult(true, "Processing started."));
 
-        isProcessing = true;
-
-        CompletableFuture<HumanoidActionResult> resultFuture = CompletableFuture.completedFuture(new HumanoidActionResult(true, "The action queue has been initialized with the first result!"));
         while (!actionQueue.isEmpty()) {
             HumanoidAction action = actionQueue.poll();
-
             if (action != null) {
-                resultFuture = resultFuture.thenCompose(prevResult -> {
-                    if (!prevResult.isSuccess()) {
-                        // If the previous action failed, stop processing further
-                        return CompletableFuture.completedFuture(prevResult);
-                    }
+                chain = chain.thenCompose(prev -> {
+                    if (!prev.success()) return CompletableFuture.completedFuture(prev);
                     return action.run();
                 });
             }
         }
 
-        // Once all actions are processed, reset the processing flag
-        resultFuture = resultFuture.whenComplete((result, ex) -> {
-            synchronized (this) {
-                isProcessing = false;
-            }
-        });
-
-        return resultFuture;
+        return chain;
     }
 
     public boolean isProcessing() {
-        return isProcessing;
+        return !processingFuture.isDone();
     }
-
 }

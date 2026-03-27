@@ -1,10 +1,7 @@
 package me.advait.mai.brain.action.mechanic.movement;
 
-import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
-import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.mechanic.HumanoidAction;
-import me.advait.mai.brain.action.result.HumanoidActionMessage;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
@@ -13,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class HumanoidJumpAction extends HumanoidAction {
 
+    private static final double VANILLA_JUMP_VELOCITY = 0.42;
+
     public HumanoidJumpAction(Humanoid humanoid) {
         super(humanoid);
     }
@@ -20,27 +19,18 @@ public class HumanoidJumpAction extends HumanoidAction {
     @Override
     protected void perform(CompletableFuture<HumanoidActionResult> resultFuture) {
         if (humanoid.getEntity() == null) {
-            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned"));
+            resultFuture.complete(new HumanoidActionResult(false, "Mannequin not spawned."));
             return;
         }
         LivingEntity entity = humanoid.getEntity();
 
-        // Must be on ground to jump
         if (!entity.isOnGround()) {
-            resultFuture.complete(new HumanoidActionResult(false, HumanoidActionMessage.JUMP_FAILURE_NOT_ON_GROUND));
+            resultFuture.complete(new HumanoidActionResult(false, "Cannot jump while airborne."));
             return;
         }
 
-        // Set upward velocity (vanilla jump height)
-        Vector currentVelocity = entity.getVelocity();
-        entity.setVelocity(new Vector(currentVelocity.getX(), 0.42, currentVelocity.getZ()));
-        resultFuture.complete(new HumanoidActionResult(true, HumanoidActionMessage.JUMP_SUCCESS));
+        Vector velocity = entity.getVelocity();
+        entity.setVelocity(new Vector(velocity.getX(), VANILLA_JUMP_VELOCITY, velocity.getZ()));
+        resultFuture.complete(new HumanoidActionResult(true, "Jumped successfully."));
     }
-
-    @Override
-    public HumanoidActionEvent getEvent() {
-        // TODO: add respective event
-        return null;
-    }
-
 }
