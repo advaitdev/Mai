@@ -10,6 +10,7 @@ import de.bsommerfeld.pathetic.api.pathing.result.PathfinderResult;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import de.bsommerfeld.pathetic.bukkit.context.BukkitEnvironmentContext;
 import de.bsommerfeld.pathetic.bukkit.mapper.BukkitMapper;
+import de.bsommerfeld.pathetic.bukkit.processor.validation.WalkableProcessor;
 import de.bsommerfeld.pathetic.bukkit.provider.LoadingNavigationPointProvider;
 import de.bsommerfeld.pathetic.engine.factory.AStarPathfinderFactory;
 import de.bsommerfeld.pathetic.engine.result.PathUtils;
@@ -48,11 +49,9 @@ public final class PatheticAgent {
                             .provider(new LoadingNavigationPointProvider())
                             .async(true)
                             .maxIterations(MAX_ITERATIONS)
+                            .neighborStrategy(NeighborStrategies.DIAGONAL_3D)
                             .validationProcessors(List.of(
-                                    new HumanoidValidationProcessor()
-                            ))
-                            .costProcessor(List.of(
-                                    new HumanoidCostProcessor()
+                                    new WalkableProcessor(1.0)
                             ))
                             .build();
                     pathfinder = new AStarPathfinderFactory().createPathfinder(config);
