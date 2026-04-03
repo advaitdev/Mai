@@ -29,14 +29,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     // Vanilla-like movement constants
-    private static final double WALK_ACCELERATION = 0.1;   // ground acceleration per tick
-    private static final double GROUND_DRAG = 0.546;        // 0.6 (slipperiness) * 0.91 (drag)
-    private static final double AIR_ACCELERATION = 0.02;    // air control per tick
-    private static final double AIR_DRAG = 0.91;            // horizontal drag in air
-    private static final double JUMP_VELOCITY = 0.42;       // vanilla jump Y velocity
+    private static final double WALK_ACCELERATION = 0.1;
+    private static final double GROUND_DRAG = 0.546;
+    private static final double AIR_ACCELERATION = 0.02;
+    private static final double AIR_DRAG = 0.91;
+    private static final double JUMP_VELOCITY = 0.42;
     private static final double WAYPOINT_RADIUS = 0.5;
     private static final int PATH_UPDATE_INTERVAL = 40;
-
     private static boolean debugMode = false;
 
     private final Humanoid humanoid;
@@ -50,6 +49,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private int ticksSincePathUpdate = PATH_UPDATE_INTERVAL;
     private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
     private int jumpCooldown = 0;
+    private boolean hasEverHadPath = false;
 
     public HumanoidWalkToRunnable(Humanoid humanoid, Location target, CompletableFuture<HumanoidActionResult> resultFuture) {
         this.humanoid = humanoid;
@@ -67,7 +67,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     @Override
     public void run() {
-        // Stop if future was completed externally (e.g. cancelled)
         if (resultFuture.isDone()) {
             cancel();
             return;
@@ -134,20 +133,25 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
                     if (result.successful()) {
                         List<Vector> newWaypoints = PatheticAgent.processPath(result.getPath());
-
                         int newStartIndex = findClosestWaypointIndex(newWaypoints, current);
                         waypoints = newWaypoints;
                         pathIndex = newStartIndex;
-                    } else {
+                        hasEverHadPath = true;
+                    } else if (!hasEverHadPath) {
+                        // Only fail if we've NEVER had a valid path.
+                        // If we already have waypoints, keep following them.
                         resultFuture.complete(new HumanoidActionResult(false, "Pathfinding failed."));
                         cancel();
                     }
+                    // else: recalculation failed but we still have our old path — keep going
                 }))
                 .exceptionally(ex -> {
                     Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
                         pathfindingInProgress.set(false);
-                        resultFuture.complete(new HumanoidActionResult(false, "Pathfinding error: " + ex.getMessage()));
-                        cancel();
+                        if (!hasEverHadPath) {
+                            resultFuture.complete(new HumanoidActionResult(false, "Pathfinding error: " + ex.getMessage()));
+                            cancel();
+                        }
                     });
                     return null;
                 });
@@ -188,10 +192,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             return;
         }
 
-        // Face the waypoint (uses setRotation, does NOT reset velocity)
         LocationUtil.faceLocation(entity, waypointLoc);
 
-        // Desired horizontal direction
         double dx = waypoint.getX() - current.getX();
         double dz = waypoint.getZ() - current.getZ();
         double len = Math.sqrt(dx * dx + dz * dz);
@@ -200,19 +202,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         boolean onGround = entity.isOnGround();
         Vector currentVelocity = entity.getVelocity();
 
-        // Vanilla-like horizontal movement with acceleration + drag
         double vx, vz;
         if (onGround) {
             vx = currentVelocity.getX() * GROUND_DRAG + dx * WALK_ACCELERATION;
             vz = currentVelocity.getZ() * GROUND_DRAG + dz * WALK_ACCELERATION;
         } else {
-            // Reduced air control (vanilla behavior)
             vx = currentVelocity.getX() * AIR_DRAG + dx * AIR_ACCELERATION;
             vz = currentVelocity.getZ() * AIR_DRAG + dz * AIR_ACCELERATION;
         }
 
-        // Y velocity — don't touch it, let the server apply gravity.
-        // Only override when jumping.
         double vy = currentVelocity.getY();
 
         if (onGround && jumpCooldown == 0 && shouldJump(current, dx, dz)) {
@@ -226,17 +224,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private boolean shouldJump(Location current, double dirX, double dirZ) {
         if (current.getWorld() == null) return false;
 
-        // Check block ahead at foot level
         Location ahead = current.clone().add(dirX * 0.6, 0, dirZ * 0.6);
         Block blockAhead = ahead.getBlock();
         Block blockAboveAhead = ahead.clone().add(0, 1, 0).getBlock();
 
-        // Jump if solid block at feet but space above
         if (blockAhead.getType().isSolid() && !blockAboveAhead.getType().isSolid()) {
             return true;
         }
 
-        // Jump if next waypoint is higher
         if (pathIndex < waypoints.size()) {
             double yDiff = waypoints.get(pathIndex).getY() - current.getY();
             if (yDiff > 0.5) {
