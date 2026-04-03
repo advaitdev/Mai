@@ -1,5 +1,6 @@
 package me.advait.mai.body;
 
+import me.advait.mai.Mai;
 import me.advait.mai.brain.action.HumanoidActionAgent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -18,6 +19,7 @@ public class Humanoid {
     private final UUID uuid;
     private String name;
     private Mannequin mannequin;
+    private Location lastKnownLocation;
     private final Inventory inventory;
     private final HumanoidActionAgent actionAgent;
 
@@ -67,15 +69,27 @@ public class Humanoid {
         m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
 
         this.mannequin = m;
+        this.lastKnownLocation = location.clone();
         return m;
     }
 
     public LivingEntity getEntity() {
-        return mannequin;
+        return getMannequin();
     }
 
     public Mannequin getMannequin() {
+        if (mannequin != null && !mannequin.isValid() && lastKnownLocation != null) {
+            Mai.getInstance().getLogger().warning("Mannequin for '" + name + "' was invalid, respawning...");
+            spawn(lastKnownLocation);
+        }
         return mannequin;
+    }
+
+    public Location getLastKnownLocation() {
+        if (mannequin != null && mannequin.isValid()) {
+            lastKnownLocation = mannequin.getLocation();
+        }
+        return lastKnownLocation;
     }
 
     public HumanoidActionAgent getActionAgent() {

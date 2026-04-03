@@ -6,6 +6,8 @@ import me.advait.mai.file.serialization.HumanoidData;
 import me.advait.mai.file.serialization.HumanoidSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Mannequin;
 
 import java.util.*;
 
@@ -41,6 +43,19 @@ public class Catalog {
         if (humanoidsFile == null) {
             Mai.getInstance().getLogger().warning("HumanoidsFile not set, cannot load humanoids");
             return;
+        }
+
+        // Remove stale Mannequin entities left in the world from previous sessions.
+        // deploy.sh kills the server, so onDisable's killAll() may not persist removals.
+        int removed = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (Mannequin stale : world.getEntitiesByClass(Mannequin.class)) {
+                stale.remove();
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            Mai.getInstance().getLogger().info("Cleaned up " + removed + " stale Mannequin entity/entities");
         }
 
         List<HumanoidData> dataList = humanoidsFile.loadAllHumanoids();

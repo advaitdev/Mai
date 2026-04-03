@@ -48,6 +48,9 @@ public final class PatheticAgent {
                             .provider(new LoadingNavigationPointProvider())
                             .async(true)
                             .maxIterations(MAX_ITERATIONS)
+                            .validationProcessors(List.of(
+                                    new HumanoidValidationProcessor()
+                            ))
                             .costProcessor(List.of(
                                     new HumanoidCostProcessor()
                             ))

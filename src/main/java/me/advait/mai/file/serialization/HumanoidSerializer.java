@@ -30,10 +30,8 @@ public final class HumanoidSerializer {
         section.set("uuid", humanoid.getUuid().toString());
         section.set("name", humanoid.getName());
 
-        // Location
-        Location location = humanoid.getMannequin() != null
-                ? humanoid.getMannequin().getLocation()
-                : null;
+        // Location — prefer live entity position, fall back to last known
+        Location location = humanoid.getLastKnownLocation();
         ConfigurationSection locationSection = section.createSection("location");
         LocationSerializer.serialize(locationSection, location);
 
@@ -95,9 +93,7 @@ public final class HumanoidSerializer {
             return null;
         }
 
-        Location location = humanoid.getMannequin() != null
-                ? humanoid.getMannequin().getLocation()
-                : null;
+        Location location = humanoid.getLastKnownLocation();
 
         EquipmentSerializer.EquipmentData equipment = humanoid.getEquipment() != null
                 ? new EquipmentSerializer.EquipmentData(

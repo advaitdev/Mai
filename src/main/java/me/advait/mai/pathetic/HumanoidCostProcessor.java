@@ -8,7 +8,9 @@ import de.bsommerfeld.pathetic.bukkit.context.BukkitEnvironmentContext;
 import org.bukkit.World;
 
 /**
- * Cost processor that applies scenario-based movement costs for humanoid pathfinding.
+ * Applies scenario-based movement costs for humanoid pathfinding.
+ * Only scores valid moves — invalid moves are already rejected by
+ * {@link HumanoidValidationProcessor} before they reach this processor.
  */
 public class HumanoidCostProcessor implements CostProcessor {
 
