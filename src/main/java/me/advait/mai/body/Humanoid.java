@@ -92,6 +92,14 @@ public class Humanoid {
         return lastKnownLocation;
     }
 
+    /**
+     * Returns the raw Mannequin reference without triggering auto-respawn.
+     * Used by cleanup logic to check entity UUIDs.
+     */
+    public Mannequin getRawMannequin() {
+        return mannequin;
+    }
+
     public HumanoidActionAgent getActionAgent() {
         return actionAgent;
     }

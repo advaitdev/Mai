@@ -8,6 +8,7 @@ import me.advait.mai.file.HumanoidsFile;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.gui.GUIListener;
 import me.advait.mai.listener.ChatListener;
+import me.advait.mai.listener.EntityCleanupListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -56,6 +57,7 @@ public final class Mai extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
+        getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
     }
 
     @Override
