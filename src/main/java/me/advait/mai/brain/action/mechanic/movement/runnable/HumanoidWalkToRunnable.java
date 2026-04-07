@@ -1,6 +1,5 @@
 package me.advait.mai.brain.action.mechanic.movement.runnable;
 
-import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
 import me.advait.mai.pathetic.BlockClassifier;
@@ -21,26 +20,23 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Tick-by-tick movement executor with locomotion-based dispatch.
+ * Tick-by-tick movement executor with context-aware speed control.
  *
- * <h3>Physics model</h3>
- * The Mannequin has gravity=true and AI=false. The server applies gravity,
- * vertical drag (0.98), and horizontal friction (block slip * 0.91) each tick
- * AFTER our setVelocity() call. We only add acceleration impulses — no drag.
- *
- * <h3>Key design decisions</h3>
+ * <h3>Key design principles</h3>
  * <ul>
- *   <li>Step-ups: jump preemptively when ~1.5 blocks away, not on block impact</li>
- *   <li>Sprint-jumps: jump based on distance to gap, not block-edge position</li>
- *   <li>Jump cooldown: 4 ticks (matching vanilla/TerminatorPlus)</li>
- *   <li>Arrival: must reach exact target block, not just "near" it</li>
+ *   <li>Path recalculates every tick (when previous request completes)</li>
+ *   <li>New paths always start from index 1 (skip start node) — no closest-waypoint
+ *       search that causes back-and-forth oscillation</li>
+ *   <li>Speed adapts to context: sprint on open ground, walk near obstacles,
+ *       build momentum before parkour gaps, slow down near destination</li>
+ *   <li>Server handles friction/gravity; we only add impulses</li>
  * </ul>
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private static final double SPRINT_AIR_ACCEL = 0.026;
+    private static final double WALK_AIR_ACCEL = 0.02;
     private static final int JUMP_COOLDOWN_TICKS = 4;
-    private static final double ARRIVAL_DISTANCE_SQ = 1.0; // 1 block
 
     private static boolean debugMode = false;
 
@@ -56,7 +52,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private int timeStuck = 0;
     private Location previousLocation = null;
 
-    private int ticksSincePathUpdate;
     private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
 
     private int jumpCooldown = 0;
@@ -70,7 +65,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         this.target = target;
         this.resultFuture = resultFuture;
         this.config = PatheticAgent.getInstance().getConfig();
-        this.ticksSincePathUpdate = config.getPathUpdateInterval();
     }
 
     public static void setDebugMode(boolean enabled) { debugMode = enabled; }
@@ -88,7 +82,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         Location current = entity.getLocation();
 
-        // Exact arrival check: same block position
+        // Exact block arrival
         if (isAtTarget(current)) {
             complete(true, "Arrived at destination.");
             return;
@@ -110,11 +104,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         if (jumpCooldown > 0) jumpCooldown--;
 
-        // Path management
-        ticksSincePathUpdate++;
-        if ((currentPath == null || pathIndex >= currentPath.size()
-                || ticksSincePathUpdate >= config.getPathUpdateInterval())
-                && !pathfindingInProgress.get()) {
+        // Request a new path every tick (gated by pathfindingInProgress)
+        if (!pathfindingInProgress.get()) {
             requestNewPath(current);
         }
 
@@ -139,7 +130,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private void requestNewPath(Location current) {
         pathfindingInProgress.set(true);
-        ticksSincePathUpdate = 0;
 
         PatheticAgent.getInstance().getAnnotatedPath(current, target)
                 .thenAccept(pathOpt -> {
@@ -148,11 +138,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
                     if (pathOpt.isPresent()) {
                         AnnotatedPath newPath = pathOpt.get();
-                        int startIdx = findClosestWaypoint(newPath, current);
+                        // Always start from index 1 (skip the start node which is our
+                        // current pos). This avoids the back-and-forth oscillation that
+                        // happens when findClosestWaypoint picks a node behind us.
                         currentPath = newPath;
-                        pathIndex = startIdx;
+                        pathIndex = Math.min(1, newPath.size() - 1);
                         hasEverHadPath = true;
-                        parkourPhase = ParkourPhase.NONE;
+                        // Don't reset parkour phase — if we're mid-jump, keep going
+                        if (parkourPhase != ParkourPhase.IN_AIR) {
+                            parkourPhase = ParkourPhase.NONE;
+                        }
                     } else if (!hasEverHadPath) {
                         complete(false, "Pathfinding failed.");
                     }
@@ -166,17 +161,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 });
     }
 
-    private int findClosestWaypoint(AnnotatedPath path, Location current) {
-        Vector currentVec = current.toVector();
-        double minDist = Double.MAX_VALUE;
-        int closest = 0;
-        for (int i = 0; i < path.size(); i++) {
-            double dist = currentVec.distanceSquared(path.get(i).toVector());
-            if (dist < minDist) { minDist = dist; closest = i; }
-        }
-        return closest;
-    }
-
     // ===================== Movement Dispatch =====================
 
     private void moveToWaypoint(LivingEntity entity, Location current) {
@@ -185,14 +169,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         // Parkour in-air: don't advance until landed
         if (parkourPhase == ParkourPhase.IN_AIR) {
-            executeSprintJumpAir(entity, current, waypoint);
+            executeAirControl(entity, current, waypoint);
             return;
         }
 
         // Waypoint reached check
-        double horizDist = horizontalDistance(current, waypoint);
-        double vertDist = Math.abs(current.getY() - waypoint.y());
-        if (horizDist < config.getWaypointRadius() && vertDist < 1.5) {
+        if (horizontalDistance(current, waypoint) < config.getWaypointRadius()
+                && Math.abs(current.getY() - waypoint.y()) < 1.5) {
             pathIndex++;
             parkourPhase = ParkourPhase.NONE;
             if (pathIndex >= currentPath.size()) return;
@@ -201,51 +184,92 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
 
         if (hint == null) {
-            executeSprint(entity, current, waypoint);
+            executeContextual(entity, current, waypoint);
             return;
         }
 
         switch (hint.locomotion()) {
-            case WALK, SPRINT -> executeSprint(entity, current, waypoint);
+            case WALK, SPRINT -> executeContextual(entity, current, waypoint);
             case SPRINT_JUMP -> executeSprintJump(entity, current, waypoint, hint);
-            case SNEAK -> executeSneak(entity, current, waypoint);
+            case SNEAK -> executeWithSpeed(entity, current, waypoint, config.getSneakFactor(), false);
             case SWIM -> executeSwim(entity, current, waypoint);
             case CLIMB -> executeClimb(entity, current, waypoint);
         }
     }
 
-    // ===================== Sprint with preemptive jump =====================
+    // ===================== Context-Aware Movement =====================
 
     /**
-     * Sprint toward waypoint. If the waypoint is above us (step-up), jump
-     * preemptively when within ~1.5 blocks rather than waiting to hit the block face.
+     * Moves toward the waypoint at a speed determined by context:
+     * <ul>
+     *   <li>Sprint on open flat ground</li>
+     *   <li>Walk when approaching a step-up, turn, or destination</li>
+     *   <li>Sprint-jump boost on step-ups to clear cleanly</li>
+     * </ul>
      */
-    private void executeSprint(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+    private void executeContextual(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        double horizDist = horizontalDistance(current, wp);
+        double distToTarget = Math.sqrt(current.distanceSquared(target));
+        boolean needsJump = wp.y() > current.getY() + 0.3;
+        boolean nearDestination = distToTarget < 3.0;
+
+        // Look ahead: is the NEXT waypoint a direction change or special movement?
+        boolean upcomingTurn = isUpcomingTurn(wp);
+
+        // Decide speed factor
+        double speedFactor;
+        if (nearDestination) {
+            // Approaching destination: walk to avoid overshooting
+            speedFactor = 1.0;
+        } else if (needsJump && horizDist < 2.5) {
+            // Close to a step-up: walk speed for precise jump timing
+            speedFactor = 1.0;
+        } else if (upcomingTurn) {
+            // Direction change ahead: slow down
+            speedFactor = 1.0;
+        } else {
+            // Open ground: sprint
+            speedFactor = config.getSprintFactor();
+        }
+
+        boolean sprinting = speedFactor > 1.0;
+        executeWithSpeed(entity, current, wp, speedFactor, sprinting);
+    }
+
+    /**
+     * Core movement tick: applies acceleration at the given speed factor,
+     * and handles jump logic for step-ups.
+     */
+    private void executeWithSpeed(LivingEntity entity, Location current,
+                                  AnnotatedWaypoint wp, double speedFactor, boolean sprinting) {
         Vector vel = entity.getVelocity();
         double[] dir = directionTo(current, wp);
         boolean onGround = entity.isOnGround();
 
+        double airAccel = sprinting ? SPRINT_AIR_ACCEL : WALK_AIR_ACCEL;
+
         double vx, vz;
         if (onGround) {
-            double[] groundAccel = computeGroundAccel(current, config.getSprintFactor());
-            vx = vel.getX() + dir[0] * groundAccel[0];
-            vz = vel.getZ() + dir[1] * groundAccel[0];
+            double slip = getSlipperiness(current);
+            double inertia = slip * 0.91;
+            double accel = config.getWalkAcceleration() * speedFactor
+                    * (0.16277136 / (inertia * inertia * inertia));
+            vx = vel.getX() + dir[0] * accel;
+            vz = vel.getZ() + dir[1] * accel;
         } else {
-            vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
-            vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
+            vx = vel.getX() + dir[0] * airAccel;
+            vz = vel.getZ() + dir[1] * airAccel;
         }
 
         double vy = vel.getY();
-        if (onGround && jumpCooldown == 0) {
-            if (shouldJumpForWaypoint(current, wp, dir)) {
-                vy = config.getJumpVelocity();
-                jumpCooldown = JUMP_COOLDOWN_TICKS;
-                // Add sprint-jump boost for step-ups to clear the block
-                if (wp.y() > current.getY() + 0.5) {
-                    float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
-                    vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
-                    vz += Math.cos(yawRad) * config.getSprintJumpBoost();
-                }
+        if (onGround && jumpCooldown == 0 && shouldJumpForWaypoint(current, wp, dir)) {
+            vy = config.getJumpVelocity();
+            jumpCooldown = JUMP_COOLDOWN_TICKS;
+            // Sprint-jump boost on step-ups to clear the block with momentum
+            if (sprinting && wp.y() > current.getY() + 0.3) {
+                float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
+                vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
+                vz += Math.cos(yawRad) * config.getSprintJumpBoost();
             }
         }
 
@@ -253,38 +277,53 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         entity.setVelocity(new Vector(vx, vy, vz));
     }
 
-    /**
-     * Determines if the bot should jump NOW for the current waypoint.
-     * Preemptive: jumps when close to a step-up, not when hitting the block face.
-     */
+    /** Should we jump now to reach this waypoint? */
     private boolean shouldJumpForWaypoint(Location current, AnnotatedWaypoint wp, double[] dir) {
         double horizDist = horizontalDistance(current, wp);
 
-        // If waypoint is above us, jump preemptively when within 1.5 blocks
-        if (wp.y() > current.getY() + 0.3 && horizDist < 1.8) {
-            return true;
-        }
+        // Waypoint is above: jump preemptively when within range
+        if (wp.y() > current.getY() + 0.3 && horizDist < 1.8) return true;
 
-        // If there's a solid block directly ahead, jump to clear it
+        // Solid block directly ahead with open space above: step up
         if (current.getWorld() != null) {
             Location ahead = current.clone().add(dir[0] * 0.5, 0, dir[1] * 0.5);
             Material blockAhead = ahead.getBlock().getType();
             if (BlockClassifier.isSolid(blockAhead)) {
-                Material aboveAhead = ahead.clone().add(0, 1, 0).getBlock().getType();
-                if (!BlockClassifier.isSolid(aboveAhead)) {
-                    return true;
-                }
+                Material above = ahead.clone().add(0, 1, 0).getBlock().getType();
+                if (!BlockClassifier.isSolid(above)) return true;
             }
         }
 
         return false;
     }
 
+    /** Checks if the next 2 waypoints involve a significant direction change. */
+    private boolean isUpcomingTurn(AnnotatedWaypoint current) {
+        if (pathIndex + 1 >= currentPath.size()) return false;
+        AnnotatedWaypoint next = currentPath.get(pathIndex + 1);
+
+        // Check if direction from current wp to next wp differs significantly
+        // from our current heading
+        if (pathIndex > 0) {
+            AnnotatedWaypoint prev = currentPath.get(pathIndex - 1);
+            double dx1 = current.x() - prev.x(), dz1 = current.z() - prev.z();
+            double dx2 = next.x() - current.x(), dz2 = next.z() - current.z();
+            double len1 = Math.sqrt(dx1 * dx1 + dz1 * dz1);
+            double len2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
+            if (len1 > 0.1 && len2 > 0.1) {
+                double dot = (dx1 * dx2 + dz1 * dz2) / (len1 * len2);
+                // dot < 0.5 means > 60 degree turn
+                return dot < 0.5;
+            }
+        }
+        return false;
+    }
+
     // ===================== Sprint-Jump (Parkour) =====================
 
     /**
-     * Sprint-jump across a gap. Approach phase: sprint toward the gap and
-     * jump when within range. Distance-based trigger instead of edge position.
+     * Sprint-jump with momentum building. The bot sprints until it has
+     * enough speed, then jumps. For larger gaps it needs more runway.
      */
     private void executeSprintJump(LivingEntity entity, Location current,
                                    AnnotatedWaypoint wp, ExecutionHint hint) {
@@ -293,29 +332,40 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         boolean onGround = entity.isOnGround();
 
         if (!onGround) {
-            // Airborne unexpectedly — air control toward target
-            double vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
-            double vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
-            entity.setVelocity(new Vector(vx, vel.getY(), vz));
-            faceDirection(entity, dir);
+            // Already airborne — switch to air control
+            parkourPhase = ParkourPhase.IN_AIR;
+            executeAirControl(entity, current, wp);
             return;
         }
 
         // Sprint on ground, building momentum
-        double[] groundAccel = computeGroundAccel(current, config.getSprintFactor());
-        double vx = vel.getX() + dir[0] * groundAccel[0];
-        double vz = vel.getZ() + dir[1] * groundAccel[0];
+        double slip = getSlipperiness(current);
+        double inertia = slip * 0.91;
+        double accel = config.getWalkAcceleration() * config.getSprintFactor()
+                * (0.16277136 / (inertia * inertia * inertia));
+        double vx = vel.getX() + dir[0] * accel;
+        double vz = vel.getZ() + dir[1] * accel;
 
-        // Jump trigger: distance-based. For a gap of N blocks, the landing
-        // waypoint is N+1 blocks away. Jump when we're within ~2 blocks of
-        // the gap start (which is ~gap+1 blocks from the landing waypoint).
-        // Simpler: jump when distance to landing is within jump range + margin.
+        // Current horizontal speed
+        double currentSpeed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
         double distToLanding = horizontalDistance(current, wp);
         int gap = hint.gapLength();
-        double jumpRange = gap + 2.0; // gap + 1 block before + 1 block margin
 
-        if (jumpCooldown == 0 && distToLanding < jumpRange && distToLanding > 0.5) {
-            // JUMP with sprint-jump boost
+        // Minimum speed required to clear the gap. Wider gaps need more momentum.
+        // Sprint terminal velocity is ~0.28 b/t. Require at least a fraction of that.
+        double minSpeedForGap = switch (gap) {
+            case 0, 1 -> 0.10; // 1-block gap: easy, low speed ok
+            case 2 -> 0.15;    // 2-block gap: need some speed
+            case 3 -> 0.20;    // 3-block gap: need good sprint speed
+            default -> 0.25;   // 4-block gap: need near-max sprint
+        };
+
+        // Jump conditions: close enough, fast enough, cooldown ready
+        double jumpRange = gap + 2.5;
+        boolean fastEnough = currentSpeed >= minSpeedForGap;
+        boolean inRange = distToLanding < jumpRange && distToLanding > 0.5;
+
+        if (jumpCooldown == 0 && inRange && fastEnough) {
             double vy = config.getJumpVelocity();
             float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
             vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
@@ -324,15 +374,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             parkourPhase = ParkourPhase.IN_AIR;
             jumpCooldown = JUMP_COOLDOWN_TICKS;
         } else {
+            // Keep sprinting, building momentum
             entity.setVelocity(new Vector(vx, vel.getY(), vz));
             parkourPhase = ParkourPhase.APPROACHING;
         }
         faceDirection(entity, dir);
     }
 
-    /** Air phase of sprint-jump: air control toward landing, wait for touchdown. */
-    private void executeSprintJumpAir(LivingEntity entity, Location current,
-                                      AnnotatedWaypoint wp) {
+    /** Air phase: steer toward landing, wait for touchdown. */
+    private void executeAirControl(LivingEntity entity, Location current,
+                                   AnnotatedWaypoint wp) {
         Vector vel = entity.getVelocity();
         double[] dir = directionTo(current, wp);
 
@@ -341,7 +392,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         entity.setVelocity(new Vector(vx, vel.getY(), vz));
         faceDirection(entity, dir);
 
-        // Landed when on ground and descending (past apex)
         if (entity.isOnGround() && vel.getY() <= 0) {
             parkourPhase = ParkourPhase.NONE;
             pathIndex++;
@@ -349,23 +399,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     // ===================== Other Locomotion =====================
-
-    private void executeSneak(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
-        Vector vel = entity.getVelocity();
-        double[] dir = directionTo(current, wp);
-
-        if (entity.isOnGround()) {
-            double[] accel = computeGroundAccel(current, config.getSneakFactor());
-            double vx = vel.getX() + dir[0] * accel[0];
-            double vz = vel.getZ() + dir[1] * accel[0];
-            entity.setVelocity(new Vector(vx, vel.getY(), vz));
-        } else {
-            double vx = vel.getX() + dir[0] * config.getAirAcceleration();
-            double vz = vel.getZ() + dir[1] * config.getAirAcceleration();
-            entity.setVelocity(new Vector(vx, vel.getY(), vz));
-        }
-        faceDirection(entity, dir);
-    }
 
     private void executeSwim(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
         double[] dir3d = directionTo3D(current, wp);
@@ -390,27 +423,12 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         faceDirection(entity, dir);
     }
 
-    // ===================== Physics Helpers =====================
-
-    /**
-     * Computes ground acceleration using vanilla normalization.
-     * accel = moveSpeed * speedFactor * (0.16277136 / (slip * 0.91)^3)
-     * Returns [accel].
-     */
-    private double[] computeGroundAccel(Location loc, double speedFactor) {
-        double slip = getSlipperiness(loc);
-        double inertia = slip * 0.91;
-        double accel = config.getWalkAcceleration() * speedFactor
-                * (0.16277136 / (inertia * inertia * inertia));
-        return new double[]{accel};
-    }
+    // ===================== Helpers =====================
 
     private double getSlipperiness(Location loc) {
         Material below = loc.clone().add(0, -1, 0).getBlock().getType();
         return BlockClassifier.slipperiness(below);
     }
-
-    // ===================== Geometry =====================
 
     private static double[] directionTo(Location current, AnnotatedWaypoint wp) {
         double dx = wp.x() - current.getX();
