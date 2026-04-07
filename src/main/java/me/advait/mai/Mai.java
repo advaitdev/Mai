@@ -9,6 +9,8 @@ import me.advait.mai.file.SettingsFile;
 import me.advait.mai.gui.GUIListener;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.listener.EntityCleanupListener;
+import me.advait.mai.pathetic.PatheticAgent;
+import me.advait.mai.pathetic.config.MovementConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -39,6 +41,8 @@ public final class Mai extends JavaPlugin {
         Catalog.getInstance().setHumanoidsFile(humanoidsFile);
 
         PatheticBukkit.initialize(this);
+        MovementConfig movementConfig = new MovementConfig(settingsFile.getConfiguration());
+        PatheticAgent.getInstance().initialize(movementConfig);
         registerCommands();
         registerListeners();
 

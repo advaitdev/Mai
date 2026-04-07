@@ -5,3 +5,53 @@ HUMANOID_NEAR_TARGET_DISTANCE: 2
 
 # Seconds a humanoid can remain stuck before its pathfinding times out
 HUMANOID_PATHFINDING_TIMEOUT: 10
+
+# Movement and pathfinding configuration
+movement:
+  pathfinding:
+    max_iterations: 100000
+    parkour_enabled: true
+    max_parkour_reach: 4        # max gap in blocks for sprint-jump
+    max_fall_height: 20         # max blocks to consider falling
+    allow_unsafe_falls: true    # allow falls that cause damage
+
+  # Costs in ticks (20 ticks = 1 second). Lower = preferred.
+  costs:
+    walk_flat: 4.63             # 20 / 4.317 b/s
+    walk_diagonal: 6.55         # walk_flat * sqrt(2)
+    sprint_multiplier: 0.77     # sprint_cost / walk_cost
+    step_up: 6.63               # walk + jump penalty
+    step_down: 4.63             # walk off edge
+    fall_safe_base: 3.07        # base cost for safe falls
+    fall_per_block: 0.5         # additional cost per block fallen
+    fall_damage_penalty: 10.0   # cost per heart of damage taken
+    sprint_jump_base: 3.56      # 20 / 5.612 b/s
+    sprint_jump_per_gap: 3.56   # cost per block of gap
+    jump_penalty: 2.0           # hunger cost for each jump
+    ladder_up: 8.51             # 20 / 2.35 b/s
+    ladder_down: 6.67           # 20 / 3.0 b/s
+    swim: 9.09                  # 20 / 2.2 b/s
+    lava_multiplier: 4.0
+    soul_sand_multiplier: 2.0
+    ice_multiplier: 0.8
+    sneak: 15.38                # 20 / 1.3 b/s
+
+  # Vanilla movement physics constants
+  physics:
+    walk_acceleration: 0.1
+    sprint_factor: 1.3
+    sneak_factor: 0.3
+    air_acceleration: 0.02
+    default_slipperiness: 0.6
+    air_drag: 0.91
+    vertical_drag: 0.98
+    gravity: 0.08
+    jump_velocity: 0.42
+    sprint_jump_boost: 0.2
+
+  # Waypoint navigation tuning
+  navigation:
+    waypoint_radius: 0.5
+    path_update_interval: 40    # ticks between path recalculations
+    stuck_timeout: 200          # ticks before declaring stuck
+    near_target_distance: 2.0   # blocks to consider "arrived"

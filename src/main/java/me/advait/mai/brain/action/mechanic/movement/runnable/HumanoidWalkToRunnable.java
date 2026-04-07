@@ -1,261 +1,495 @@
 package me.advait.mai.brain.action.mechanic.movement.runnable;
 
 import me.advait.mai.Mai;
-import me.advait.mai.Settings;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
+import me.advait.mai.pathetic.BlockClassifier;
 import me.advait.mai.pathetic.PatheticAgent;
+import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.movement.ExecutionHint;
+import me.advait.mai.pathetic.path.AnnotatedPath;
+import me.advait.mai.pathetic.path.AnnotatedWaypoint;
 import me.advait.mai.util.LocationUtil;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Moves a humanoid's mannequin to a target using pathfinding with vanilla-like physics.
+ * Tick-by-tick movement executor with locomotion-based dispatch.
  *
- * Gravity and collision are handled by the server (Mannequin has gravity=true, AI=false).
- * This runnable only applies horizontal velocity and jump impulses — it never touches Y
- * velocity except when jumping, so gravity accumulates naturally.
+ * <p>Reads an {@link AnnotatedPath} and dispatches movement per-waypoint
+ * based on the {@link ExecutionHint}: walk, sprint, sprint-jump, sneak, swim, or climb.
+ *
+ * <p>Physics are vanilla-accurate: ground acceleration with slipperiness normalization,
+ * air drag 0.91, jump velocity 0.42, sprint-jump boost 0.2 in facing direction.
+ * Gravity and collision are handled by the server (Mannequin has gravity=true).
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
-    // Vanilla-like movement constants
-    private static final double WALK_ACCELERATION = 0.1;
-    private static final double GROUND_DRAG = 0.546;
-    private static final double AIR_ACCELERATION = 0.02;
-    private static final double AIR_DRAG = 0.91;
-    private static final double JUMP_VELOCITY = 0.42;
-    private static final double WAYPOINT_RADIUS = 0.5;
-    private static final int PATH_UPDATE_INTERVAL = 40;
     private static boolean debugMode = false;
 
     private final Humanoid humanoid;
     private final Location target;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
+    private final MovementConfig config;
 
-    private List<Vector> waypoints = new ArrayList<>();
+    // Path state
+    private AnnotatedPath currentPath;
     private int pathIndex = 0;
-    private int timeStuck = 0;
-    private Location previousLocation = null;
-    private int ticksSincePathUpdate = PATH_UPDATE_INTERVAL;
-    private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
-    private int jumpCooldown = 0;
     private boolean hasEverHadPath = false;
 
-    public HumanoidWalkToRunnable(Humanoid humanoid, Location target, CompletableFuture<HumanoidActionResult> resultFuture) {
+    // Stuck detection
+    private int timeStuck = 0;
+    private Location previousLocation = null;
+
+    // Path refresh
+    private int ticksSincePathUpdate;
+    private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
+
+    // Jump state
+    private int jumpCooldown = 0;
+
+    // Parkour state machine
+    private enum ParkourPhase { NONE, APPROACHING, IN_AIR }
+    private ParkourPhase parkourPhase = ParkourPhase.NONE;
+
+    public HumanoidWalkToRunnable(Humanoid humanoid, Location target,
+                                  CompletableFuture<HumanoidActionResult> resultFuture) {
         this.humanoid = humanoid;
         this.target = target;
         this.resultFuture = resultFuture;
+        this.config = PatheticAgent.getInstance().getConfig();
+        this.ticksSincePathUpdate = config.getPathUpdateInterval(); // trigger immediate path request
     }
 
-    public static void setDebugMode(boolean enabled) {
-        debugMode = enabled;
-    }
-
-    public static boolean isDebugMode() {
-        return debugMode;
-    }
+    public static void setDebugMode(boolean enabled) { debugMode = enabled; }
+    public static boolean isDebugMode() { return debugMode; }
 
     @Override
     public void run() {
-        if (resultFuture.isDone()) {
-            cancel();
+        if (resultFuture.isDone()) { cancel(); return; }
+
+        LivingEntity entity = humanoid.getEntity();
+        if (entity == null || !entity.isValid()) {
+            complete(false, "Entity is no longer valid.");
             return;
         }
 
-        if (humanoid.getEntity() == null || !humanoid.getEntity().isValid()) {
-            resultFuture.complete(new HumanoidActionResult(false, "Entity is no longer valid."));
-            cancel();
-            return;
-        }
+        Location current = entity.getLocation();
 
-        Location current = humanoid.getEntity().getLocation();
-
-        if (LocationUtil.isNearDestination(current, target)) {
-            resultFuture.complete(new HumanoidActionResult(true, "Arrived at destination."));
-            cancel();
+        // Arrival check
+        if (current.distanceSquared(target) < config.getNearTargetDistance() * config.getNearTargetDistance()) {
+            complete(true, "Arrived at destination.");
             return;
         }
 
         // Stuck detection
-        int timeoutTicks = Settings.HUMANOID_PATHFINDING_TIMEOUT * 20;
-        if (previousLocation != null && timeStuck >= timeoutTicks
-                && previousLocation.getBlockX() == current.getBlockX()
-                && previousLocation.getBlockY() == current.getBlockY()
-                && previousLocation.getBlockZ() == current.getBlockZ()) {
-            resultFuture.complete(new HumanoidActionResult(false, "Stuck at the same location for too long."));
-            cancel();
-            return;
-        }
-
-        if (previousLocation != null && previousLocation.getBlockX() == current.getBlockX()
-                && previousLocation.getBlockZ() == current.getBlockZ()) {
-            timeStuck++;
-        } else {
-            timeStuck = 0;
+        if (previousLocation != null) {
+            if (previousLocation.getBlockX() == current.getBlockX()
+                    && previousLocation.getBlockY() == current.getBlockY()
+                    && previousLocation.getBlockZ() == current.getBlockZ()) {
+                timeStuck++;
+            } else {
+                timeStuck = 0;
+            }
+            if (timeStuck >= config.getStuckTimeout()) {
+                complete(false, "Stuck at the same location for too long.");
+                return;
+            }
         }
         previousLocation = current.clone();
 
         if (jumpCooldown > 0) jumpCooldown--;
 
-        // Path recalculation
+        // Path management
         ticksSincePathUpdate++;
-        boolean needPath = waypoints.isEmpty() || pathIndex >= waypoints.size() || ticksSincePathUpdate >= PATH_UPDATE_INTERVAL;
+        boolean needPath = currentPath == null || pathIndex >= currentPath.size()
+                || ticksSincePathUpdate >= config.getPathUpdateInterval();
 
         if (needPath && !pathfindingInProgress.get()) {
             requestNewPath(current);
         }
 
-        moveAlongPath(current);
-
-        if (debugMode) {
-            showDebugParticles(current);
+        // Move along path
+        if (currentPath != null && pathIndex < currentPath.size()) {
+            moveToWaypoint(entity, current);
         }
+
+        if (debugMode) showDebugParticles(current);
     }
 
     private void requestNewPath(Location current) {
         pathfindingInProgress.set(true);
         ticksSincePathUpdate = 0;
 
-        PatheticAgent.getInstance().getGroundPath(current, target)
-                .thenAccept(result -> Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
+        PatheticAgent.getInstance().getAnnotatedPath(current, target)
+                .thenAccept(pathOpt -> {
                     pathfindingInProgress.set(false);
                     if (resultFuture.isDone()) return;
 
-                    if (result.successful()) {
-                        List<Vector> newWaypoints = PatheticAgent.processPath(result.getPath());
-                        int newStartIndex = findClosestWaypointIndex(newWaypoints, current);
-                        waypoints = newWaypoints;
-                        pathIndex = newStartIndex;
+                    if (pathOpt.isPresent()) {
+                        AnnotatedPath newPath = pathOpt.get();
+                        int startIdx = findClosestWaypoint(newPath, current);
+                        currentPath = newPath;
+                        pathIndex = startIdx;
                         hasEverHadPath = true;
+                        parkourPhase = ParkourPhase.NONE;
                     } else if (!hasEverHadPath) {
-                        // Only fail if we've NEVER had a valid path.
-                        // If we already have waypoints, keep following them.
-                        resultFuture.complete(new HumanoidActionResult(false, "Pathfinding failed."));
-                        cancel();
+                        complete(false, "Pathfinding failed.");
                     }
-                    // else: recalculation failed but we still have our old path — keep going
-                }))
+                    // else: recalculation failed but we have an old path — keep following it
+                })
                 .exceptionally(ex -> {
-                    Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
-                        pathfindingInProgress.set(false);
-                        if (!hasEverHadPath) {
-                            resultFuture.complete(new HumanoidActionResult(false, "Pathfinding error: " + ex.getMessage()));
-                            cancel();
-                        }
-                    });
+                    pathfindingInProgress.set(false);
+                    if (!hasEverHadPath) {
+                        complete(false, "Pathfinding error: " + ex.getMessage());
+                    }
                     return null;
                 });
     }
 
-    private int findClosestWaypointIndex(List<Vector> newWaypoints, Location current) {
-        if (newWaypoints.isEmpty()) return 0;
-
+    private int findClosestWaypoint(AnnotatedPath path, Location current) {
         Vector currentVec = current.toVector();
         double minDist = Double.MAX_VALUE;
-        int closestIndex = 0;
-
-        for (int i = 0; i < newWaypoints.size(); i++) {
-            double dist = newWaypoints.get(i).distanceSquared(currentVec);
+        int closest = 0;
+        for (int i = 0; i < path.size(); i++) {
+            AnnotatedWaypoint wp = path.get(i);
+            double dist = currentVec.distanceSquared(wp.toVector());
             if (dist < minDist) {
                 minDist = dist;
-                closestIndex = i;
+                closest = i;
             }
         }
-
-        return closestIndex;
+        return closest;
     }
 
-    private void moveAlongPath(Location current) {
-        if (pathIndex >= waypoints.size()) return;
+    // ===================== Movement Dispatch =====================
 
-        LivingEntity entity = humanoid.getEntity();
-        Vector waypoint = waypoints.get(pathIndex);
-        Location waypointLoc = new Location(current.getWorld(), waypoint.getX(), waypoint.getY(), waypoint.getZ());
+    private void moveToWaypoint(LivingEntity entity, Location current) {
+        AnnotatedWaypoint waypoint = currentPath.get(pathIndex);
+        ExecutionHint hint = waypoint.hint();
 
-        double horizontalDist = Math.sqrt(
-                Math.pow(current.getX() - waypointLoc.getX(), 2) +
-                Math.pow(current.getZ() - waypointLoc.getZ(), 2)
-        );
+        // Check if we've reached this waypoint
+        double horizDist = horizontalDistance(current, waypoint);
+        double vertDist = Math.abs(current.getY() - waypoint.y());
 
-        if (horizontalDist < WAYPOINT_RADIUS && Math.abs(current.getY() - waypointLoc.getY()) < 1.5) {
-            pathIndex++;
+        // For parkour IN_AIR, don't advance until we land
+        if (parkourPhase == ParkourPhase.IN_AIR) {
+            executeSprintJump(entity, current, waypoint, hint);
             return;
         }
 
-        LocationUtil.faceLocation(entity, waypointLoc);
+        if (horizDist < config.getWaypointRadius() && vertDist < 1.5) {
+            pathIndex++;
+            parkourPhase = ParkourPhase.NONE;
+            if (pathIndex >= currentPath.size()) return;
+            waypoint = currentPath.get(pathIndex);
+            hint = waypoint.hint();
+        }
 
-        double dx = waypoint.getX() - current.getX();
-        double dz = waypoint.getZ() - current.getZ();
-        double len = Math.sqrt(dx * dx + dz * dz);
-        if (len > 0) { dx /= len; dz /= len; }
+        if (hint == null) {
+            // First waypoint or no type — walk toward it
+            executeWalk(entity, current, waypoint);
+            return;
+        }
 
+        switch (hint.locomotion()) {
+            case WALK -> executeWalk(entity, current, waypoint);
+            case SPRINT -> executeSprint(entity, current, waypoint);
+            case SPRINT_JUMP -> executeSprintJump(entity, current, waypoint, hint);
+            case SNEAK -> executeSneak(entity, current, waypoint);
+            case SWIM -> executeSwim(entity, current, waypoint);
+            case CLIMB -> executeClimb(entity, current, waypoint);
+        }
+    }
+
+    // ===================== Locomotion Implementations =====================
+
+    private void executeWalk(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        Vector vel = entity.getVelocity();
+        double[] dir = directionTo(current, wp);
         boolean onGround = entity.isOnGround();
-        Vector currentVelocity = entity.getVelocity();
 
         double vx, vz;
         if (onGround) {
-            vx = currentVelocity.getX() * GROUND_DRAG + dx * WALK_ACCELERATION;
-            vz = currentVelocity.getZ() * GROUND_DRAG + dz * WALK_ACCELERATION;
+            double slip = getSlipperiness(current);
+            double momentum = slip * 0.91;
+            double accel = config.getWalkAcceleration() * accelerationFactor(slip);
+            vx = vel.getX() * momentum + dir[0] * accel;
+            vz = vel.getZ() * momentum + dir[1] * accel;
         } else {
-            vx = currentVelocity.getX() * AIR_DRAG + dx * AIR_ACCELERATION;
-            vz = currentVelocity.getZ() * AIR_DRAG + dz * AIR_ACCELERATION;
+            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
+            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
         }
 
-        double vy = currentVelocity.getY();
-
-        if (onGround && jumpCooldown == 0 && shouldJump(current, dx, dz)) {
-            vy = JUMP_VELOCITY;
+        double vy = vel.getY();
+        // Jump if waypoint is above us and we're on ground
+        if (onGround && jumpCooldown == 0 && shouldJump(current, wp, dir)) {
+            vy = config.getJumpVelocity();
             jumpCooldown = 10;
         }
 
+        faceDirection(entity, dir);
         entity.setVelocity(new Vector(vx, vy, vz));
     }
 
-    private boolean shouldJump(Location current, double dirX, double dirZ) {
-        if (current.getWorld() == null) return false;
+    private void executeSprint(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        Vector vel = entity.getVelocity();
+        double[] dir = directionTo(current, wp);
+        boolean onGround = entity.isOnGround();
 
-        Location ahead = current.clone().add(dirX * 0.6, 0, dirZ * 0.6);
-        Block blockAhead = ahead.getBlock();
-        Block blockAboveAhead = ahead.clone().add(0, 1, 0).getBlock();
-
-        if (blockAhead.getType().isSolid() && !blockAboveAhead.getType().isSolid()) {
-            return true;
+        double vx, vz;
+        if (onGround) {
+            double slip = getSlipperiness(current);
+            double momentum = slip * 0.91;
+            double sprintAccel = config.getWalkAcceleration() * config.getSprintFactor();
+            double accel = sprintAccel * accelerationFactor(slip);
+            vx = vel.getX() * momentum + dir[0] * accel;
+            vz = vel.getZ() * momentum + dir[1] * accel;
+        } else {
+            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
+            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
         }
 
-        if (pathIndex < waypoints.size()) {
-            double yDiff = waypoints.get(pathIndex).getY() - current.getY();
-            if (yDiff > 0.5) {
+        double vy = vel.getY();
+        if (onGround && jumpCooldown == 0 && shouldJump(current, wp, dir)) {
+            vy = config.getJumpVelocity();
+            jumpCooldown = 10;
+        }
+
+        faceDirection(entity, dir);
+        entity.setVelocity(new Vector(vx, vy, vz));
+    }
+
+    private void executeSprintJump(LivingEntity entity, Location current,
+                                   AnnotatedWaypoint wp, ExecutionHint hint) {
+        Vector vel = entity.getVelocity();
+        double[] dir = directionTo(current, wp);
+        boolean onGround = entity.isOnGround();
+
+        switch (parkourPhase) {
+            case NONE, APPROACHING -> {
+                if (!onGround) {
+                    // Wait until we're on ground to start approach
+                    parkourPhase = ParkourPhase.NONE;
+                    executeWalk(entity, current, wp);
+                    return;
+                }
+                // Sprint toward the edge
+                double slip = getSlipperiness(current);
+                double momentum = slip * 0.91;
+                double sprintAccel = config.getWalkAcceleration() * config.getSprintFactor();
+                double accel = sprintAccel * accelerationFactor(slip);
+                double vx = vel.getX() * momentum + dir[0] * accel;
+                double vz = vel.getZ() * momentum + dir[1] * accel;
+
+                if (hint.edgeJump() && isNearBlockEdge(current, dir)) {
+                    // Jump! Apply jump velocity + sprint-jump boost
+                    double vy = config.getJumpVelocity();
+                    float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
+                    vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
+                    vz += Math.cos(yawRad) * config.getSprintJumpBoost();
+                    entity.setVelocity(new Vector(vx, vy, vz));
+                    parkourPhase = ParkourPhase.IN_AIR;
+                } else {
+                    entity.setVelocity(new Vector(vx, vel.getY(), vz));
+                    parkourPhase = ParkourPhase.APPROACHING;
+                }
+                faceDirection(entity, dir);
+            }
+            case IN_AIR -> {
+                // Air control toward landing
+                double vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
+                double vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
+                entity.setVelocity(new Vector(vx, vel.getY(), vz));
+                faceDirection(entity, dir);
+
+                // Check if we've landed
+                if (onGround) {
+                    parkourPhase = ParkourPhase.NONE;
+                    pathIndex++;
+                }
+            }
+        }
+    }
+
+    private void executeSneak(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        Vector vel = entity.getVelocity();
+        double[] dir = directionTo(current, wp);
+        boolean onGround = entity.isOnGround();
+
+        double vx, vz;
+        if (onGround) {
+            double slip = getSlipperiness(current);
+            double momentum = slip * 0.91;
+            double sneakAccel = config.getWalkAcceleration() * config.getSneakFactor();
+            double accel = sneakAccel * accelerationFactor(slip);
+            vx = vel.getX() * momentum + dir[0] * accel;
+            vz = vel.getZ() * momentum + dir[1] * accel;
+        } else {
+            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
+            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
+        }
+
+        faceDirection(entity, dir);
+        entity.setVelocity(new Vector(vx, vel.getY(), vz));
+    }
+
+    private void executeSwim(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        double[] dir3d = directionTo3D(current, wp);
+        Vector vel = entity.getVelocity();
+
+        // Swimming uses reduced drag and acceleration
+        double swimAccel = config.getAirAcceleration() * 2; // slightly better control in water
+        double swimDrag = 0.8;
+
+        double vx = vel.getX() * swimDrag + dir3d[0] * swimAccel;
+        double vy = vel.getY() * swimDrag + dir3d[1] * swimAccel;
+        double vz = vel.getZ() * swimDrag + dir3d[2] * swimAccel;
+
+        faceDirection(entity, new double[]{dir3d[0], dir3d[2]});
+        entity.setVelocity(new Vector(vx, vy, vz));
+    }
+
+    private void executeClimb(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
+        double dy = wp.y() - current.getY();
+        double[] dir = directionTo(current, wp);
+
+        // Ladder climb speed: ~0.12 blocks/tick up, ~0.15 down
+        double climbSpeed = dy >= 0 ? 0.12 : -0.15;
+
+        // Small horizontal movement toward the ladder/waypoint
+        double horizAccel = 0.02;
+        Vector vel = entity.getVelocity();
+        double vx = vel.getX() * 0.5 + dir[0] * horizAccel;
+        double vz = vel.getZ() * 0.5 + dir[1] * horizAccel;
+
+        faceDirection(entity, dir);
+        entity.setVelocity(new Vector(vx, climbSpeed, vz));
+    }
+
+    // ===================== Helpers =====================
+
+    /**
+     * Vanilla acceleration normalization: accel = (0.6^3 / slip^3).
+     * On normal blocks (slip=0.6), this is 1.0.
+     * On ice (slip=0.98), this is much less (slower acceleration but higher terminal speed).
+     */
+    private double accelerationFactor(double slipperiness) {
+        double defaultSlip = config.getDefaultSlipperiness();
+        double def3 = defaultSlip * defaultSlip * defaultSlip;
+        double slip3 = slipperiness * slipperiness * slipperiness;
+        return def3 / slip3;
+    }
+
+    private double getSlipperiness(Location loc) {
+        Material below = loc.clone().add(0, -1, 0).getBlock().getType();
+        return BlockClassifier.slipperiness(below);
+    }
+
+    private boolean shouldJump(Location current, AnnotatedWaypoint wp, double[] dir) {
+        // Jump if waypoint is above us
+        if (wp.y() > current.getY() + 0.5) return true;
+
+        // Jump if there's a solid block ahead at feet level
+        if (current.getWorld() != null) {
+            Location ahead = current.clone().add(dir[0] * 0.6, 0, dir[1] * 0.6);
+            Material blockAhead = ahead.getBlock().getType();
+            Material aboveAhead = ahead.clone().add(0, 1, 0).getBlock().getType();
+            if (BlockClassifier.isSolid(blockAhead) && !BlockClassifier.isSolid(aboveAhead)) {
                 return true;
             }
         }
-
         return false;
     }
+
+    private boolean isNearBlockEdge(Location loc, double[] dir) {
+        double posInBlockX = loc.getX() - Math.floor(loc.getX());
+        double posInBlockZ = loc.getZ() - Math.floor(loc.getZ());
+
+        if (dir[0] > 0.5 && posInBlockX > 0.65) return true;
+        if (dir[0] < -0.5 && posInBlockX < 0.35) return true;
+        if (dir[1] > 0.5 && posInBlockZ > 0.65) return true;
+        if (dir[1] < -0.5 && posInBlockZ < 0.35) return true;
+        return false;
+    }
+
+    private static double[] directionTo(Location current, AnnotatedWaypoint wp) {
+        double dx = wp.x() - current.getX();
+        double dz = wp.z() - current.getZ();
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len > 0.001) { dx /= len; dz /= len; }
+        return new double[]{dx, dz};
+    }
+
+    private static double[] directionTo3D(Location current, AnnotatedWaypoint wp) {
+        double dx = wp.x() - current.getX();
+        double dy = wp.y() - current.getY();
+        double dz = wp.z() - current.getZ();
+        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len > 0.001) { dx /= len; dy /= len; dz /= len; }
+        return new double[]{dx, dy, dz};
+    }
+
+    private static double horizontalDistance(Location loc, AnnotatedWaypoint wp) {
+        double dx = loc.getX() - wp.x();
+        double dz = loc.getZ() - wp.z();
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    private void faceDirection(LivingEntity entity, double[] dir) {
+        if (dir[0] == 0 && dir[1] == 0) return;
+        float yaw = (float) Math.toDegrees(Math.atan2(-dir[0], dir[1]));
+        entity.setRotation(yaw, 0);
+    }
+
+    private void complete(boolean success, String message) {
+        if (!resultFuture.isDone()) {
+            resultFuture.complete(new HumanoidActionResult(success, message));
+        }
+        cancel();
+    }
+
+    // ===================== Debug =====================
 
     private void showDebugParticles(Location current) {
         if (current.getWorld() == null) return;
 
+        // Green at entity
         current.getWorld().spawnParticle(Particle.DUST, current.clone().add(0, 1, 0),
                 1, new Particle.DustOptions(Color.GREEN, 1));
-
+        // Red at target
         target.getWorld().spawnParticle(Particle.DUST, target.clone().add(0, 1, 0),
                 1, new Particle.DustOptions(Color.RED, 1));
 
-        for (int i = pathIndex; i < Math.min(pathIndex + 10, waypoints.size()); i++) {
-            Vector wp = waypoints.get(i);
-            Location wpLoc = new Location(current.getWorld(), wp.getX(), wp.getY() + 0.5, wp.getZ());
+        if (currentPath == null) return;
+        for (int i = pathIndex; i < Math.min(pathIndex + 10, currentPath.size()); i++) {
+            AnnotatedWaypoint wp = currentPath.get(i);
+            Location wpLoc = new Location(current.getWorld(), wp.x(), wp.y() + 0.5, wp.z());
 
-            Color color = (i == pathIndex) ? Color.YELLOW : Color.AQUA;
+            // Color by movement type
+            Color color;
+            if (wp.hint() != null) {
+                color = switch (wp.hint().locomotion()) {
+                    case WALK -> Color.AQUA;
+                    case SPRINT -> Color.BLUE;
+                    case SPRINT_JUMP -> Color.ORANGE;
+                    case SNEAK -> Color.GRAY;
+                    case SWIM -> Color.TEAL;
+                    case CLIMB -> Color.PURPLE;
+                };
+            } else {
+                color = Color.YELLOW;
+            }
+            if (i == pathIndex) color = Color.WHITE;
+
             current.getWorld().spawnParticle(Particle.DUST, wpLoc, 1, new Particle.DustOptions(color, 0.7f));
         }
     }
