@@ -31,7 +31,7 @@ public record WalkDiagonal() implements MovementType {
                               MaterialProvider materials, MovementConfig config) {
         Material below = materials.getMaterial(current.getFlooredX(), current.getFlooredY() - 1, current.getFlooredZ());
         double blockMult = WalkFlat.blockCostMultiplier(below, config);
-        return config.getWalkDiagonal() * blockMult;
+        return config.getWalkDiagonal() * blockMult + config.getHungerSprintCost();
     }
 
     @Override

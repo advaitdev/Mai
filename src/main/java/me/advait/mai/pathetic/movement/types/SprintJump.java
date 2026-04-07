@@ -55,7 +55,9 @@ public record SprintJump() implements MovementType {
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         int gap = Math.max(0, (int) Math.round(horizDist) - 1);
 
-        return config.getSprintJumpBase() + gap * config.getSprintJumpPerGap() + config.getJumpPenalty();
+        // Sprint-jump cost: base per block + jump hunger penalty + sprint hunger
+        return config.getSprintJumpBase() + gap * config.getSprintJumpPerGap()
+                + config.getJumpPenalty() + horizDist * config.getHungerSprintCost();
     }
 
     @Override

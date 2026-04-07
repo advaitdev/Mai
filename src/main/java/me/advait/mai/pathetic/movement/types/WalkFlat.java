@@ -33,7 +33,8 @@ public record WalkFlat() implements MovementType {
                               MaterialProvider materials, MovementConfig config) {
         Material below = materials.getMaterial(current.getFlooredX(), current.getFlooredY() - 1, current.getFlooredZ());
         double blockMult = blockCostMultiplier(below, config);
-        return config.getWalkFlat() * blockMult;
+        // Base sprint cost + hunger drain from sprinting
+        return config.getWalkFlat() * blockMult + config.getHungerSprintCost();
     }
 
     @Override

@@ -35,6 +35,7 @@ public final class MovementConfig {
     private final double soulSandMultiplier;
     private final double iceMultiplier;
     private final double sneakCost;
+    private final double hungerSprintCost;
 
     // --- Physics ---
     private final double walkAcceleration;
@@ -84,6 +85,7 @@ public final class MovementConfig {
         this.soulSandMultiplier = costs.getDouble("soul_sand_multiplier", 2.0);
         this.iceMultiplier = costs.getDouble("ice_multiplier", 0.8);
         this.sneakCost = costs.getDouble("sneak", 15.38);
+        this.hungerSprintCost = costs.getDouble("hunger_sprint_cost", 0.1);
 
         ConfigurationSection phys = section(config, "movement.physics");
         this.walkAcceleration = phys.getDouble("walk_acceleration", 0.1);
@@ -185,6 +187,7 @@ public final class MovementConfig {
     public double getSoulSandMultiplier() { return soulSandMultiplier; }
     public double getIceMultiplier() { return iceMultiplier; }
     public double getSneakCost() { return sneakCost; }
+    public double getHungerSprintCost() { return hungerSprintCost; }
 
     public double getWalkAcceleration() { return walkAcceleration; }
     public double getSprintFactor() { return sprintFactor; }

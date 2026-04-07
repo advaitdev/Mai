@@ -40,7 +40,9 @@ public record StepUp() implements MovementType {
                               MaterialProvider materials, MovementConfig config) {
         Material below = materials.getMaterial(current.getFlooredX(), current.getFlooredY() - 1, current.getFlooredZ());
         double blockMult = WalkFlat.blockCostMultiplier(below, config);
-        return (config.getStepUp() + config.getJumpPenalty()) * blockMult;
+        // Step up = sprint cost + jump penalty (hunger from both sprint + jump)
+        return (config.getStepUp() + config.getJumpPenalty()) * blockMult
+                + config.getHungerSprintCost();
     }
 
     @Override

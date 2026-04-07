@@ -9,7 +9,6 @@ import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.ExecutionHint;
 import me.advait.mai.pathetic.path.AnnotatedPath;
 import me.advait.mai.pathetic.path.AnnotatedWaypoint;
-import me.advait.mai.util.LocationUtil;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -24,14 +23,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Tick-by-tick movement executor with locomotion-based dispatch.
  *
- * <p>Reads an {@link AnnotatedPath} and dispatches movement per-waypoint
- * based on the {@link ExecutionHint}: walk, sprint, sprint-jump, sneak, swim, or climb.
+ * <h3>Physics model</h3>
+ * The Mannequin entity has gravity=true and AI=false. The server applies
+ * gravity, vertical drag (0.98), and horizontal friction (block slipperiness * 0.91)
+ * every tick AFTER our setVelocity() call. Therefore we must NOT apply drag/friction
+ * ourselves — we only add acceleration impulses on top of the already-dragged velocity
+ * we read back from the entity each tick.
  *
- * <p>Physics are vanilla-accurate: ground acceleration with slipperiness normalization,
- * air drag 0.91, jump velocity 0.42, sprint-jump boost 0.2 in facing direction.
- * Gravity and collision are handled by the server (Mannequin has gravity=true).
+ * <h3>Sprint-jump boost</h3>
+ * Vanilla applies the 0.2 sprint-jump boost BEFORE travel() on the jump tick,
+ * and ground friction (0.546) is applied on the jump tick itself (onGround hasn't
+ * updated yet). We replicate this by adding boost + jump velocity in one tick.
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
+
+    // Sprint air acceleration: vanilla 0.02 + sprint bonus 0.006 = 0.026
+    private static final double SPRINT_AIR_ACCEL = 0.026;
 
     private static boolean debugMode = false;
 
@@ -66,7 +73,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         this.target = target;
         this.resultFuture = resultFuture;
         this.config = PatheticAgent.getInstance().getConfig();
-        this.ticksSincePathUpdate = config.getPathUpdateInterval(); // trigger immediate path request
+        this.ticksSincePathUpdate = config.getPathUpdateInterval(); // trigger immediate
     }
 
     public static void setDebugMode(boolean enabled) { debugMode = enabled; }
@@ -108,9 +115,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         if (jumpCooldown > 0) jumpCooldown--;
 
-        // Path management
+        // Path management — request new path frequently
         ticksSincePathUpdate++;
-        boolean needPath = currentPath == null || pathIndex >= currentPath.size()
+        boolean needPath = currentPath == null
+                || pathIndex >= currentPath.size()
                 || ticksSincePathUpdate >= config.getPathUpdateInterval();
 
         if (needPath && !pathfindingInProgress.get()) {
@@ -144,7 +152,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                     } else if (!hasEverHadPath) {
                         complete(false, "Pathfinding failed.");
                     }
-                    // else: recalculation failed but we have an old path — keep following it
                 })
                 .exceptionally(ex -> {
                     pathfindingInProgress.set(false);
@@ -160,12 +167,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         double minDist = Double.MAX_VALUE;
         int closest = 0;
         for (int i = 0; i < path.size(); i++) {
-            AnnotatedWaypoint wp = path.get(i);
-            double dist = currentVec.distanceSquared(wp.toVector());
-            if (dist < minDist) {
-                minDist = dist;
-                closest = i;
-            }
+            double dist = currentVec.distanceSquared(path.get(i).toVector());
+            if (dist < minDist) { minDist = dist; closest = i; }
         }
         return closest;
     }
@@ -176,15 +179,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         AnnotatedWaypoint waypoint = currentPath.get(pathIndex);
         ExecutionHint hint = waypoint.hint();
 
-        // Check if we've reached this waypoint
-        double horizDist = horizontalDistance(current, waypoint);
-        double vertDist = Math.abs(current.getY() - waypoint.y());
-
         // For parkour IN_AIR, don't advance until we land
         if (parkourPhase == ParkourPhase.IN_AIR) {
             executeSprintJump(entity, current, waypoint, hint);
             return;
         }
+
+        // Check if we've reached this waypoint
+        double horizDist = horizontalDistance(current, waypoint);
+        double vertDist = Math.abs(current.getY() - waypoint.y());
 
         if (horizDist < config.getWaypointRadius() && vertDist < 1.5) {
             pathIndex++;
@@ -195,13 +198,12 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
 
         if (hint == null) {
-            // First waypoint or no type — walk toward it
-            executeWalk(entity, current, waypoint);
+            executeSprint(entity, current, waypoint);
             return;
         }
 
         switch (hint.locomotion()) {
-            case WALK -> executeWalk(entity, current, waypoint);
+            case WALK -> executeSprint(entity, current, waypoint); // default to sprint
             case SPRINT -> executeSprint(entity, current, waypoint);
             case SPRINT_JUMP -> executeSprintJump(entity, current, waypoint, hint);
             case SNEAK -> executeSneak(entity, current, waypoint);
@@ -212,34 +214,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     // ===================== Locomotion Implementations =====================
 
-    private void executeWalk(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
-        Vector vel = entity.getVelocity();
-        double[] dir = directionTo(current, wp);
-        boolean onGround = entity.isOnGround();
-
-        double vx, vz;
-        if (onGround) {
-            double slip = getSlipperiness(current);
-            double momentum = slip * 0.91;
-            double accel = config.getWalkAcceleration() * accelerationFactor(slip);
-            vx = vel.getX() * momentum + dir[0] * accel;
-            vz = vel.getZ() * momentum + dir[1] * accel;
-        } else {
-            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
-            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
-        }
-
-        double vy = vel.getY();
-        // Jump if waypoint is above us and we're on ground
-        if (onGround && jumpCooldown == 0 && shouldJump(current, wp, dir)) {
-            vy = config.getJumpVelocity();
-            jumpCooldown = 10;
-        }
-
-        faceDirection(entity, dir);
-        entity.setVelocity(new Vector(vx, vy, vz));
-    }
-
+    /**
+     * Sprint movement. Server already applied friction to the velocity we read,
+     * so we only add our acceleration impulse — no drag multiplication.
+     *
+     * <p>Ground acceleration uses vanilla normalization:
+     * accel = moveSpeed * (0.16277136 / (slip * 0.91)^3)
+     * This is the impulse to ADD to already-dragged velocity.
+     */
     private void executeSprint(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
         Vector vel = entity.getVelocity();
         double[] dir = directionTo(current, wp);
@@ -247,15 +229,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         double vx, vz;
         if (onGround) {
+            double sprintSpeed = config.getWalkAcceleration() * config.getSprintFactor();
             double slip = getSlipperiness(current);
-            double momentum = slip * 0.91;
-            double sprintAccel = config.getWalkAcceleration() * config.getSprintFactor();
-            double accel = sprintAccel * accelerationFactor(slip);
-            vx = vel.getX() * momentum + dir[0] * accel;
-            vz = vel.getZ() * momentum + dir[1] * accel;
+            double inertia = slip * 0.91;
+            double accel = sprintSpeed * (0.16277136 / (inertia * inertia * inertia));
+            // Server already applied inertia drag to vel — just add our impulse
+            vx = vel.getX() + dir[0] * accel;
+            vz = vel.getZ() + dir[1] * accel;
         } else {
-            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
-            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
+            vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
+            vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
         }
 
         double vy = vel.getY();
@@ -268,6 +251,17 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         entity.setVelocity(new Vector(vx, vy, vz));
     }
 
+    /**
+     * Sprint-jump with parkour state machine.
+     *
+     * <p>Vanilla sprint-jump sequence:
+     * <ol>
+     *   <li>Sprint toward edge, building momentum</li>
+     *   <li>At edge: set vy=0.42, add 0.2 boost in yaw direction</li>
+     *   <li>In air: air acceleration (0.026) toward target, server handles drag</li>
+     *   <li>Land: advance to next waypoint</li>
+     * </ol>
+     */
     private void executeSprintJump(LivingEntity entity, Location current,
                                    AnnotatedWaypoint wp, ExecutionHint hint) {
         Vector vel = entity.getVelocity();
@@ -277,27 +271,32 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         switch (parkourPhase) {
             case NONE, APPROACHING -> {
                 if (!onGround) {
-                    // Wait until we're on ground to start approach
-                    parkourPhase = ParkourPhase.NONE;
-                    executeWalk(entity, current, wp);
+                    // Airborne unexpectedly — apply air control toward target
+                    double vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
+                    double vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
+                    entity.setVelocity(new Vector(vx, vel.getY(), vz));
+                    faceDirection(entity, dir);
                     return;
                 }
-                // Sprint toward the edge
-                double slip = getSlipperiness(current);
-                double momentum = slip * 0.91;
-                double sprintAccel = config.getWalkAcceleration() * config.getSprintFactor();
-                double accel = sprintAccel * accelerationFactor(slip);
-                double vx = vel.getX() * momentum + dir[0] * accel;
-                double vz = vel.getZ() * momentum + dir[1] * accel;
 
-                if (hint.edgeJump() && isNearBlockEdge(current, dir)) {
-                    // Jump! Apply jump velocity + sprint-jump boost
+                // Sprint toward the edge with ground acceleration
+                double sprintSpeed = config.getWalkAcceleration() * config.getSprintFactor();
+                double slip = getSlipperiness(current);
+                double inertia = slip * 0.91;
+                double accel = sprintSpeed * (0.16277136 / (inertia * inertia * inertia));
+                double vx = vel.getX() + dir[0] * accel;
+                double vz = vel.getZ() + dir[1] * accel;
+
+                // Check if near block edge — time to jump
+                if (hint != null && hint.edgeJump() && isNearBlockEdge(current, dir)) {
+                    // JUMP! Vanilla order: vel.y = 0.42, then add 0.2 sprint boost
                     double vy = config.getJumpVelocity();
                     float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
                     vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
                     vz += Math.cos(yawRad) * config.getSprintJumpBoost();
                     entity.setVelocity(new Vector(vx, vy, vz));
                     parkourPhase = ParkourPhase.IN_AIR;
+                    jumpCooldown = 10;
                 } else {
                     entity.setVelocity(new Vector(vx, vel.getY(), vz));
                     parkourPhase = ParkourPhase.APPROACHING;
@@ -305,14 +304,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 faceDirection(entity, dir);
             }
             case IN_AIR -> {
-                // Air control toward landing
-                double vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
-                double vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
+                // Air control: sprint air accel toward landing target
+                double vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
+                double vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
                 entity.setVelocity(new Vector(vx, vel.getY(), vz));
                 faceDirection(entity, dir);
 
                 // Check if we've landed
-                if (onGround) {
+                if (onGround && vel.getY() <= 0) {
                     parkourPhase = ParkourPhase.NONE;
                     pathIndex++;
                 }
@@ -327,15 +326,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         double vx, vz;
         if (onGround) {
+            double sneakSpeed = config.getWalkAcceleration() * config.getSneakFactor();
             double slip = getSlipperiness(current);
-            double momentum = slip * 0.91;
-            double sneakAccel = config.getWalkAcceleration() * config.getSneakFactor();
-            double accel = sneakAccel * accelerationFactor(slip);
-            vx = vel.getX() * momentum + dir[0] * accel;
-            vz = vel.getZ() * momentum + dir[1] * accel;
+            double inertia = slip * 0.91;
+            double accel = sneakSpeed * (0.16277136 / (inertia * inertia * inertia));
+            vx = vel.getX() + dir[0] * accel;
+            vz = vel.getZ() + dir[1] * accel;
         } else {
-            vx = vel.getX() * config.getAirDrag() + dir[0] * config.getAirAcceleration();
-            vz = vel.getZ() * config.getAirDrag() + dir[1] * config.getAirAcceleration();
+            vx = vel.getX() + dir[0] * config.getAirAcceleration();
+            vz = vel.getZ() + dir[1] * config.getAirAcceleration();
         }
 
         faceDirection(entity, dir);
@@ -346,13 +345,12 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         double[] dir3d = directionTo3D(current, wp);
         Vector vel = entity.getVelocity();
 
-        // Swimming uses reduced drag and acceleration
-        double swimAccel = config.getAirAcceleration() * 2; // slightly better control in water
-        double swimDrag = 0.8;
-
-        double vx = vel.getX() * swimDrag + dir3d[0] * swimAccel;
-        double vy = vel.getY() * swimDrag + dir3d[1] * swimAccel;
-        double vz = vel.getZ() * swimDrag + dir3d[2] * swimAccel;
+        // Water has its own drag model (0.8 horizontal, 0.8 vertical)
+        // Server applies water drag; we add swim impulse
+        double swimAccel = 0.04;
+        double vx = vel.getX() + dir3d[0] * swimAccel;
+        double vy = vel.getY() + dir3d[1] * swimAccel;
+        double vz = vel.getZ() + dir3d[2] * swimAccel;
 
         faceDirection(entity, new double[]{dir3d[0], dir3d[2]});
         entity.setVelocity(new Vector(vx, vy, vz));
@@ -362,32 +360,17 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         double dy = wp.y() - current.getY();
         double[] dir = directionTo(current, wp);
 
-        // Ladder climb speed: ~0.12 blocks/tick up, ~0.15 down
+        // Ladder climb: vanilla ~0.12 up, ~0.15 down
         double climbSpeed = dy >= 0 ? 0.12 : -0.15;
-
-        // Small horizontal movement toward the ladder/waypoint
-        double horizAccel = 0.02;
         Vector vel = entity.getVelocity();
-        double vx = vel.getX() * 0.5 + dir[0] * horizAccel;
-        double vz = vel.getZ() * 0.5 + dir[1] * horizAccel;
+        double vx = vel.getX() + dir[0] * 0.02;
+        double vz = vel.getZ() + dir[1] * 0.02;
 
         faceDirection(entity, dir);
         entity.setVelocity(new Vector(vx, climbSpeed, vz));
     }
 
     // ===================== Helpers =====================
-
-    /**
-     * Vanilla acceleration normalization: accel = (0.6^3 / slip^3).
-     * On normal blocks (slip=0.6), this is 1.0.
-     * On ice (slip=0.98), this is much less (slower acceleration but higher terminal speed).
-     */
-    private double accelerationFactor(double slipperiness) {
-        double defaultSlip = config.getDefaultSlipperiness();
-        double def3 = defaultSlip * defaultSlip * defaultSlip;
-        double slip3 = slipperiness * slipperiness * slipperiness;
-        return def3 / slip3;
-    }
 
     private double getSlipperiness(Location loc) {
         Material below = loc.clone().add(0, -1, 0).getBlock().getType();
@@ -398,7 +381,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // Jump if waypoint is above us
         if (wp.y() > current.getY() + 0.5) return true;
 
-        // Jump if there's a solid block ahead at feet level
+        // Jump if there's a solid block ahead at feet level with space above
         if (current.getWorld() != null) {
             Location ahead = current.clone().add(dir[0] * 0.6, 0, dir[1] * 0.6);
             Material blockAhead = ahead.getBlock().getType();
@@ -410,14 +393,22 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         return false;
     }
 
+    /**
+     * Checks if the entity is near the edge of the current block in the
+     * movement direction. The player hitbox is 0.6 wide (0.3 from center),
+     * so the optimal jump point is when the center is ~0.2 blocks from the edge.
+     *
+     * <p>Thresholds: 0.75 / 0.25 — this gives ~0.25 blocks before the edge,
+     * close to optimal while leaving a small margin of safety.
+     */
     private boolean isNearBlockEdge(Location loc, double[] dir) {
         double posInBlockX = loc.getX() - Math.floor(loc.getX());
         double posInBlockZ = loc.getZ() - Math.floor(loc.getZ());
 
-        if (dir[0] > 0.5 && posInBlockX > 0.65) return true;
-        if (dir[0] < -0.5 && posInBlockX < 0.35) return true;
-        if (dir[1] > 0.5 && posInBlockZ > 0.65) return true;
-        if (dir[1] < -0.5 && posInBlockZ < 0.35) return true;
+        if (dir[0] > 0.3 && posInBlockX > 0.75) return true;
+        if (dir[0] < -0.3 && posInBlockX < 0.25) return true;
+        if (dir[1] > 0.3 && posInBlockZ > 0.75) return true;
+        if (dir[1] < -0.3 && posInBlockZ < 0.25) return true;
         return false;
     }
 
@@ -462,10 +453,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private void showDebugParticles(Location current) {
         if (current.getWorld() == null) return;
 
-        // Green at entity
         current.getWorld().spawnParticle(Particle.DUST, current.clone().add(0, 1, 0),
                 1, new Particle.DustOptions(Color.GREEN, 1));
-        // Red at target
         target.getWorld().spawnParticle(Particle.DUST, target.clone().add(0, 1, 0),
                 1, new Particle.DustOptions(Color.RED, 1));
 
@@ -474,7 +463,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             AnnotatedWaypoint wp = currentPath.get(i);
             Location wpLoc = new Location(current.getWorld(), wp.x(), wp.y() + 0.5, wp.z());
 
-            // Color by movement type
             Color color;
             if (wp.hint() != null) {
                 color = switch (wp.hint().locomotion()) {

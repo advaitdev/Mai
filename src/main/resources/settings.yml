@@ -15,19 +15,21 @@ movement:
     max_fall_height: 20         # max blocks to consider falling
     allow_unsafe_falls: true    # allow falls that cause damage
 
-  # Costs in ticks (20 ticks = 1 second). Lower = preferred.
+  # Costs in ticks (20 ticks = 1 second). Lower = preferred by pathfinder.
+  # Sprint-jumping is fastest (7.127 b/s) so it's cheapest per block.
   costs:
-    walk_flat: 4.63             # 20 / 4.317 b/s
-    walk_diagonal: 6.55         # walk_flat * sqrt(2)
-    sprint_multiplier: 0.77     # sprint_cost / walk_cost
-    step_up: 6.63               # walk + jump penalty
-    step_down: 4.63             # walk off edge
+    walk_flat: 3.56             # sprint speed: 20 / 5.612 b/s (default to sprint)
+    walk_diagonal: 5.04         # sprint diagonal: walk_flat * sqrt(2)
+    sprint_multiplier: 0.77     # not used directly, kept for reference
+    step_up: 5.56               # sprint + jump penalty
+    step_down: 3.56             # sprint off edge
     fall_safe_base: 3.07        # base cost for safe falls
     fall_per_block: 0.5         # additional cost per block fallen
     fall_damage_penalty: 10.0   # cost per heart of damage taken
-    sprint_jump_base: 3.56      # 20 / 5.612 b/s
-    sprint_jump_per_gap: 3.56   # cost per block of gap
-    jump_penalty: 2.0           # hunger cost for each jump
+    sprint_jump_base: 2.81      # 20 / 7.127 b/s (sprint-jump avg speed)
+    sprint_jump_per_gap: 2.81   # cost per block of gap
+    jump_penalty: 0.8           # hunger cost per jump (sprinting drains hunger)
+    hunger_sprint_cost: 0.1     # extra cost per block when sprinting (hunger drain)
     ladder_up: 8.51             # 20 / 2.35 b/s
     ladder_down: 6.67           # 20 / 3.0 b/s
     swim: 9.09                  # 20 / 2.2 b/s
@@ -52,6 +54,6 @@ movement:
   # Waypoint navigation tuning
   navigation:
     waypoint_radius: 0.5
-    path_update_interval: 40    # ticks between path recalculations
+    path_update_interval: 5     # ticks between path recalculations
     stuck_timeout: 200          # ticks before declaring stuck
     near_target_distance: 2.0   # blocks to consider "arrived"
