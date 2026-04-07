@@ -56,4 +56,4 @@ movement:
     waypoint_radius: 0.5
     path_update_interval: 5     # ticks between path recalculations
     stuck_timeout: 200          # ticks before declaring stuck
-    near_target_distance: 2.0   # blocks to consider "arrived"
+    near_target_distance: 0.5   # fallback distance check (exact block match is primary)
