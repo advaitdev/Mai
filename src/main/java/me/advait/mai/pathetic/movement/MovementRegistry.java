@@ -1,7 +1,7 @@
 package me.advait.mai.pathetic.movement;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.types.*;
 
@@ -12,7 +12,8 @@ import java.util.Optional;
 
 /**
  * Ordered registry of movement types. All queries are capability-aware:
- * the registry skips any type whose {@link MovementType#isAllowed(HumanoidCapabilities)}
+ * the registry skips any type whose
+ * {@link MovementType#isAllowed(me.advait.mai.pathetic.capabilities.HumanoidCapabilities)}
  * returns {@code false} for the caller's current capability snapshot.
  *
  * <p>Priority: most specific movements first, generic walks last.
@@ -47,14 +48,14 @@ public final class MovementRegistry {
 
     /**
      * Classifies a transition between two positions against the movement
-     * types available under {@code caps}. Returns the first matching type,
-     * or empty if none match or no allowed type accepts the transition.
+     * types available under {@code ctx.capabilities()}. Returns the first
+     * matching type, or empty if none match or no allowed type accepts
+     * the transition.
      */
-    public Optional<MovementType> classify(PathPosition current, PathPosition previous,
-                                           MaterialProvider materials, HumanoidCapabilities caps) {
+    public Optional<MovementType> classify(PathPosition current, PathPosition previous, PathContext ctx) {
         for (MovementType type : types) {
-            if (!type.isAllowed(caps)) continue;
-            if (type.matches(current, previous, materials)) {
+            if (!type.isAllowed(ctx.capabilities())) continue;
+            if (type.matches(current, previous, ctx)) {
                 return Optional.of(type);
             }
         }
@@ -63,18 +64,17 @@ public final class MovementRegistry {
 
     /**
      * Whether {@code position} is a plausible endpoint for <em>any</em>
-     * movement type allowed under {@code caps}. Used for fast upfront
-     * feasibility rejection before pathfinding runs.
+     * movement type allowed under {@code ctx.capabilities()}. Used for
+     * fast upfront feasibility rejection before pathfinding runs.
      *
      * <p>This is the union of every allowed type's
      * {@link MovementType#canReachAsEndpoint} answer. Adding a new
      * movement type automatically expands the feasible set.
      */
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
         for (MovementType type : types) {
-            if (!type.isAllowed(caps)) continue;
-            if (type.canReachAsEndpoint(position, caps, materials)) return true;
+            if (!type.isAllowed(ctx.capabilities())) continue;
+            if (type.canReachAsEndpoint(position, ctx)) return true;
         }
         return false;
     }

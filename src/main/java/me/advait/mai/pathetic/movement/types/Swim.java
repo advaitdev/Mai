@@ -2,8 +2,8 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
-import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
 
@@ -16,17 +16,16 @@ public record Swim() implements MovementType {
     public String key() { return "swim"; }
 
     @Override
-    public boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials) {
-        Material atFeet = materials.getMaterial(current);
+    public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
+        Material atFeet = ctx.materials().getMaterial(current);
         return BlockClassifier.isLiquid(atFeet);
     }
 
     @Override
-    public double computeCost(PathPosition current, PathPosition previous,
-                              MaterialProvider materials, MovementConfig config) {
-        Material atFeet = materials.getMaterial(current);
-        double mult = BlockClassifier.isLava(atFeet) ? config.getLavaMultiplier() : 1.0;
-        return config.getSwim() * mult;
+    public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
+        Material atFeet = ctx.materials().getMaterial(current);
+        double mult = BlockClassifier.isLava(atFeet) ? ctx.config().getLavaMultiplier() : 1.0;
+        return ctx.config().getSwim() * mult;
     }
 
     @Override
@@ -40,10 +39,23 @@ public record Swim() implements MovementType {
     }
 
     @Override
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
         // Any position whose feet block is a liquid is a valid swim endpoint.
-        Material atFeet = materials.getMaterial(position);
+        Material atFeet = ctx.materials().getMaterial(position);
         return BlockClassifier.isLiquid(atFeet);
+    }
+
+    @Override
+    public MovementStatus tick(TickContext ctx) {
+        double[] dir3d = MovementExecutors.direction3D(ctx.current, ctx.waypoint);
+        org.bukkit.util.Vector vel = ctx.entity().getVelocity();
+        double swimAccel = 0.04;
+        ctx.entity().setVelocity(new org.bukkit.util.Vector(
+                vel.getX() + dir3d[0] * swimAccel,
+                vel.getY() + dir3d[1] * swimAccel,
+                vel.getZ() + dir3d[2] * swimAccel));
+        MovementExecutors.face(ctx.entity(), new double[]{dir3d[0], dir3d[2]});
+
+        return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 }

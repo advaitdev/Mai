@@ -1,6 +1,7 @@
 package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
@@ -16,7 +17,7 @@ public record FallUnsafe(MovementConfig fallConfig) implements MovementType {
     public String key() { return "fall_unsafe"; }
 
     @Override
-    public boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials) {
+    public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
@@ -29,19 +30,18 @@ public record FallUnsafe(MovementConfig fallConfig) implements MovementType {
         if (horizDist > 1.5) return false;
 
         // Landing must be standable
-        if (!WalkFlat.isStandable(current, materials)) return false;
+        if (!WalkFlat.isStandable(current, ctx.materials())) return false;
 
         // Vertical path must be clear
-        return FallSafe.isFallClear(previous, dy, materials);
+        return FallSafe.isFallClear(previous, dy, ctx.materials());
     }
 
     @Override
-    public double computeCost(PathPosition current, PathPosition previous,
-                              MaterialProvider materials, MovementConfig config) {
+    public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
         int blocks = Math.abs(current.getFlooredY() - previous.getFlooredY());
         int damage = MovementConfig.fallDamage(blocks);
-        double fallTime = config.fallCostTicks(blocks);
-        return fallTime + damage * config.getFallDamagePenalty();
+        double fallTime = ctx.config().fallCostTicks(blocks);
+        return fallTime + damage * ctx.config().getFallDamagePenalty();
     }
 
     @Override
@@ -57,8 +57,28 @@ public record FallUnsafe(MovementConfig fallConfig) implements MovementType {
     }
 
     @Override
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
-        return WalkFlat.isStandable(position, materials);
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
+        return WalkFlat.isStandable(position, ctx.materials());
+    }
+
+    @Override
+    public MovementStatus tick(TickContext ctx) {
+        // Same shape as FallSafe — gravity does the work, we just steer.
+        if (ctx.onGround()) {
+            MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, ctx.speedFactor > 1.0);
+        } else {
+            ctx.phase = 1;
+            MovementExecutors.airSteer(ctx, MovementExecutors.WALK_AIR_ACCEL);
+        }
+
+        if (ctx.phase == 1 && ctx.onGround() && MovementExecutors.reachedFully(ctx)) {
+            return MovementStatus.SUCCESS;
+        }
+        return MovementStatus.RUNNING;
+    }
+
+    @Override
+    public boolean safeToCancel(TickContext ctx) {
+        return ctx.phase == 0;
     }
 }

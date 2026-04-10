@@ -1,42 +1,59 @@
 package me.advait.mai.brain.action.mechanic.movement.runnable;
 
+import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
-import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.PatheticAgent;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
-import me.advait.mai.pathetic.movement.ExecutionHint;
+import me.advait.mai.pathetic.movement.MaterialProvider;
+import me.advait.mai.pathetic.movement.MovementExecutors;
+import me.advait.mai.pathetic.movement.MovementRegistry;
+import me.advait.mai.pathetic.movement.MovementStatus;
+import me.advait.mai.pathetic.movement.MovementType;
+import me.advait.mai.pathetic.movement.TickContext;
 import me.advait.mai.pathetic.path.AnnotatedPath;
 import me.advait.mai.pathetic.path.AnnotatedWaypoint;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Tick-by-tick movement executor with context-aware speed control.
+ * Driver for walking a humanoid along a path. All per-tick locomotion
+ * physics lives on {@link MovementType#tick}; this class is a thin
+ * scheduler that:
  *
- * <h3>Key design principles</h3>
- * <ul>
- *   <li>Path recalculates every tick (when previous request completes)</li>
- *   <li>New paths always start from index 1 (skip start node) — no closest-waypoint
- *       search that causes back-and-forth oscillation</li>
- *   <li>Speed adapts to context: sprint on open ground, walk near obstacles,
- *       build momentum before parkour gaps, slow down near destination</li>
- *   <li>Server handles friction/gravity; we only add impulses</li>
- * </ul>
+ * <ol>
+ *   <li>Keeps the current {@link AnnotatedPath} fresh by requesting new
+ *       ones asynchronously, gated by {@link MovementType#safeToCancel}
+ *       on the current movement so we never swap paths mid-arc.
+ *   <li>Computes a context-aware speed factor (sprint on open ground,
+ *       walk near turns/obstacles/destination) and drops it into
+ *       {@link TickContext#speedFactor} each tick.
+ *   <li>Calls {@code type.tick(ctx)} on the current waypoint's movement
+ *       type and advances the path index on {@link MovementStatus#SUCCESS}.
+ *   <li>Detects getting stuck, entity invalidation, and overall arrival
+ *       at the final target.
+ * </ol>
+ *
+ * <p>Adding a new movement type (e.g. bridge-place, mine-through) does
+ * not require changes here — the driver is polymorphic over any type
+ * that implements {@code tick()}.
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
-    private static final double SPRINT_AIR_ACCEL = 0.026;
-    private static final double WALK_AIR_ACCEL = 0.02;
-    private static final int JUMP_COOLDOWN_TICKS = 4;
+    /** How many waypoints ahead to re-classify per tick to detect world changes. */
+    private static final int LOOKAHEAD_DEPTH = 10;
+    /** Periodic full-replan interval as a safety net (5 seconds). */
+    private static final int PERIODIC_REPLAN_TICKS = 100;
 
     private static boolean debugMode = false;
 
@@ -44,20 +61,17 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private final Location target;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
     private final MovementConfig config;
+    private final TickContext tickCtx = new TickContext();
 
     private AnnotatedPath currentPath;
     private int pathIndex = 0;
     private boolean hasEverHadPath = false;
+    private int ticksSinceReplan = 0;
 
     private int timeStuck = 0;
     private Location previousLocation = null;
 
     private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
-
-    private int jumpCooldown = 0;
-
-    private enum ParkourPhase { NONE, APPROACHING, IN_AIR }
-    private ParkourPhase parkourPhase = ParkourPhase.NONE;
 
     public HumanoidWalkToRunnable(Humanoid humanoid, Location target,
                                   CompletableFuture<HumanoidActionResult> resultFuture) {
@@ -65,6 +79,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         this.target = target;
         this.resultFuture = resultFuture;
         this.config = PatheticAgent.getInstance().getConfig();
+
+        tickCtx.humanoid = humanoid;
+        tickCtx.config = config;
+        tickCtx.finalTarget = target;
     }
 
     public static void setDebugMode(boolean enabled) { debugMode = enabled; }
@@ -82,13 +100,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         Location current = entity.getLocation();
 
-        // Exact block arrival
+        // Exact block arrival — we're done.
         if (isAtTarget(current)) {
             complete(true, "Arrived at destination.");
             return;
         }
 
-        // Stuck detection
+        // Stuck detection — same block for too many ticks means the
+        // pathfinder and executor disagree about what's possible.
         if (previousLocation != null) {
             if (sameBlock(previousLocation, current)) {
                 timeStuck++;
@@ -102,18 +121,166 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
         previousLocation = current.clone();
 
-        if (jumpCooldown > 0) jumpCooldown--;
+        // Per-tick driver bookkeeping
+        if (tickCtx.jumpCooldown > 0) tickCtx.jumpCooldown--;
+        tickCtx.totalTicks++;
+        tickCtx.current = current;
+        ticksSinceReplan++;
 
-        // Request a new path every tick (gated by pathfindingInProgress)
-        if (!pathfindingInProgress.get()) {
+        // Decide whether to request a fresh path. Three triggers:
+        //   1. We don't have one yet.
+        //   2. Lookahead invalidation — a cheap re-classify of the next
+        //      few waypoints caught a world change that broke the path.
+        //   3. Periodic refresh as a safety net for changes the lookahead
+        //      window didn't cover.
+        boolean needsReplan = currentPath == null
+                || !isUpcomingPathValid()
+                || ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
+
+        if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
             requestNewPath(current);
         }
 
+        // Execute the current waypoint's movement type
         if (currentPath != null && pathIndex < currentPath.size()) {
-            moveToWaypoint(entity, current);
+            tickWaypoint();
         }
 
         if (debugMode) showDebugParticles(current);
+    }
+
+    // =========================================================================
+    // Execution dispatch
+    // =========================================================================
+
+    private void tickWaypoint() {
+        AnnotatedWaypoint waypoint = currentPath.get(pathIndex);
+        MovementType type = waypoint.type();
+
+        // Fallback: unannotated waypoints (shouldn't happen with a proper
+        // annotated path, but be safe). Treat as a plain walk.
+        if (type == null) {
+            type = FALLBACK_WALK;
+        }
+
+        // Populate per-tick state
+        tickCtx.waypoint = waypoint;
+        tickCtx.previousWaypoint = pathIndex > 0 ? currentPath.get(pathIndex - 1) : null;
+        tickCtx.nextWaypoint = pathIndex + 1 < currentPath.size() ? currentPath.get(pathIndex + 1) : null;
+        tickCtx.speedFactor = computeSpeedFactor(waypoint);
+
+        MovementStatus status = type.tick(tickCtx);
+
+        switch (status) {
+            case SUCCESS -> {
+                pathIndex++;
+                tickCtx.phase = 0;
+                tickCtx.ticksOnMovement = 0;
+            }
+            case RUNNING -> tickCtx.ticksOnMovement++;
+            case FAILED -> {
+                // Trigger a replan on the next tick by clearing the path.
+                currentPath = null;
+                pathIndex = 0;
+                tickCtx.phase = 0;
+                tickCtx.ticksOnMovement = 0;
+            }
+            case UNREACHABLE -> complete(false, "Target became unreachable.");
+        }
+    }
+
+    /**
+     * Decides the horizontal speed factor for this tick. Walking (1.0)
+     * near obstacles, turns, or the destination; sprinting on open
+     * ground. Ground-walk movement types honor this factor; others
+     * (parkour, climb, swim) set their own speed.
+     */
+    private double computeSpeedFactor(AnnotatedWaypoint wp) {
+        double distToTarget = Math.sqrt(tickCtx.current.distanceSquared(target));
+        boolean nearDestination = distToTarget < 3.0;
+
+        double horizDist = MovementExecutors.horizontalDistance(tickCtx.current, wp);
+        boolean needsJump = wp.y() > tickCtx.current.getY() + 0.3;
+
+        if (nearDestination) return 1.0;
+        if (needsJump && horizDist < 2.5) return 1.0;
+        if (isUpcomingTurn(wp)) return 1.0;
+        return config.getSprintFactor();
+    }
+
+    private boolean isUpcomingTurn(AnnotatedWaypoint current) {
+        if (pathIndex + 1 >= currentPath.size() || pathIndex == 0) return false;
+        AnnotatedWaypoint prev = currentPath.get(pathIndex - 1);
+        AnnotatedWaypoint next = currentPath.get(pathIndex + 1);
+
+        double dx1 = current.x() - prev.x(), dz1 = current.z() - prev.z();
+        double dx2 = next.x() - current.x(), dz2 = next.z() - current.z();
+        double len1 = Math.sqrt(dx1 * dx1 + dz1 * dz1);
+        double len2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
+        if (len1 < 0.1 || len2 < 0.1) return false;
+
+        // dot < 0.5 means > 60 degree turn
+        double dot = (dx1 * dx2 + dz1 * dz2) / (len1 * len2);
+        return dot < 0.5;
+    }
+
+    /**
+     * Cheap lookahead validation: re-classify the next
+     * {@link #LOOKAHEAD_DEPTH} waypoints against the current capabilities
+     * and live main-thread world state. Returns false if any upcoming
+     * transition no longer matches a movement type (e.g. a block was
+     * placed in the path, or the type the path was planned with is no
+     * longer applicable). Detecting this early lets us trigger a full
+     * replan on the next tick, instead of walking blindly into a wall.
+     *
+     * <p>This replaces the old "replan every tick" strategy. Full A*
+     * only runs when something in the world actually changed relative
+     * to what the path expected.
+     */
+    private boolean isUpcomingPathValid() {
+        if (currentPath == null || pathIndex >= currentPath.size()) return false;
+
+        World world = humanoid.getEntity().getLocation().getWorld();
+        if (world == null) return false;
+
+        HumanoidCapabilities caps = HumanoidCapabilities.from(humanoid, config);
+        MaterialProvider materials = MaterialProvider.fromWorld(world);
+        PathContext ctx = new PathContext(caps, config, materials);
+        MovementRegistry registry = PatheticAgent.getInstance().getRegistry();
+
+        int start = Math.max(1, pathIndex);
+        int end = Math.min(pathIndex + LOOKAHEAD_DEPTH, currentPath.size());
+
+        for (int i = start; i < end; i++) {
+            AnnotatedWaypoint prev = currentPath.get(i - 1);
+            AnnotatedWaypoint curr = currentPath.get(i);
+
+            PathPosition prevPos = PathPosition.of(
+                    (int) Math.floor(prev.x()), (int) prev.y(), (int) Math.floor(prev.z()));
+            PathPosition currPos = PathPosition.of(
+                    (int) Math.floor(curr.x()), (int) curr.y(), (int) Math.floor(curr.z()));
+
+            Optional<MovementType> match = registry.classify(currPos, prevPos, ctx);
+            if (match.isEmpty()) return false;
+
+            // If the path was annotated with a specific type and the current
+            // best match is different, the world shifted underneath us.
+            if (curr.type() != null && !match.get().key().equals(curr.type().key())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isSafeToSwapPath() {
+        if (currentPath == null || pathIndex >= currentPath.size()) return true;
+        AnnotatedWaypoint wp = currentPath.get(pathIndex);
+        MovementType type = wp.type();
+        if (type == null) return true;
+        // Temporarily point the tick context at this waypoint for the
+        // safeToCancel query — types may consult ctx.onGround() etc.
+        tickCtx.waypoint = wp;
+        return type.safeToCancel(tickCtx);
     }
 
     private boolean isAtTarget(Location current) {
@@ -128,8 +295,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 && a.getBlockZ() == b.getBlockZ();
     }
 
+    // =========================================================================
+    // Path request
+    // =========================================================================
+
     private void requestNewPath(Location current) {
         pathfindingInProgress.set(true);
+        ticksSinceReplan = 0;
 
         PatheticAgent.getInstance().getAnnotatedPath(humanoid, current, target)
                 .thenAccept(pathOpt -> {
@@ -138,16 +310,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
                     if (pathOpt.isPresent()) {
                         AnnotatedPath newPath = pathOpt.get();
-                        // Always start from index 1 (skip the start node which is our
-                        // current pos). This avoids the back-and-forth oscillation that
-                        // happens when findClosestWaypoint picks a node behind us.
+                        // Start from index 1 (skip the start node which is our
+                        // current position). Avoids closest-waypoint oscillation.
                         currentPath = newPath;
                         pathIndex = Math.min(1, newPath.size() - 1);
                         hasEverHadPath = true;
-                        // Don't reset parkour phase — if we're mid-jump, keep going
-                        if (parkourPhase != ParkourPhase.IN_AIR) {
-                            parkourPhase = ParkourPhase.NONE;
-                        }
+                        tickCtx.phase = 0;
+                        tickCtx.ticksOnMovement = 0;
                     } else if (!hasEverHadPath) {
                         complete(false, "No valid path found to target.");
                     }
@@ -161,304 +330,6 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 });
     }
 
-    // ===================== Movement Dispatch =====================
-
-    private void moveToWaypoint(LivingEntity entity, Location current) {
-        AnnotatedWaypoint waypoint = currentPath.get(pathIndex);
-        ExecutionHint hint = waypoint.hint();
-
-        // Parkour in-air: don't advance until landed
-        if (parkourPhase == ParkourPhase.IN_AIR) {
-            executeAirControl(entity, current, waypoint);
-            return;
-        }
-
-        // Waypoint reached check
-        if (horizontalDistance(current, waypoint) < config.getWaypointRadius()
-                && Math.abs(current.getY() - waypoint.y()) < 1.5) {
-            pathIndex++;
-            parkourPhase = ParkourPhase.NONE;
-            if (pathIndex >= currentPath.size()) return;
-            waypoint = currentPath.get(pathIndex);
-            hint = waypoint.hint();
-        }
-
-        if (hint == null) {
-            executeContextual(entity, current, waypoint);
-            return;
-        }
-
-        switch (hint.locomotion()) {
-            case WALK, SPRINT -> executeContextual(entity, current, waypoint);
-            case SPRINT_JUMP -> executeSprintJump(entity, current, waypoint, hint);
-            case SNEAK -> executeWithSpeed(entity, current, waypoint, config.getSneakFactor(), false);
-            case SWIM -> executeSwim(entity, current, waypoint);
-            case CLIMB -> executeClimb(entity, current, waypoint);
-        }
-    }
-
-    // ===================== Context-Aware Movement =====================
-
-    /**
-     * Moves toward the waypoint at a speed determined by context:
-     * <ul>
-     *   <li>Sprint on open flat ground</li>
-     *   <li>Walk when approaching a step-up, turn, or destination</li>
-     *   <li>Sprint-jump boost on step-ups to clear cleanly</li>
-     * </ul>
-     */
-    private void executeContextual(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
-        double horizDist = horizontalDistance(current, wp);
-        double distToTarget = Math.sqrt(current.distanceSquared(target));
-        boolean needsJump = wp.y() > current.getY() + 0.3;
-        boolean nearDestination = distToTarget < 3.0;
-
-        // Look ahead: is the NEXT waypoint a direction change or special movement?
-        boolean upcomingTurn = isUpcomingTurn(wp);
-
-        // Decide speed factor
-        double speedFactor;
-        if (nearDestination) {
-            // Approaching destination: walk to avoid overshooting
-            speedFactor = 1.0;
-        } else if (needsJump && horizDist < 2.5) {
-            // Close to a step-up: walk speed for precise jump timing
-            speedFactor = 1.0;
-        } else if (upcomingTurn) {
-            // Direction change ahead: slow down
-            speedFactor = 1.0;
-        } else {
-            // Open ground: sprint
-            speedFactor = config.getSprintFactor();
-        }
-
-        boolean sprinting = speedFactor > 1.0;
-        executeWithSpeed(entity, current, wp, speedFactor, sprinting);
-    }
-
-    /**
-     * Core movement tick: applies acceleration at the given speed factor,
-     * and handles jump logic for step-ups.
-     */
-    private void executeWithSpeed(LivingEntity entity, Location current,
-                                  AnnotatedWaypoint wp, double speedFactor, boolean sprinting) {
-        Vector vel = entity.getVelocity();
-        double[] dir = directionTo(current, wp);
-        boolean onGround = entity.isOnGround();
-
-        double airAccel = sprinting ? SPRINT_AIR_ACCEL : WALK_AIR_ACCEL;
-
-        double vx, vz;
-        if (onGround) {
-            double slip = getSlipperiness(current);
-            double inertia = slip * 0.91;
-            double accel = config.getWalkAcceleration() * speedFactor
-                    * (0.16277136 / (inertia * inertia * inertia));
-            vx = vel.getX() + dir[0] * accel;
-            vz = vel.getZ() + dir[1] * accel;
-        } else {
-            vx = vel.getX() + dir[0] * airAccel;
-            vz = vel.getZ() + dir[1] * airAccel;
-        }
-
-        double vy = vel.getY();
-        if (onGround && jumpCooldown == 0 && shouldJumpForWaypoint(current, wp, dir)) {
-            vy = config.getJumpVelocity();
-            jumpCooldown = JUMP_COOLDOWN_TICKS;
-            // Sprint-jump boost on step-ups to clear the block with momentum
-            if (sprinting && wp.y() > current.getY() + 0.3) {
-                float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
-                vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
-                vz += Math.cos(yawRad) * config.getSprintJumpBoost();
-            }
-        }
-
-        faceDirection(entity, dir);
-        entity.setVelocity(new Vector(vx, vy, vz));
-    }
-
-    /** Should we jump now to reach this waypoint? */
-    private boolean shouldJumpForWaypoint(Location current, AnnotatedWaypoint wp, double[] dir) {
-        double horizDist = horizontalDistance(current, wp);
-
-        // Waypoint is above: jump preemptively when within range
-        if (wp.y() > current.getY() + 0.3 && horizDist < 1.8) return true;
-
-        // Solid block directly ahead with open space above: step up
-        if (current.getWorld() != null) {
-            Location ahead = current.clone().add(dir[0] * 0.5, 0, dir[1] * 0.5);
-            Material blockAhead = ahead.getBlock().getType();
-            if (BlockClassifier.isSolid(blockAhead)) {
-                Material above = ahead.clone().add(0, 1, 0).getBlock().getType();
-                if (!BlockClassifier.isSolid(above)) return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** Checks if the next 2 waypoints involve a significant direction change. */
-    private boolean isUpcomingTurn(AnnotatedWaypoint current) {
-        if (pathIndex + 1 >= currentPath.size()) return false;
-        AnnotatedWaypoint next = currentPath.get(pathIndex + 1);
-
-        // Check if direction from current wp to next wp differs significantly
-        // from our current heading
-        if (pathIndex > 0) {
-            AnnotatedWaypoint prev = currentPath.get(pathIndex - 1);
-            double dx1 = current.x() - prev.x(), dz1 = current.z() - prev.z();
-            double dx2 = next.x() - current.x(), dz2 = next.z() - current.z();
-            double len1 = Math.sqrt(dx1 * dx1 + dz1 * dz1);
-            double len2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
-            if (len1 > 0.1 && len2 > 0.1) {
-                double dot = (dx1 * dx2 + dz1 * dz2) / (len1 * len2);
-                // dot < 0.5 means > 60 degree turn
-                return dot < 0.5;
-            }
-        }
-        return false;
-    }
-
-    // ===================== Sprint-Jump (Parkour) =====================
-
-    /**
-     * Sprint-jump with momentum building. The bot sprints until it has
-     * enough speed, then jumps. For larger gaps it needs more runway.
-     */
-    private void executeSprintJump(LivingEntity entity, Location current,
-                                   AnnotatedWaypoint wp, ExecutionHint hint) {
-        Vector vel = entity.getVelocity();
-        double[] dir = directionTo(current, wp);
-        boolean onGround = entity.isOnGround();
-
-        if (!onGround) {
-            // Already airborne — switch to air control
-            parkourPhase = ParkourPhase.IN_AIR;
-            executeAirControl(entity, current, wp);
-            return;
-        }
-
-        // Sprint on ground, building momentum
-        double slip = getSlipperiness(current);
-        double inertia = slip * 0.91;
-        double accel = config.getWalkAcceleration() * config.getSprintFactor()
-                * (0.16277136 / (inertia * inertia * inertia));
-        double vx = vel.getX() + dir[0] * accel;
-        double vz = vel.getZ() + dir[1] * accel;
-
-        // Current horizontal speed
-        double currentSpeed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
-        double distToLanding = horizontalDistance(current, wp);
-        int gap = hint.gapLength();
-
-        // Minimum speed required to clear the gap. Wider gaps need more momentum.
-        // Sprint terminal velocity is ~0.28 b/t. Require at least a fraction of that.
-        double minSpeedForGap = switch (gap) {
-            case 0, 1 -> 0.10; // 1-block gap: easy, low speed ok
-            case 2 -> 0.15;    // 2-block gap: need some speed
-            case 3 -> 0.20;    // 3-block gap: need good sprint speed
-            default -> 0.25;   // 4-block gap: need near-max sprint
-        };
-
-        // Jump conditions: close enough, fast enough, cooldown ready
-        double jumpRange = gap + 2.5;
-        boolean fastEnough = currentSpeed >= minSpeedForGap;
-        boolean inRange = distToLanding < jumpRange && distToLanding > 0.5;
-
-        if (jumpCooldown == 0 && inRange && fastEnough) {
-            double vy = config.getJumpVelocity();
-            float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
-            vx += -Math.sin(yawRad) * config.getSprintJumpBoost();
-            vz += Math.cos(yawRad) * config.getSprintJumpBoost();
-            entity.setVelocity(new Vector(vx, vy, vz));
-            parkourPhase = ParkourPhase.IN_AIR;
-            jumpCooldown = JUMP_COOLDOWN_TICKS;
-        } else {
-            // Keep sprinting, building momentum
-            entity.setVelocity(new Vector(vx, vel.getY(), vz));
-            parkourPhase = ParkourPhase.APPROACHING;
-        }
-        faceDirection(entity, dir);
-    }
-
-    /** Air phase: steer toward landing, wait for touchdown. */
-    private void executeAirControl(LivingEntity entity, Location current,
-                                   AnnotatedWaypoint wp) {
-        Vector vel = entity.getVelocity();
-        double[] dir = directionTo(current, wp);
-
-        double vx = vel.getX() + dir[0] * SPRINT_AIR_ACCEL;
-        double vz = vel.getZ() + dir[1] * SPRINT_AIR_ACCEL;
-        entity.setVelocity(new Vector(vx, vel.getY(), vz));
-        faceDirection(entity, dir);
-
-        if (entity.isOnGround() && vel.getY() <= 0) {
-            parkourPhase = ParkourPhase.NONE;
-            pathIndex++;
-        }
-    }
-
-    // ===================== Other Locomotion =====================
-
-    private void executeSwim(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
-        double[] dir3d = directionTo3D(current, wp);
-        Vector vel = entity.getVelocity();
-        double swimAccel = 0.04;
-        entity.setVelocity(new Vector(
-                vel.getX() + dir3d[0] * swimAccel,
-                vel.getY() + dir3d[1] * swimAccel,
-                vel.getZ() + dir3d[2] * swimAccel));
-        faceDirection(entity, new double[]{dir3d[0], dir3d[2]});
-    }
-
-    private void executeClimb(LivingEntity entity, Location current, AnnotatedWaypoint wp) {
-        double dy = wp.y() - current.getY();
-        double[] dir = directionTo(current, wp);
-        double climbSpeed = dy >= 0 ? 0.12 : -0.15;
-        Vector vel = entity.getVelocity();
-        entity.setVelocity(new Vector(
-                vel.getX() + dir[0] * 0.02,
-                climbSpeed,
-                vel.getZ() + dir[1] * 0.02));
-        faceDirection(entity, dir);
-    }
-
-    // ===================== Helpers =====================
-
-    private double getSlipperiness(Location loc) {
-        Material below = loc.clone().add(0, -1, 0).getBlock().getType();
-        return BlockClassifier.slipperiness(below);
-    }
-
-    private static double[] directionTo(Location current, AnnotatedWaypoint wp) {
-        double dx = wp.x() - current.getX();
-        double dz = wp.z() - current.getZ();
-        double len = Math.sqrt(dx * dx + dz * dz);
-        if (len > 0.001) { dx /= len; dz /= len; }
-        return new double[]{dx, dz};
-    }
-
-    private static double[] directionTo3D(Location current, AnnotatedWaypoint wp) {
-        double dx = wp.x() - current.getX();
-        double dy = wp.y() - current.getY();
-        double dz = wp.z() - current.getZ();
-        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (len > 0.001) { dx /= len; dy /= len; dz /= len; }
-        return new double[]{dx, dy, dz};
-    }
-
-    private static double horizontalDistance(Location loc, AnnotatedWaypoint wp) {
-        double dx = loc.getX() - wp.x();
-        double dz = loc.getZ() - wp.z();
-        return Math.sqrt(dx * dx + dz * dz);
-    }
-
-    private void faceDirection(LivingEntity entity, double[] dir) {
-        if (dir[0] == 0 && dir[1] == 0) return;
-        float yaw = (float) Math.toDegrees(Math.atan2(-dir[0], dir[1]));
-        entity.setRotation(yaw, 0);
-    }
-
     private void complete(boolean success, String message) {
         if (!resultFuture.isDone()) {
             resultFuture.complete(new HumanoidActionResult(success, message));
@@ -466,8 +337,9 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         cancel();
     }
 
-
-    // ===================== Debug =====================
+    // =========================================================================
+    // Debug particles
+    // =========================================================================
 
     private void showDebugParticles(Location current) {
         if (current.getWorld() == null) return;
@@ -498,4 +370,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             current.getWorld().spawnParticle(Particle.DUST, wpLoc, 1, new Particle.DustOptions(color, 0.7f));
         }
     }
+
+    /** Placeholder for waypoints missing a type annotation. */
+    private static final MovementType FALLBACK_WALK = new me.advait.mai.pathetic.movement.types.WalkFlat();
 }

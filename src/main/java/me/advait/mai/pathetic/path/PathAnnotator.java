@@ -2,7 +2,9 @@ package me.advait.mai.pathetic.path;
 
 import de.bsommerfeld.pathetic.api.pathing.result.Path;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
+import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.ExecutionHint;
 import me.advait.mai.pathetic.movement.MaterialProvider;
 import me.advait.mai.pathetic.movement.MovementRegistry;
@@ -32,10 +34,12 @@ public final class PathAnnotator {
      * @param rawPath the pathfinding result
      * @param world   the world the path is in
      * @param caps    the capability snapshot used for this pathfinding run
+     * @param config  movement configuration
      * @return annotated path with centered X/Z and floored Y
      */
-    public AnnotatedPath annotate(Path rawPath, World world, HumanoidCapabilities caps) {
+    public AnnotatedPath annotate(Path rawPath, World world, HumanoidCapabilities caps, MovementConfig config) {
         MaterialProvider materials = MaterialProvider.fromWorld(world);
+        PathContext ctx = new PathContext(caps, config, materials);
         List<AnnotatedWaypoint> waypoints = new ArrayList<>();
 
         PathPosition previous = null;
@@ -44,7 +48,7 @@ public final class PathAnnotator {
             ExecutionHint hint = null;
 
             if (previous != null) {
-                type = registry.classify(pos, previous, materials, caps).orElse(null);
+                type = registry.classify(pos, previous, ctx).orElse(null);
                 if (type != null) {
                     hint = type.executionHint(pos, previous);
                 }

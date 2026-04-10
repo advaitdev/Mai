@@ -117,7 +117,8 @@ public final class PatheticAgent {
         // Step 1: upfront feasibility — does any allowed movement type
         // accept the target as a landing? If not, no point pathfinding.
         MaterialProvider mainThreadMaterials = MaterialProvider.fromWorld(world);
-        if (!registry.canReachAsEndpoint(targetPos, caps, mainThreadMaterials)) {
+        PathContext feasibilityCtx = new PathContext(caps, config, mainThreadMaterials);
+        if (!registry.canReachAsEndpoint(targetPos, feasibilityCtx)) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
 
@@ -143,7 +144,7 @@ public final class PatheticAgent {
             CompletableFuture<Optional<AnnotatedPath>> annotatedFuture = new CompletableFuture<>();
             Bukkit.getScheduler().runTask(Mai.getInstance(), () -> {
                 try {
-                    AnnotatedPath annotated = annotator.annotate(rawPath, world, caps);
+                    AnnotatedPath annotated = annotator.annotate(rawPath, world, caps, config);
                     AnnotatedPath simplified = annotated.simplify();
 
                     // Step 3: verify the path actually reaches the target
@@ -170,7 +171,7 @@ public final class PatheticAgent {
                 .maxIterations(config.getMaxIterations())
                 .neighborStrategy(neighborStrategy)
                 .validationProcessors(List.of(
-                        new HumanoidValidationProcessor(registry, caps)
+                        new HumanoidValidationProcessor(registry, config, caps)
                 ))
                 .costProcessor(List.of(
                         new HumanoidCostProcessor(registry, config, caps)

@@ -1,8 +1,7 @@
 package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
-import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.movement.*;
 
 /**
@@ -15,7 +14,7 @@ public record StepDown() implements MovementType {
     public String key() { return "step_down"; }
 
     @Override
-    public boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials) {
+    public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
@@ -24,13 +23,12 @@ public record StepDown() implements MovementType {
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         if (horizDist > 1.5) return false;
 
-        return WalkFlat.isStandable(current, materials);
+        return WalkFlat.isStandable(current, ctx.materials());
     }
 
     @Override
-    public double computeCost(PathPosition current, PathPosition previous,
-                              MaterialProvider materials, MovementConfig config) {
-        return config.getStepDown();
+    public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
+        return ctx.config().getStepDown();
     }
 
     @Override
@@ -39,8 +37,18 @@ public record StepDown() implements MovementType {
     }
 
     @Override
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
-        return WalkFlat.isStandable(position, materials);
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
+        return WalkFlat.isStandable(position, ctx.materials());
+    }
+
+    @Override
+    public MovementStatus tick(TickContext ctx) {
+        // Walk off the edge — gravity handles the drop. Keep applying
+        // horizontal acceleration until we've reached the landing column.
+        boolean sprinting = ctx.speedFactor > 1.0;
+        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        // Landing: on ground at roughly the target Y
+        return (ctx.onGround() && MovementExecutors.reachedFully(ctx))
+                ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 }

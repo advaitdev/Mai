@@ -2,8 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
-import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
-import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.movement.*;
 
 /**
@@ -16,7 +15,7 @@ public record FallSafe() implements MovementType {
     public String key() { return "fall_safe"; }
 
     @Override
-    public boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials) {
+    public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
@@ -27,17 +26,16 @@ public record FallSafe() implements MovementType {
         if (horizDist > 1.5) return false;
 
         // Landing must be standable
-        if (!WalkFlat.isStandable(current, materials)) return false;
+        if (!WalkFlat.isStandable(current, ctx.materials())) return false;
 
         // Vertical path must be clear (check each Y level between prev and current)
-        return isFallClear(previous, dy, materials);
+        return isFallClear(previous, dy, ctx.materials());
     }
 
     @Override
-    public double computeCost(PathPosition current, PathPosition previous,
-                              MaterialProvider materials, MovementConfig config) {
+    public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
         int blocks = Math.abs(current.getFlooredY() - previous.getFlooredY());
-        return config.getFallSafeBase() + blocks * config.getFallPerBlock();
+        return ctx.config().getFallSafeBase() + blocks * ctx.config().getFallPerBlock();
     }
 
     @Override
@@ -46,9 +44,32 @@ public record FallSafe() implements MovementType {
     }
 
     @Override
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
-        return WalkFlat.isStandable(position, materials);
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
+        return WalkFlat.isStandable(position, ctx.materials());
+    }
+
+    @Override
+    public MovementStatus tick(TickContext ctx) {
+        // Walk/fall toward the landing. Gravity does the work; we just
+        // steer horizontally. Success when we touch down at the landing
+        // column.
+        if (ctx.onGround()) {
+            MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, ctx.speedFactor > 1.0);
+        } else {
+            ctx.phase = 1;
+            MovementExecutors.airSteer(ctx, MovementExecutors.WALK_AIR_ACCEL);
+        }
+
+        if (ctx.phase == 1 && ctx.onGround() && MovementExecutors.reachedFully(ctx)) {
+            return MovementStatus.SUCCESS;
+        }
+        return MovementStatus.RUNNING;
+    }
+
+    @Override
+    public boolean safeToCancel(TickContext ctx) {
+        // Mid-fall can't be interrupted cleanly; gravity is committing us.
+        return ctx.phase == 0;
     }
 
     /** Checks that every block between the source and landing is traversable. */

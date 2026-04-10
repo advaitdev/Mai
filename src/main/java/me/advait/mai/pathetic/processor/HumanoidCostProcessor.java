@@ -4,6 +4,7 @@ import de.bsommerfeld.pathetic.api.pathing.processing.Cost;
 import de.bsommerfeld.pathetic.api.pathing.processing.CostProcessor;
 import de.bsommerfeld.pathetic.api.pathing.processing.context.EvaluationContext;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.MaterialProvider;
@@ -49,15 +50,16 @@ public class HumanoidCostProcessor implements CostProcessor {
 
         MaterialProvider materials = MaterialProvider.fromNavigationProvider(
                 context.getNavigationPointProvider(), context.getEnvironmentContext());
+        PathContext pathCtx = new PathContext(capabilities, config, materials);
 
-        Optional<MovementType> typeOpt = registry.classify(current, previous, materials, capabilities);
+        Optional<MovementType> typeOpt = registry.classify(current, previous, pathCtx);
 
         if (typeOpt.isEmpty()) {
             return Cost.of(UNCLASSIFIED_PENALTY);
         }
 
         MovementType type = typeOpt.get();
-        double movementCost = type.computeCost(current, previous, materials, config);
+        double movementCost = type.computeCost(current, previous, pathCtx);
         double baseTransition = context.getBaseTransitionCost();
 
         // Cost processor adds on TOP of the base transition cost,

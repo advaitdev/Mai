@@ -2,8 +2,8 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
-import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 
 /**
@@ -22,7 +22,7 @@ public record SprintJump() implements MovementType {
     public String key() { return "sprint_jump"; }
 
     @Override
-    public boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials) {
+    public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
@@ -34,8 +34,10 @@ public record SprintJump() implements MovementType {
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         if (horizDist < 1.5 || horizDist > 5.5) return false;
 
-        // Ascending parkour (dy=+1) requires distance <= 3 (Baritone limit)
+        // Ascending parkour (dy=+1) requires distance <= 3
         if (dy == 1 && horizDist > 3.5) return false;
+
+        MaterialProvider materials = ctx.materials();
 
         // Source must have 3-block headroom for jumping
         int sx = previous.getFlooredX(), sy = previous.getFlooredY(), sz = previous.getFlooredZ();
@@ -45,20 +47,19 @@ public record SprintJump() implements MovementType {
         if (!WalkFlat.isStandable(current, materials)) return false;
 
         // Validate the jump arc: intermediate columns must be clear
-        return validateArc(previous, current, dx, dy, dz, materials);
+        return validateArc(previous, dx, dy, dz, materials);
     }
 
     @Override
-    public double computeCost(PathPosition current, PathPosition previous,
-                              MaterialProvider materials, MovementConfig config) {
+    public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         int gap = Math.max(0, (int) Math.round(horizDist) - 1);
 
         // Sprint-jump cost: base per block + jump hunger penalty + sprint hunger
-        return config.getSprintJumpBase() + gap * config.getSprintJumpPerGap()
-                + config.getJumpPenalty() + horizDist * config.getHungerSprintCost();
+        return ctx.config().getSprintJumpBase() + gap * ctx.config().getSprintJumpPerGap()
+                + ctx.config().getJumpPenalty() + horizDist * ctx.config().getHungerSprintCost();
     }
 
     @Override
@@ -76,13 +77,64 @@ public record SprintJump() implements MovementType {
     }
 
     @Override
-    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                      MaterialProvider materials) {
-        return WalkFlat.isStandable(position, materials);
+    public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
+        return WalkFlat.isStandable(position, ctx.materials());
     }
 
-    private boolean validateArc(PathPosition src, PathPosition dst,
-                                int dx, int dy, int dz, MaterialProvider materials) {
+    @Override
+    public MovementStatus tick(TickContext ctx) {
+        // phase 0 = building momentum on ground; phase 1 = airborne
+        if (ctx.phase == 1) {
+            // Airborne — steer toward landing with sprint air accel
+            MovementExecutors.airSteer(ctx, MovementExecutors.SPRINT_AIR_ACCEL);
+            // Touchdown: on ground with non-positive Y velocity
+            if (ctx.onGround() && ctx.entity().getVelocity().getY() <= 0) {
+                return MovementStatus.SUCCESS;
+            }
+            return MovementStatus.RUNNING;
+        }
+
+        // Ground phase: sprint to build momentum, then jump when fast enough.
+        MovementExecutors.groundAccelerate(ctx, ctx.config.getSprintFactor(), true);
+
+        if (!ctx.onGround()) {
+            // Lost the ground (e.g. we already cleared a step) — go to air phase
+            ctx.phase = 1;
+            return MovementStatus.RUNNING;
+        }
+
+        int gap = ctx.waypoint.hint() != null ? ctx.waypoint.hint().gapLength() : 0;
+        double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
+        double distToLanding = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
+
+        // Wider gaps need more runway. Sprint terminal is ~0.28 b/t; require
+        // a fraction proportional to the gap.
+        double minSpeed = switch (gap) {
+            case 0, 1 -> 0.10;
+            case 2 -> 0.15;
+            case 3 -> 0.20;
+            default -> 0.25;
+        };
+
+        boolean fastEnough = currentSpeed >= minSpeed;
+        boolean inJumpRange = distToLanding < gap + 2.5 && distToLanding > 0.5;
+
+        if (ctx.jumpCooldown == 0 && fastEnough && inJumpRange) {
+            MovementExecutors.jump(ctx, true);
+            ctx.phase = 1;
+        }
+        return MovementStatus.RUNNING;
+    }
+
+    @Override
+    public boolean safeToCancel(TickContext ctx) {
+        // Don't replan mid-arc — would strand the bot in the air. Only
+        // safe to swap paths while still on the runway, before we've left
+        // the ground.
+        return ctx.phase == 0 && ctx.onGround();
+    }
+
+    private boolean validateArc(PathPosition src, int dx, int dy, int dz, MaterialProvider materials) {
         int steps = Math.max(Math.abs(dx), Math.abs(dz));
         int srcY = src.getFlooredY();
 
@@ -92,10 +144,9 @@ public record SprintJump() implements MovementType {
             int ix = src.getFlooredX() + (int) Math.round(dx * t);
             int iz = src.getFlooredZ() + (int) Math.round(dz * t);
 
-            // The entity passes through at the source Y level during the jump
-            // Check feet, head, and above-head at source level
-            // (conservative: the entity is airborne and may be higher, but
-            // we must ensure at minimum the source-level columns are clear)
+            // The entity passes through at the source Y level during the jump.
+            // Check feet, head, and above-head at source level (conservative —
+            // the entity is airborne and may be higher).
             for (int yOff = 0; yOff <= 2; yOff++) {
                 if (!BlockClassifier.isTraversable(materials.getMaterial(ix, srcY + yOff, iz))) {
                     return false;

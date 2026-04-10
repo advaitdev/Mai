@@ -1,73 +1,143 @@
 package me.advait.mai.pathetic.movement;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
-import me.advait.mai.pathetic.config.MovementConfig;
+
+import java.util.List;
 
 /**
- * Represents a type of movement transition between two path positions.
- * Each implementation knows how to recognize itself, compute its cost,
- * and describe how the executor should physically perform the movement.
+ * A type of movement transition between two path positions. Each
+ * implementation has three responsibilities:
  *
- * <p>Movement types are gated by {@link HumanoidCapabilities} — a type
- * only contributes to pathfinding if {@link #isAllowed} returns true for
- * the bot's current capability snapshot. Each type also answers
- * {@link #canReachAsEndpoint} so the registry can decide, without running
- * a full search, whether a given target is even a viable landing spot for
- * <em>any</em> of the bot's current capabilities.
+ * <ol>
+ *   <li><b>Classification</b> ({@link #matches}, {@link #computeCost},
+ *       {@link #canReachAsEndpoint}) — stateless, used during pathfinding
+ *       by the cost/validation processors and the feasibility check.
+ *   <li><b>Execution</b> ({@link #tick}, {@link #safeToCancel}) — stateful
+ *       per-tick behavior, used by {@code HumanoidWalkToRunnable} when
+ *       physically moving along a waypoint. State lives in a shared
+ *       {@link TickContext} so the type itself can remain a record.
+ *   <li><b>World effects</b> ({@link #toBreak}, {@link #toPlace}) —
+ *       declarative lists of blocks a movement depends on. Currently
+ *       unused (no mining/bridging types yet) but the shape is there so
+ *       future types can plug in without a broader refactor.
+ * </ol>
  *
- * <p>Implementations live in the {@code types} sub-package. New movement
- * types can be added by implementing this interface and registering in
- * {@link MovementRegistry}.
+ * <p>Movement types are gated by {@link HumanoidCapabilities} via
+ * {@link #isAllowed}. The registry skips disallowed types so capability
+ * changes (e.g. losing all blocks) immediately reshape the pathfinding
+ * search space without touching this interface.
  */
 public interface MovementType {
+
+    // =========================================================================
+    // Classification
+    // =========================================================================
 
     /** Unique identifier used in config and debugging. */
     String key();
 
     /**
-     * Tests whether this movement type matches the transition from prev to current.
-     * Called during async pathfinding — must use MaterialProvider, not World.
+     * Tests whether this movement type matches the transition from
+     * {@code previous} to {@code current}. Called repeatedly from the
+     * pathfinding cost/validation processors, so this must be fast and
+     * side-effect free.
      */
-    boolean matches(PathPosition current, PathPosition previous, MaterialProvider materials);
+    boolean matches(PathPosition current, PathPosition previous, PathContext ctx);
 
     /**
-     * Computes the full traversal cost for this transition in ticks.
-     * Called only after matches() returns true.
+     * Computes the traversal cost in ticks. Only called after
+     * {@link #matches} returns true.
      */
-    double computeCost(PathPosition current, PathPosition previous,
-                       MaterialProvider materials, MovementConfig config);
+    double computeCost(PathPosition current, PathPosition previous, PathContext ctx);
 
-    /** Describes how the movement executor should perform this transition. */
+    /**
+     * Describes how the executor should physically perform this transition.
+     * Pathetic-side metadata for the annotator — doesn't affect pathfinding.
+     */
     ExecutionHint executionHint(PathPosition current, PathPosition previous);
 
     /**
-     * Whether this movement type is usable given the bot's current
-     * capabilities. Default is {@code true} — override to require specific
-     * capabilities (e.g. a bridge type would return
-     * {@code caps.canBridge()}).
+     * Whether this type is available under the bot's current capabilities.
+     * Default: always. Types that need jumping/swimming/etc. override.
      */
     default boolean isAllowed(HumanoidCapabilities caps) {
         return true;
     }
 
     /**
-     * Whether the given position could plausibly be the endpoint of this
-     * movement type, given the bot's current capabilities. Used by the
-     * registry's feasibility check to reject unreachable targets up front,
-     * before pathfinding runs.
-     *
-     * <p>Unlike {@link #matches}, this only inspects the destination — not
-     * the source or the transition path between them. It answers:
-     * <em>"could any movement of this type ever land here?"</em>
-     *
-     * <p>Default returns {@code false} — movement types that aren't
-     * responsible for terminating a path (if any) can leave this unchanged.
-     * Most types override with a block-property check (e.g. standable,
-     * liquid, climbable).
+     * Whether {@code position} could plausibly be the endpoint of this
+     * movement type under {@code ctx.capabilities()}. Used by the
+     * registry's fast upfront feasibility check to reject unreachable
+     * targets before pathfinding runs. Default: false — types that aren't
+     * responsible for path termination leave this unchanged.
      */
-    default boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
-                                       MaterialProvider materials) {
+    default boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
         return false;
+    }
+
+    // =========================================================================
+    // Execution
+    // =========================================================================
+
+    /**
+     * Execute one tick of this movement type toward
+     * {@code ctx.waypoint}. The executor reads whatever shared state it
+     * needs from the {@link TickContext} (velocity, ground flag, jump
+     * cooldown, etc.) and applies an impulse to the entity.
+     *
+     * <p>Returns a {@link MovementStatus}:
+     * <ul>
+     *   <li>{@code RUNNING} — keep ticking, stay on this waypoint
+     *   <li>{@code SUCCESS} — advance the path index
+     *   <li>{@code FAILED} — something went wrong, driver should replan
+     *   <li>{@code UNREACHABLE} — give up, this target is gone
+     * </ul>
+     *
+     * <p>Default throws — any type the runnable actually executes must
+     * override. Leaving this as a throwing default catches
+     * "I forgot to implement tick on type X" immediately, rather than
+     * silently skipping waypoints.
+     */
+    default MovementStatus tick(TickContext ctx) {
+        throw new UnsupportedOperationException(
+                "MovementType " + key() + " has no tick() implementation");
+    }
+
+    /**
+     * Whether this movement can be safely interrupted <em>right now</em>
+     * so the runnable can swap in a freshly computed path. Default: true.
+     *
+     * <p>Types with mid-flight state (e.g. sprint-jump between the jump
+     * and the landing) should return {@code false} while airborne — a
+     * path swap there would strand the bot mid-arc.
+     */
+    default boolean safeToCancel(TickContext ctx) {
+        return true;
+    }
+
+    // =========================================================================
+    // World effects
+    // =========================================================================
+
+    /**
+     * Block positions the bot must break to traverse this movement.
+     * Default: none. Mining-capable types override. The runnable uses this
+     * list to prep tools, sequence break actions, and invalidate the
+     * path if a required block is suddenly gone.
+     */
+    default List<PathPosition> toBreak(PathPosition current, PathPosition previous, PathContext ctx) {
+        return List.of();
+    }
+
+    /**
+     * Block positions the bot must place to traverse this movement.
+     * Default: none. Bridging-capable types override. The runnable uses
+     * this to pre-check inventory for enough blocks and invalidate the
+     * path if inventory drains below requirement.
+     */
+    default List<PathPosition> toPlace(PathPosition current, PathPosition previous, PathContext ctx) {
+        return List.of();
     }
 }

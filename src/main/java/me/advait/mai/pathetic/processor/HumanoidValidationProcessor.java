@@ -3,7 +3,9 @@ package me.advait.mai.pathetic.processor;
 import de.bsommerfeld.pathetic.api.pathing.processing.ValidationProcessor;
 import de.bsommerfeld.pathetic.api.pathing.processing.context.EvaluationContext;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
+import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
+import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.MaterialProvider;
 import me.advait.mai.pathetic.movement.MovementRegistry;
 
@@ -21,9 +23,12 @@ public class HumanoidValidationProcessor implements ValidationProcessor {
 
     private final MovementRegistry registry;
     private final HumanoidCapabilities capabilities;
+    private final MovementConfig config;
 
-    public HumanoidValidationProcessor(MovementRegistry registry, HumanoidCapabilities capabilities) {
+    public HumanoidValidationProcessor(MovementRegistry registry, MovementConfig config,
+                                       HumanoidCapabilities capabilities) {
         this.registry = registry;
+        this.config = config;
         this.capabilities = capabilities;
     }
 
@@ -37,7 +42,8 @@ public class HumanoidValidationProcessor implements ValidationProcessor {
 
         MaterialProvider materials = MaterialProvider.fromNavigationProvider(
                 context.getNavigationPointProvider(), context.getEnvironmentContext());
+        PathContext pathCtx = new PathContext(capabilities, config, materials);
 
-        return registry.classify(current, previous, materials, capabilities).isPresent();
+        return registry.classify(current, previous, pathCtx).isPresent();
     }
 }
