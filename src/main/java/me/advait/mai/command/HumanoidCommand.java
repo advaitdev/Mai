@@ -294,11 +294,11 @@ public class HumanoidCommand extends BaseCommand {
         }
 
         long startTime = System.currentTimeMillis();
-        PatheticAgent.getInstance().getGroundPath(humanoid.getEntity().getLocation(), player.getLocation())
-                .thenAccept(result -> {
+        PatheticAgent.getInstance().getAnnotatedPath(humanoid, humanoid.getEntity().getLocation(), player.getLocation())
+                .thenAccept(pathOpt -> {
                     long elapsed = System.currentTimeMillis() - startTime;
-                    if (result.successful()) {
-                        Messages.sendMessage(player, "&aPath found! &7(" + result.getPath().length() + " waypoints, " + elapsed + "ms)");
+                    if (pathOpt.isPresent()) {
+                        Messages.sendMessage(player, "&aPath found! &7(" + pathOpt.get().size() + " waypoints, " + elapsed + "ms)");
                     } else {
                         Messages.sendMessage(player, "&cNo path found! &7(" + elapsed + "ms)");
                     }
