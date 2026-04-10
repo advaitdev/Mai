@@ -2,6 +2,7 @@ on:
   push:
     branches:
       - advait
+      - dev
 
 jobs:
 
