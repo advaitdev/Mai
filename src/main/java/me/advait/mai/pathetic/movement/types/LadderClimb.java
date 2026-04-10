@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
@@ -36,5 +37,22 @@ public record LadderClimb() implements MovementType {
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         return ExecutionHint.climb();
+    }
+
+    @Override
+    public boolean isAllowed(HumanoidCapabilities caps) {
+        return caps.canClimb();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        // Any position whose feet block is a ladder/vine is a valid
+        // landing for a climb, regardless of what's below it.
+        Material atFeet = materials.getMaterial(position);
+        if (!BlockClassifier.isClimbable(atFeet)) return false;
+        Material atHead = materials.getMaterial(
+                position.getFlooredX(), position.getFlooredY() + 1, position.getFlooredZ());
+        return BlockClassifier.isTraversable(atHead);
     }
 }

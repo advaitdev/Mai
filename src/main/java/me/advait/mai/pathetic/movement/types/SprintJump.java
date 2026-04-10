@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 
@@ -67,6 +68,17 @@ public record SprintJump() implements MovementType {
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         int gap = Math.max(0, (int) Math.round(horizDist) - 1);
         return ExecutionHint.sprintJump(gap);
+    }
+
+    @Override
+    public boolean isAllowed(HumanoidCapabilities caps) {
+        return caps.canJump() && caps.canSprint();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        return WalkFlat.isStandable(position, materials);
     }
 
     private boolean validateArc(PathPosition src, PathPosition dst,

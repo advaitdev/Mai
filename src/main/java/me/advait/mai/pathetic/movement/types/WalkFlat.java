@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
@@ -40,6 +41,15 @@ public record WalkFlat() implements MovementType {
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         return ExecutionHint.sprint();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        // Walking requires a standable target — solid below, passable at
+        // feet and head. This is the canonical endpoint check for all
+        // ground-based movement types; others delegate here.
+        return isStandable(position, materials);
     }
 
     static boolean isStandable(PathPosition pos, MaterialProvider materials) {

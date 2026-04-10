@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
@@ -48,5 +49,16 @@ public record StepUp() implements MovementType {
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         return ExecutionHint.walkJump();
+    }
+
+    @Override
+    public boolean isAllowed(HumanoidCapabilities caps) {
+        return caps.canJump();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        return WalkFlat.isStandable(position, materials);
     }
 }

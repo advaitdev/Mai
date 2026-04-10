@@ -294,7 +294,7 @@ public class HumanoidCommand extends BaseCommand {
         }
 
         long startTime = System.currentTimeMillis();
-        PatheticAgent.getInstance().getAnnotatedPath(humanoid.getEntity().getLocation(), player.getLocation())
+        PatheticAgent.getInstance().getAnnotatedPath(humanoid, humanoid.getEntity().getLocation(), player.getLocation())
                 .thenAccept(pathOpt -> {
                     long elapsed = System.currentTimeMillis() - startTime;
                     if (pathOpt.isPresent()) {

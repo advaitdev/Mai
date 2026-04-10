@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
@@ -31,5 +32,18 @@ public record Swim() implements MovementType {
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         return ExecutionHint.swim();
+    }
+
+    @Override
+    public boolean isAllowed(HumanoidCapabilities caps) {
+        return caps.canSwim();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        // Any position whose feet block is a liquid is a valid swim endpoint.
+        Material atFeet = materials.getMaterial(position);
+        return BlockClassifier.isLiquid(atFeet);
     }
 }

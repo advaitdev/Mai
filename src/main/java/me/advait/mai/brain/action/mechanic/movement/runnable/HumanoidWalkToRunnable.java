@@ -131,7 +131,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private void requestNewPath(Location current) {
         pathfindingInProgress.set(true);
 
-        PatheticAgent.getInstance().getAnnotatedPath(current, target)
+        PatheticAgent.getInstance().getAnnotatedPath(humanoid, current, target)
                 .thenAccept(pathOpt -> {
                     pathfindingInProgress.set(false);
                     if (resultFuture.isDone()) return;
@@ -149,7 +149,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                             parkourPhase = ParkourPhase.NONE;
                         }
                     } else if (!hasEverHadPath) {
-                        complete(false, "Pathfinding failed.");
+                        complete(false, "No valid path found to target.");
                     }
                 })
                 .exceptionally(ex -> {
@@ -465,6 +465,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
         cancel();
     }
+
 
     // ===================== Debug =====================
 

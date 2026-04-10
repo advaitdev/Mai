@@ -2,6 +2,7 @@ package me.advait.mai.pathetic.movement.types;
 
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
+import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.movement.*;
 
@@ -42,6 +43,12 @@ public record FallSafe() implements MovementType {
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         return ExecutionHint.walk();
+    }
+
+    @Override
+    public boolean canReachAsEndpoint(PathPosition position, HumanoidCapabilities caps,
+                                      MaterialProvider materials) {
+        return WalkFlat.isStandable(position, materials);
     }
 
     /** Checks that every block between the source and landing is traversable. */
