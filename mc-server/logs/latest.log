@@ -1,58 +1,90 @@
-[17:19:29] [ServerMain/INFO]: [bootstrap] Running Java 23 (OpenJDK 64-Bit Server VM 23.0.2; Homebrew Homebrew) on Mac OS X 26.2 (aarch64)
-[17:19:29] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) for Minecraft 1.21.11
-[17:19:30] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
-[17:19:30] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/Mai-GIT.jar'...
-[17:19:31] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/Mai-GIT.jar' in 785ms.
-[17:19:31] [ServerMain/INFO]: [PluginInitializerManager] Initialized 1 plugin
-[17:19:31] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (1):
+[19:52:06] [ServerMain/INFO]: [bootstrap] Running Java 23 (OpenJDK 64-Bit Server VM 23.0.2; Homebrew Homebrew) on Mac OS X 26.2 (aarch64)
+[19:52:06] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) for Minecraft 1.21.11
+[19:52:07] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
+[19:52:07] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/Mai-GIT.jar'...
+[19:52:08] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/Mai-GIT.jar' in 1458ms.
+[19:52:08] [ServerMain/INFO]: [PluginInitializerManager] Initialized 1 plugin
+[19:52:08] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (1):
  - Mai (1.0-SNAPSHOT)
-[17:19:34] [ServerMain/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
-[17:19:34] [ServerMain/INFO]: Loaded 1470 recipes
-[17:19:34] [ServerMain/INFO]: Loaded 1584 advancements
-[17:19:34] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
-[17:19:35] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 190.7ms
-[17:19:35] [Server thread/INFO]: Starting minecraft server version 1.21.11
-[17:19:35] [Server thread/INFO]: Loading properties
-[17:19:35] [Server thread/INFO]: This server is running Paper version 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
-[17:19:35] [Server thread/INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
-[17:19:35] [Server thread/INFO]: Using 4 threads for Netty based IO
-[17:19:35] [Server thread/INFO]: Server Ping Player Sample Count: 12
-[17:19:35] [Server thread/INFO]: [MoonriseCommon] Paper is using 2 worker threads, 1 I/O threads
-[17:19:35] [Server thread/INFO]: Default game type: SURVIVAL
-[17:19:35] [Server thread/INFO]: Generating keypair
-[17:19:35] [Server thread/INFO]: Starting Minecraft server on *:25565
-[17:19:36] [Server thread/INFO]: Paper: Using libdeflate (macOS ARM64 / Apple Silicon) compression from Velocity.
-[17:19:36] [Server thread/INFO]: Paper: Using native (macOS ARM64 / Apple Silicon) cipher from Velocity.
-[17:19:36] [Server thread/INFO]: [Mai] Loading server plugin Mai v1.0-SNAPSHOT
-[17:19:36] [Server thread/INFO]: Server permissions file permissions.yml is empty, ignoring it
-[17:19:36] [Server thread/INFO]: Preparing level "world"
-[17:19:37] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
-[17:19:37] [Server thread/INFO]: Prepared spawn area in 1 ms
-[17:19:37] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
-[17:19:37] [Server thread/INFO]: Prepared spawn area in 0 ms
-[17:19:37] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
-[17:19:37] [Server thread/INFO]: Prepared spawn area in 0 ms
-[17:19:37] [Server thread/INFO]: Done preparing level "world" (0.244s)
-[17:19:37] [Server thread/INFO]: [Mai] Enabling Mai v1.0-SNAPSHOT
-[17:19:37] [Server thread/INFO]: [Mai] [ACF] Enabled Asynchronous Tab Completion Support!
-[17:19:37] [Server thread/INFO]: [spark] Starting background profiler...
-[17:19:38] [Server thread/INFO]: Running delayed init tasks
-[17:19:38] [Server thread/INFO]: Done (9.457s)! For help, type "help"
-[17:19:39] [Server thread/INFO]: [Mai] Loaded 1 humanoid(s) from file
-[17:20:19] [User Authenticator #0/INFO]: UUID of player advaits is 77650ee0-db83-4d65-b6bf-9666041a461c
-[17:20:19] [Server thread/INFO]: advaits joined the game
-[17:20:19] [Server thread/INFO]: advaits[/127.0.0.1:57377] logged in with entity id 77 at ([world]-123.69474831164013, 91.65767136311594, -44.6654343075777)
-[17:20:26] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:20:29] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:20:39] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:20:45] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:20:49] [Server thread/INFO]: advaits issued server command: /h debug particles
-[17:20:50] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:20:57] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:00] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:03] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:05] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:09] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:17] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:23] [Server thread/INFO]: advaits issued server command: /h debug gotome
-[17:21:26] [Server thread/INFO]: advaits issued server command: /h debug gotome
+[19:52:14] [ServerMain/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[19:52:17] [ServerMain/INFO]: Loaded 1470 recipes
+[19:52:17] [ServerMain/INFO]: Loaded 1584 advancements
+[19:52:17] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
+[19:52:17] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 596.3ms
+[19:52:18] [Server thread/INFO]: Starting minecraft server version 1.21.11
+[19:52:18] [Server thread/INFO]: Loading properties
+[19:52:18] [Server thread/INFO]: This server is running Paper version 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
+[19:52:18] [Server thread/INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[19:52:18] [Server thread/INFO]: Using 4 threads for Netty based IO
+[19:52:18] [Server thread/INFO]: Server Ping Player Sample Count: 12
+[19:52:20] [Server thread/INFO]: [MoonriseCommon] Paper is using 2 worker threads, 1 I/O threads
+[19:52:31] [Server thread/INFO]: Default game type: SURVIVAL
+[19:52:31] [Server thread/INFO]: Generating keypair
+[19:52:31] [Server thread/INFO]: Starting Minecraft server on *:25565
+[19:52:34] [Server thread/INFO]: Paper: Using libdeflate (macOS ARM64 / Apple Silicon) compression from Velocity.
+[19:52:34] [Server thread/INFO]: Paper: Using native (macOS ARM64 / Apple Silicon) cipher from Velocity.
+[19:52:36] [Server thread/INFO]: [Mai] Loading server plugin Mai v1.0-SNAPSHOT
+[19:52:36] [Server thread/INFO]: Server permissions file permissions.yml is empty, ignoring it
+[19:52:36] [Server thread/INFO]: Preparing level "world"
+[19:52:38] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
+[19:52:38] [Server thread/INFO]: Prepared spawn area in 1 ms
+[19:52:38] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
+[19:52:38] [Server thread/INFO]: Prepared spawn area in 0 ms
+[19:52:38] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
+[19:52:38] [Server thread/INFO]: Prepared spawn area in 1 ms
+[19:52:38] [Server thread/INFO]: Done preparing level "world" (1.397s)
+[19:52:38] [Server thread/INFO]: [Mai] Enabling Mai v1.0-SNAPSHOT
+[19:52:38] [Server thread/INFO]: [Mai] [ACF] Enabled Asynchronous Tab Completion Support!
+[19:52:38] [Server thread/INFO]: [spark] Starting background profiler...
+[19:52:41] [Server thread/INFO]: Running delayed init tasks
+[19:52:41] [Server thread/INFO]: Done (37.001s)! For help, type "help"
+[19:52:42] [Paper Async Task Handler Thread - 1/INFO]: *** Currently you are 3 build(s) behind ***
+[19:52:42] [Paper Async Task Handler Thread - 1/INFO]: *** It is highly recommended to download the latest build from https://papermc.io/downloads/paper ***
+[19:52:44] [Server thread/INFO]: [Mai] Loaded 1 humanoid(s) from file
+[19:59:22] [Server thread/INFO]: A player is required to run this command here
+[19:59:48] [User Authenticator #0/INFO]: UUID of player advaits is 77650ee0-db83-4d65-b6bf-9666041a461c
+[19:59:49] [Server thread/INFO]: advaits joined the game
+[19:59:49] [Server thread/INFO]: advaits[/127.0.0.1:52681] logged in with entity id 56 at ([world]-190.64921763831506, 93.63181922015251, 120.77288968673493)
+[19:59:59] [Server thread/INFO]: advaits issued server command: /humanoid list
+[20:00:10] [Server thread/WARN]: advaits moved too quickly! -9.930948001719415,-0.37558678126038103,1.970608806451093
+[20:00:17] [Server thread/INFO]: advaits issued server command: /h debug gotome
+[20:00:33] [Server thread/INFO]: advaits issued server command: /h debug particles
+[20:00:39] [Server thread/INFO]: advaits issued server command: /h debug gotome
+[20:02:03] [Server thread/INFO]: advaits lost connection: Disconnected
+[20:02:04] [Server thread/INFO]: advaits left the game
+[20:20:59] [Server thread/INFO]: Stopping server
+[20:20:59] [Server thread/INFO]: [Mai] Disabling Mai v1.0-SNAPSHOT
+[20:21:01] [Server thread/INFO]: [Mai] Saved 1 humanoid(s) to file
+[20:21:01] [Server thread/WARN]: [Mai] Mannequin for 'Bot' was invalid, respawning...
+[20:21:02] [Server thread/WARN]: [Mai] Mannequin for 'Bot' was invalid, respawning...
+[20:21:02] [Server thread/INFO]: Saving players
+[20:21:02] [Server thread/INFO]: Saving worlds
+[20:21:02] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[20:21:02] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world'
+[20:21:02] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world'
+[20:21:02] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Saved 0 block chunks, 1 entity chunks, 0 poi chunks in world 'world' in 0.20s
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world'
+[20:21:03] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world_nether]'/minecraft:the_nether
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_nether'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world_nether'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_nether'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Saved 0 block chunks, 0 entity chunks, 0 poi chunks in world 'world_nether' in 0.00s
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_nether'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_nether'
+[20:21:03] [Server thread/INFO]: Saving chunks for level 'ServerLevel[world_the_end]'/minecraft:the_end
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_the_end'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Halted chunk system for world 'world_the_end'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_the_end'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Saved 0 block chunks, 0 entity chunks, 0 poi chunks in world 'world_the_end' in 0.00s
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_the_end'
+[20:21:03] [Server thread/INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_the_end'
+[20:21:03] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[20:21:03] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[20:21:03] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[20:21:03] [Server thread/INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+[20:21:03] [Server thread/INFO]: Waiting for all RegionFile I/O tasks to complete...
+[20:21:03] [Server thread/INFO]: All RegionFile I/O tasks to complete
+[20:21:03] [Server thread/INFO]: [MoonriseCommon] Awaiting termination of worker pool for up to 60s...
+[20:21:03] [Server thread/INFO]: [MoonriseCommon] Awaiting termination of I/O pool for up to 60s...
