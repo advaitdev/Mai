@@ -236,6 +236,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 PathDebugLog.event("WAYPOINT_DONE type=%s index=%d/%d wp=(%.2f,%.2f,%.2f)",
                         type.key(), pathIndex, currentPath.size() - 1,
                         waypoint.x(), waypoint.y(), waypoint.z());
+                brakeIfHardTurn();
                 pathIndex++;
                 tickCtx.phase = 0;
                 tickCtx.ticksOnMovement = 0;
@@ -249,6 +250,33 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 resetPathState();
             }
             case UNREACHABLE -> complete(false, "Target became unreachable.");
+        }
+    }
+
+    /**
+     * If the next waypoint's direction diverges from the bot's current
+     * velocity by more than ~60°, zero out horizontal velocity.
+     *
+     * <p>Without this, vanilla ground inertia (slip*0.91 ≈ 0.55 decay per
+     * tick) carries the bot several tenths of a block perpendicular to
+     * the new direction before the old momentum dies. On a 1-wide block
+     * approached from one side with a step-up/jump to the perpendicular
+     * side, that drift is enough to walk the bot off the ledge before
+     * the jump ever fires.
+     */
+    private void brakeIfHardTurn() {
+        if (pathIndex + 1 >= currentPath.size()) return;
+        var vel = tickCtx.entity().getVelocity();
+        double speed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
+        if (speed < 0.1) return;
+
+        AnnotatedWaypoint nextWp = currentPath.get(pathIndex + 1);
+        double[] newDir = MovementExecutors.direction2D(tickCtx.current, nextWp);
+        double alongNorm = (vel.getX() * newDir[0] + vel.getZ() * newDir[1]) / speed;
+        if (alongNorm < 0.5) {
+            PathDebugLog.event("HARD_TURN_BRAKE speed=%.3f alongCos=%.2f nextWp=(%.2f,%.2f,%.2f)",
+                    speed, alongNorm, nextWp.x(), nextWp.y(), nextWp.z());
+            tickCtx.entity().setVelocity(new org.bukkit.util.Vector(0, vel.getY(), 0));
         }
     }
 
