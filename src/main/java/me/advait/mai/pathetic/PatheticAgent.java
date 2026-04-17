@@ -112,15 +112,21 @@ public final class PatheticAgent {
         HumanoidCapabilities caps = HumanoidCapabilities.from(humanoid, config);
 
         PathPosition startPos = BukkitMapper.toPathPosition(from);
-        PathPosition targetPos = BukkitMapper.toPathPosition(to);
 
-        // Step 1: upfront feasibility — does any allowed movement type
-        // accept the target as a landing? If not, no point pathfinding.
+        // Step 1: resolve the target to a standable block. When a player
+        // stands on the edge of a block, {@code getBlockX/Z()} can point
+        // to the air cell next to the block they're physically resting on
+        // (their 0.6-wide AABB still overlaps the real block). If the
+        // strict target isn't standable, try the 4 corners of the AABB
+        // footprint before giving up — otherwise /h gotome fails whenever
+        // the player is slightly hanging off an edge.
         MaterialProvider mainThreadMaterials = MaterialProvider.fromWorld(world);
         PathContext feasibilityCtx = new PathContext(caps, config, mainThreadMaterials);
-        if (!registry.canReachAsEndpoint(targetPos, feasibilityCtx)) {
+        Optional<PathPosition> resolvedTarget = resolveStandableTarget(to, feasibilityCtx);
+        if (resolvedTarget.isEmpty()) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
+        PathPosition targetPos = resolvedTarget.get();
 
         // Step 2: build a per-call pathfinder bound to this capability snapshot.
         Pathfinder pathfinder = buildPathfinder(caps);
@@ -151,7 +157,7 @@ public final class PatheticAgent {
                     // block. With fallback disabled this should always be
                     // true on success, but it's a cheap safety net against
                     // future changes or pathetic returning best-effort.
-                    if (!reachesTarget(simplified, to)) {
+                    if (!reachesTarget(simplified, targetPos)) {
                         annotatedFuture.complete(Optional.empty());
                         return;
                     }
@@ -189,14 +195,44 @@ public final class PatheticAgent {
 
     /**
      * Returns true if the annotated path's final waypoint shares a block
-     * column and Y with the requested target.
+     * column and Y with the resolved target position.
      */
-    private static boolean reachesTarget(AnnotatedPath path, Location target) {
+    private static boolean reachesTarget(AnnotatedPath path, PathPosition target) {
         if (path.size() == 0) return false;
         AnnotatedWaypoint last = path.get(path.size() - 1);
-        return Math.floor(last.x()) == target.getBlockX()
-                && Math.floor(last.z()) == target.getBlockZ()
-                && (int) last.y() == target.getBlockY();
+        return Math.floor(last.x()) == target.getFlooredX()
+                && Math.floor(last.z()) == target.getFlooredZ()
+                && (int) last.y() == target.getFlooredY();
+    }
+
+    /**
+     * Resolves {@code to} to the nearest block a bot can actually stand
+     * in. Players standing on a block's edge have a {@link Location}
+     * whose {@code getBlockX/Z()} may point at the empty cell next to
+     * the block supporting them. This method falls back to the 4 corners
+     * of the player's AABB before declaring the target unreachable.
+     */
+    private Optional<PathPosition> resolveStandableTarget(Location to, PathContext ctx) {
+        PathPosition strict = BukkitMapper.toPathPosition(to);
+        if (registry.canReachAsEndpoint(strict, ctx)) {
+            return Optional.of(strict);
+        }
+
+        // Player half-width is 0.3; use a hair less so the probe maps
+        // cleanly to the block the near corner is inside.
+        double[] offsets = {-0.29, 0.29};
+        int by = to.getBlockY();
+        for (double dx : offsets) {
+            for (double dz : offsets) {
+                int bx = (int) Math.floor(to.getX() + dx);
+                int bz = (int) Math.floor(to.getZ() + dz);
+                PathPosition corner = PathPosition.of(bx, by, bz);
+                if (registry.canReachAsEndpoint(corner, ctx)) {
+                    return Optional.of(corner);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     public MovementConfig getConfig() {
