@@ -97,6 +97,17 @@ public final class MovementExecutors {
         ctx.jumpCooldown = JUMP_COOLDOWN_TICKS;
     }
 
+    /**
+     * Pure-vertical jump: zeros horizontal velocity, then applies a jump
+     * impulse. Used for emergency unsticks where keeping current momentum
+     * could fling the bot off a narrow ledge (e.g. a 1-wide pillar).
+     */
+    public static void jumpVerticalOnly(TickContext ctx) {
+        LivingEntity entity = ctx.entity();
+        entity.setVelocity(new Vector(0, ctx.config.getJumpVelocity(), 0));
+        ctx.jumpCooldown = JUMP_COOLDOWN_TICKS;
+    }
+
     // =========================================================================
     // Geometry and arrival checks
     // =========================================================================

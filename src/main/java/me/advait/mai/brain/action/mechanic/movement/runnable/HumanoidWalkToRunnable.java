@@ -204,6 +204,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // corner-catches and edge-clips where the obstacle probe didn't
         // fire because the blocker isn't straight ahead. The jump cooldown
         // naturally rate-limits this to once every ~4 ticks.
+        // Pure-vertical so lingering horizontal momentum can't fling the
+        // bot off a narrow ledge.
         if (tickCtx.ticksSinceProgress >= EMERGENCY_JUMP_THRESHOLD
                 && tickCtx.onGround()
                 && tickCtx.jumpCooldown == 0
@@ -212,7 +214,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                     type.key(), tickCtx.ticksSinceProgress,
                     tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ(),
                     waypoint.x(), waypoint.y(), waypoint.z(), distNow);
-            MovementExecutors.jump(tickCtx, tickCtx.speedFactor > 1.0);
+            MovementExecutors.jumpVerticalOnly(tickCtx);
         }
 
         MovementStatus status = type.tick(tickCtx);
@@ -236,7 +238,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 PathDebugLog.event("WAYPOINT_DONE type=%s index=%d/%d wp=(%.2f,%.2f,%.2f)",
                         type.key(), pathIndex, currentPath.size() - 1,
                         waypoint.x(), waypoint.y(), waypoint.z());
-                brakeIfHardTurn();
+                handleWaypointTransition();
                 pathIndex++;
                 tickCtx.phase = 0;
                 tickCtx.ticksOnMovement = 0;
@@ -254,29 +256,53 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     /**
-     * If the next waypoint's direction diverges from the bot's current
-     * velocity by more than ~60°, zero out horizontal velocity.
+     * Handle the transition between waypoints. Two things happen here,
+     * on the SUCCESS tick before the next waypoint starts executing:
      *
-     * <p>Without this, vanilla ground inertia (slip*0.91 ≈ 0.55 decay per
-     * tick) carries the bot several tenths of a block perpendicular to
-     * the new direction before the old momentum dies. On a 1-wide block
-     * approached from one side with a step-up/jump to the perpendicular
-     * side, that drift is enough to walk the bot off the ledge before
-     * the jump ever fires.
+     * <ol>
+     *   <li><b>Velocity projection</b>: project current horizontal velocity
+     *       onto the new leg's direction, keeping only the along-direction
+     *       component. Prevents residual momentum from carrying the bot
+     *       sideways off narrow ledges during the 1-tick gap between
+     *       waypoint SUCCESS and the next waypoint's first tick.
+     *   <li><b>Pre-jump for upward transitions</b>: if the next waypoint
+     *       is a step-up, fire its jump now while the bot is still safely
+     *       on the old support block. Otherwise physics moves the bot
+     *       during the transition tick; if the next block column has no
+     *       support underneath, the bot falls before the next waypoint's
+     *       tick (with its {@code onGround} check) ever fires a jump.
+     *       This is the staircase/pillar case where each step needs its
+     *       own jump and the gap between them is too narrow.
+     * </ol>
      */
-    private void brakeIfHardTurn() {
+    private void handleWaypointTransition() {
         if (pathIndex + 1 >= currentPath.size()) return;
+        AnnotatedWaypoint nextWp = currentPath.get(pathIndex + 1);
+
+        // Velocity projection — keep along, drop perpendicular.
         var vel = tickCtx.entity().getVelocity();
         double speed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
-        if (speed < 0.1) return;
+        if (speed >= 0.05) {
+            double[] newDir = MovementExecutors.direction2D(tickCtx.current, nextWp);
+            double alongSpeed = vel.getX() * newDir[0] + vel.getZ() * newDir[1];
+            if (alongSpeed < 0) alongSpeed = 0;
+            double alongNorm = alongSpeed / speed;
+            if (alongNorm < 0.98) {
+                PathDebugLog.event("WAYPOINT_BRAKE speed=%.3f alongCos=%.2f alongSpeed=%.3f",
+                        speed, alongNorm, alongSpeed);
+                tickCtx.entity().setVelocity(new org.bukkit.util.Vector(
+                        newDir[0] * alongSpeed, vel.getY(), newDir[1] * alongSpeed));
+            }
+        }
 
-        AnnotatedWaypoint nextWp = currentPath.get(pathIndex + 1);
-        double[] newDir = MovementExecutors.direction2D(tickCtx.current, nextWp);
-        double alongNorm = (vel.getX() * newDir[0] + vel.getZ() * newDir[1]) / speed;
-        if (alongNorm < 0.5) {
-            PathDebugLog.event("HARD_TURN_BRAKE speed=%.3f alongCos=%.2f nextWp=(%.2f,%.2f,%.2f)",
-                    speed, alongNorm, nextWp.x(), nextWp.y(), nextWp.z());
-            tickCtx.entity().setVelocity(new org.bukkit.util.Vector(0, vel.getY(), 0));
+        // Pre-jump for staircase transitions.
+        MovementType nextType = nextWp.type();
+        if (nextType != null && "step_up".equals(nextType.key())
+                && tickCtx.onGround() && tickCtx.jumpCooldown == 0
+                && nextWp.y() > tickCtx.current.getY() + 0.3) {
+            PathDebugLog.event("PREJUMP nextType=step_up nextWp=(%.2f,%.2f,%.2f)",
+                    nextWp.x(), nextWp.y(), nextWp.z());
+            MovementExecutors.jump(tickCtx, false);
         }
     }
 

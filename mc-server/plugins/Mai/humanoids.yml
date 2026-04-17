@@ -4,10 +4,10 @@ humanoids:
     name: Bot
     location:
       world: world
-      x: -63.619397758104775
-      y: 91.0
-      z: -28.9937173870236
-      yaw: 2.1084516
+      x: -63.56088656360866
+      y: 90.0
+      z: -30.403688338739897
+      yaw: -177.08829
       pitch: 0.0
     inventory: |
       rO0ABXcEAAAAJHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcA==
