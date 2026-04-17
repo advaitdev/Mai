@@ -298,17 +298,18 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     /**
-     * Cheap lookahead validation: re-classify the next
-     * {@link #LOOKAHEAD_DEPTH} waypoints against the current capabilities
-     * and live main-thread world state. Returns false if any upcoming
-     * transition no longer matches a movement type (e.g. a block was
-     * placed in the path, or the type the path was planned with is no
-     * longer applicable). Detecting this early lets us trigger a full
-     * replan on the next tick, instead of walking blindly into a wall.
+     * Cheap lookahead validation: check the next {@link #LOOKAHEAD_DEPTH}
+     * waypoints are still sensible. Returns false if any upcoming waypoint
+     * is no longer allowed (capability change) or no longer standable
+     * (landing block was removed). That's enough to catch the world-change
+     * cases that should trigger a replan.
      *
-     * <p>This replaces the old "replan every tick" strategy. Full A*
-     * only runs when something in the world actually changed relative
-     * to what the path expected.
+     * <p>We deliberately do <em>not</em> re-classify the transition
+     * between waypoints here. After {@link AnnotatedPath#simplify()} drops
+     * collinear intermediates, two adjacent waypoints in {@code currentPath}
+     * may span several blocks — re-classifying that span produces a
+     * different movement type (e.g. walk→sprint-jump over 3 blocks) and
+     * invalidates the path every single tick.
      */
     private boolean isUpcomingPathValid() {
         if (currentPath == null || pathIndex >= currentPath.size()) return false;
@@ -319,28 +320,23 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         HumanoidCapabilities caps = HumanoidCapabilities.from(humanoid, config);
         MaterialProvider materials = MaterialProvider.fromWorld(world);
         PathContext ctx = new PathContext(caps, config, materials);
-        MovementRegistry registry = PatheticAgent.getInstance().getRegistry();
 
         int start = Math.max(1, pathIndex);
         int end = Math.min(pathIndex + LOOKAHEAD_DEPTH, currentPath.size());
 
         for (int i = start; i < end; i++) {
-            AnnotatedWaypoint prev = currentPath.get(i - 1);
             AnnotatedWaypoint curr = currentPath.get(i);
+            MovementType type = curr.type();
+            if (type == null) continue;
 
-            PathPosition prevPos = PathPosition.of(
-                    (int) Math.floor(prev.x()), (int) prev.y(), (int) Math.floor(prev.z()));
-            PathPosition currPos = PathPosition.of(
+            // Capability still permits this type.
+            if (!type.isAllowed(caps)) return false;
+
+            // Landing block for this waypoint is still a valid endpoint
+            // (wasn't destroyed or newly obstructed).
+            PathPosition pos = PathPosition.of(
                     (int) Math.floor(curr.x()), (int) curr.y(), (int) Math.floor(curr.z()));
-
-            Optional<MovementType> match = registry.classify(currPos, prevPos, ctx);
-            if (match.isEmpty()) return false;
-
-            // If the path was annotated with a specific type and the current
-            // best match is different, the world shifted underneath us.
-            if (curr.type() != null && !match.get().key().equals(curr.type().key())) {
-                return false;
-            }
+            if (!type.canReachAsEndpoint(pos, ctx)) return false;
         }
         return true;
     }

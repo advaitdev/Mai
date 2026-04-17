@@ -1,22 +1,7 @@
 {
   "stats": {
-    "minecraft:custom": {
-      "minecraft:time_since_rest": 293423,
-      "minecraft:walk_one_cm": 44056,
-      "minecraft:leave_game": 22,
-      "minecraft:mob_kills": 1,
-      "minecraft:walk_under_water_one_cm": 727,
-      "minecraft:play_time": 293423,
-      "minecraft:damage_dealt": 375,
-      "minecraft:jump": 1159,
-      "minecraft:time_since_death": 293423,
-      "minecraft:sprint_one_cm": 69180,
-      "minecraft:swim_one_cm": 410,
-      "minecraft:total_world_time": 293423,
-      "minecraft:fly_one_cm": 551792,
-      "minecraft:walk_on_water_one_cm": 499,
-      "minecraft:crouch_one_cm": 3726,
-      "minecraft:sneak_time": 2275
+    "minecraft:killed": {
+      "minecraft:mannequin": 1
     },
     "minecraft:used": {
       "minecraft:diamond_block": 13,
@@ -24,8 +9,23 @@
       "minecraft:diamond_sword": 1,
       "minecraft:stripped_oak_wood": 15
     },
-    "minecraft:killed": {
-      "minecraft:mannequin": 1
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 298855,
+      "minecraft:walk_one_cm": 44822,
+      "minecraft:leave_game": 23,
+      "minecraft:mob_kills": 1,
+      "minecraft:walk_under_water_one_cm": 974,
+      "minecraft:play_time": 298855,
+      "minecraft:damage_dealt": 375,
+      "minecraft:jump": 1273,
+      "minecraft:time_since_death": 298855,
+      "minecraft:sprint_one_cm": 76192,
+      "minecraft:swim_one_cm": 474,
+      "minecraft:total_world_time": 298855,
+      "minecraft:fly_one_cm": 705997,
+      "minecraft:walk_on_water_one_cm": 1849,
+      "minecraft:crouch_one_cm": 3877,
+      "minecraft:sneak_time": 2424
     }
   },
   "DataVersion": 4671
