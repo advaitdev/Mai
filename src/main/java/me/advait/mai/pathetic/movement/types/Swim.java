@@ -46,6 +46,13 @@ public record Swim() implements MovementType {
     }
 
     @Override
+    public boolean allowsAutoUnstick() {
+        // Swimming has no notion of a jump; an unstick impulse would just
+        // add a stray vertical to a bot already in liquid.
+        return false;
+    }
+
+    @Override
     public MovementStatus tick(TickContext ctx) {
         double[] dir3d = MovementExecutors.direction3D(ctx.current, ctx.waypoint);
         org.bukkit.util.Vector vel = ctx.entity().getVelocity();

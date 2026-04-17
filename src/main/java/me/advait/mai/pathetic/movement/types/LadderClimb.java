@@ -57,6 +57,13 @@ public record LadderClimb() implements MovementType {
     }
 
     @Override
+    public boolean allowsAutoUnstick() {
+        // Climbing uses a steady upward impulse — a jump here would fling
+        // the bot off the ladder.
+        return false;
+    }
+
+    @Override
     public MovementStatus tick(TickContext ctx) {
         double dy = ctx.waypoint.y() - ctx.current.getY();
         double climbSpeed = dy >= 0 ? 0.12 : -0.15;

@@ -117,6 +117,17 @@ public interface MovementType {
         return true;
     }
 
+    /**
+     * Whether the driver may fire a blind "emergency jump" on this type
+     * when progress stalls. Default: true — most types benefit from an
+     * unstick hop. Types that own their own jump timing and would be
+     * disrupted by an unscheduled jump (sprint-jump runway building
+     * speed, ladder climbing, swimming) override to false.
+     */
+    default boolean allowsAutoUnstick() {
+        return true;
+    }
+
     // =========================================================================
     // World effects
     // =========================================================================

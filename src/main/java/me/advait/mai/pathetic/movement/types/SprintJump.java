@@ -141,6 +141,13 @@ public record SprintJump() implements MovementType {
         return ctx.phase == 0 && ctx.onGround();
     }
 
+    @Override
+    public boolean allowsAutoUnstick() {
+        // Sprint-jump times its own jump; an external unstick hop during
+        // the runway would kill our momentum and strand us short of the gap.
+        return false;
+    }
+
     private boolean validateArc(PathPosition src, int dx, int dy, int dz, MaterialProvider materials) {
         int steps = Math.max(Math.abs(dx), Math.abs(dz));
         int srcY = src.getFlooredY();

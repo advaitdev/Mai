@@ -55,6 +55,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     /** Periodic full-replan interval as a safety net (5 seconds). */
     private static final int PERIODIC_REPLAN_TICKS = 100;
     /**
+     * Ticks without horizontal progress before the driver fires a blind
+     * "emergency jump" to try to free the bot from geometry the obstacle
+     * probe didn't detect (corner catches, misaligned waypoints, etc.).
+     * Only applies to types where {@link MovementType#allowsAutoUnstick}
+     * is true.
+     */
+    private static final int EMERGENCY_JUMP_THRESHOLD = 8;
+    /**
      * Ticks without horizontal progress toward the current waypoint before
      * we assume the movement is stuck (world differs from plan) and force
      * a replan. Short enough to recover quickly, long enough to tolerate
@@ -185,6 +193,17 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             tickCtx.ticksSinceProgress = 0;
         } else {
             tickCtx.ticksSinceProgress++;
+        }
+
+        // Emergency unstick: before full replan, just try jumping. Handles
+        // corner-catches and edge-clips where the obstacle probe didn't
+        // fire because the blocker isn't straight ahead. The jump cooldown
+        // naturally rate-limits this to once every ~4 ticks.
+        if (tickCtx.ticksSinceProgress >= EMERGENCY_JUMP_THRESHOLD
+                && tickCtx.onGround()
+                && tickCtx.jumpCooldown == 0
+                && type.allowsAutoUnstick()) {
+            MovementExecutors.jump(tickCtx, tickCtx.speedFactor > 1.0);
         }
 
         MovementStatus status = type.tick(tickCtx);
