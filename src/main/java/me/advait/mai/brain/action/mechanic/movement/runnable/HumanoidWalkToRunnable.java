@@ -54,6 +54,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private static final int LOOKAHEAD_DEPTH = 10;
     /** Periodic full-replan interval as a safety net (5 seconds). */
     private static final int PERIODIC_REPLAN_TICKS = 100;
+    /**
+     * Ticks without horizontal progress toward the current waypoint before
+     * we assume the movement is stuck (world differs from plan) and force
+     * a replan. Short enough to recover quickly, long enough to tolerate
+     * mid-jump arcs where horizontal progress temporarily stalls.
+     */
+    private static final int STUCK_ON_MOVEMENT_TICKS = 20;
 
     private static boolean debugMode = false;
 
@@ -169,24 +176,51 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         tickCtx.nextWaypoint = pathIndex + 1 < currentPath.size() ? currentPath.get(pathIndex + 1) : null;
         tickCtx.speedFactor = computeSpeedFactor(waypoint);
 
+        // Progress tracking: if horizontal distance to the waypoint stops
+        // decreasing, we're either clipping on geometry the path didn't
+        // foresee or otherwise out of sync with the world.
+        double distNow = MovementExecutors.horizontalDistance(tickCtx.current, waypoint);
+        if (distNow < tickCtx.bestHorizDistToWaypoint - 0.05) {
+            tickCtx.bestHorizDistToWaypoint = distNow;
+            tickCtx.ticksSinceProgress = 0;
+        } else {
+            tickCtx.ticksSinceProgress++;
+        }
+
         MovementStatus status = type.tick(tickCtx);
+
+        // Per-movement stuck detection: only trigger when it's safe to swap
+        // paths (don't abort a bot mid-arc). Clears the path so the next
+        // tick's replan check fires immediately.
+        if (status == MovementStatus.RUNNING
+                && tickCtx.ticksSinceProgress > STUCK_ON_MOVEMENT_TICKS
+                && type.safeToCancel(tickCtx)) {
+            resetPathState();
+            return;
+        }
 
         switch (status) {
             case SUCCESS -> {
                 pathIndex++;
                 tickCtx.phase = 0;
                 tickCtx.ticksOnMovement = 0;
+                tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+                tickCtx.ticksSinceProgress = 0;
             }
             case RUNNING -> tickCtx.ticksOnMovement++;
-            case FAILED -> {
-                // Trigger a replan on the next tick by clearing the path.
-                currentPath = null;
-                pathIndex = 0;
-                tickCtx.phase = 0;
-                tickCtx.ticksOnMovement = 0;
-            }
+            case FAILED -> resetPathState();
             case UNREACHABLE -> complete(false, "Target became unreachable.");
         }
+    }
+
+    /** Clear the current path so the next tick triggers a replan. */
+    private void resetPathState() {
+        currentPath = null;
+        pathIndex = 0;
+        tickCtx.phase = 0;
+        tickCtx.ticksOnMovement = 0;
+        tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+        tickCtx.ticksSinceProgress = 0;
     }
 
     /**
@@ -317,6 +351,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                         hasEverHadPath = true;
                         tickCtx.phase = 0;
                         tickCtx.ticksOnMovement = 0;
+                        tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+                        tickCtx.ticksSinceProgress = 0;
                     } else if (!hasEverHadPath) {
                         complete(false, "No valid path found to target.");
                     }

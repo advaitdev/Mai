@@ -5,6 +5,7 @@ import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.path.AnnotatedWaypoint;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
@@ -154,17 +155,51 @@ public final class MovementExecutors {
         return BlockClassifier.slipperiness(below);
     }
 
+    // Player half-width is 0.3; subtract an epsilon so the probe samples
+    // the block an overlapping corner would actually land in.
+    private static final double HALF_WIDTH = 0.29;
+
+    /** The 4 XZ corners of the player bounding box relative to its center. */
+    private static final double[][] CORNER_OFFSETS = {
+            {-HALF_WIDTH, -HALF_WIDTH}, {-HALF_WIDTH, HALF_WIDTH},
+            { HALF_WIDTH, -HALF_WIDTH}, { HALF_WIDTH,  HALF_WIDTH}
+    };
+
     /**
-     * True if there's a solid block in the bot's facing direction with
-     * open space above — i.e. an obstacle the bot needs to step up over.
+     * True when any of the 4 bounding-box corners, projected {@code probeDist}
+     * forward in the given direction, is inside a solid block at the given
+     * y-offset from the entity's feet. This catches partial-overlap cases
+     * that a single centerline ray misses — the reason bots clip on block
+     * edges when a path turns through a block corner.
      */
-    public static boolean stepUpBlockedAhead(Location current, double[] dir) {
-        if (current.getWorld() == null) return false;
-        Location ahead = current.clone().add(dir[0] * 0.5, 0, dir[1] * 0.5);
-        Material blockAhead = ahead.getBlock().getType();
-        if (!BlockClassifier.isSolid(blockAhead)) return false;
-        Material above = ahead.clone().add(0, 1, 0).getBlock().getType();
-        return !BlockClassifier.isSolid(above);
+    public static boolean solidNearFacing(Location current, double[] dir,
+                                          double yOffset, double probeDist) {
+        World world = current.getWorld();
+        if (world == null) return false;
+        for (double[] corner : CORNER_OFFSETS) {
+            double px = current.getX() + corner[0] + dir[0] * probeDist;
+            double py = current.getY() + yOffset;
+            double pz = current.getZ() + corner[1] + dir[1] * probeDist;
+            Material mat = world.getBlockAt(
+                    (int) Math.floor(px),
+                    (int) Math.floor(py),
+                    (int) Math.floor(pz)).getType();
+            if (BlockClassifier.isSolid(mat)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * A 1-block-tall obstacle is directly ahead: solid at feet height,
+     * clear one block up (so a jump will land on top), clear two blocks
+     * up (so the jump apex doesn't collide). Used by ground-walk types
+     * as an emergency auto-jump fallback when the planned waypoint didn't
+     * anticipate the obstacle (placed block, corner-clip, etc.).
+     */
+    public static boolean obstacleAheadNeedsJump(Location current, double[] dir) {
+        return solidNearFacing(current, dir, 0.1, 0.5)
+                && !solidNearFacing(current, dir, 1.1, 0.5)
+                && !solidNearFacing(current, dir, 2.1, 0.5);
     }
 
     // =========================================================================

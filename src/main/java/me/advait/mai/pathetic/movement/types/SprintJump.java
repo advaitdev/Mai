@@ -30,12 +30,18 @@ public record SprintJump() implements MovementType {
         // dy must be -1, 0, or +1
         if (Math.abs(dy) > 1) return false;
 
-        // Horizontal distance must be 2-5 blocks (1-4 block gaps)
+        // Horizontal distance caps (vanilla 1.21 sprint-jump, verified
+        // against MCPK "Longest Jumps"):
+        //   dy= 0 → 4 blocks edge-to-edge (3-block gap) reliable
+        //   dy=+1 → 3 blocks edge-to-edge (2-block gap) reliable
+        //   dy=-1 → 4.5 blocks edge-to-edge (3-4 block gap) reliable
+        // Anything beyond requires frame-perfect timing humans can hit
+        // but an NPC can't guarantee — don't plan on it.
         double horizDist = Math.sqrt(dx * dx + dz * dz);
-        if (horizDist < 1.5 || horizDist > 5.5) return false;
-
-        // Ascending parkour (dy=+1) requires distance <= 3
+        if (horizDist < 1.5) return false;
         if (dy == 1 && horizDist > 3.5) return false;
+        if (dy == 0 && horizDist > 4.5) return false;
+        if (dy == -1 && horizDist > 4.5) return false;
 
         MaterialProvider materials = ctx.materials();
 
@@ -107,13 +113,14 @@ public record SprintJump() implements MovementType {
         double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
         double distToLanding = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
 
-        // Wider gaps need more runway. Sprint terminal is ~0.28 b/t; require
-        // a fraction proportional to the gap.
+        // Wider gaps need more runway. Vanilla terminal sprint is 0.2806
+        // b/t; for gap ≥ 2 we want to be at or near terminal velocity when
+        // the jump fires, because air accel (0.026) can't recover a
+        // shortfall in the ~11 airborne ticks.
         double minSpeed = switch (gap) {
-            case 0, 1 -> 0.10;
-            case 2 -> 0.15;
-            case 3 -> 0.20;
-            default -> 0.25;
+            case 0, 1 -> 0.12;
+            case 2 -> 0.22;
+            default -> 0.27;
         };
 
         boolean fastEnough = currentSpeed >= minSpeed;

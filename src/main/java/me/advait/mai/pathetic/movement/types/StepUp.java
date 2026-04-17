@@ -62,18 +62,30 @@ public record StepUp() implements MovementType {
 
     @Override
     public MovementStatus tick(TickContext ctx) {
+        boolean sprinting = ctx.speedFactor > 1.0;
         double horizDist = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
+        double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
         boolean needsJump = ctx.waypoint.y() > ctx.current.getY() + 0.3;
 
-        // Preemptive jump: fire once we're close enough to the obstacle.
-        // 1.8-block window is far enough for vanilla physics to clear one
-        // block comfortably even at walk speed, close enough that we don't
-        // jump early and lose momentum.
-        if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump && horizDist < 1.8) {
-            MovementExecutors.jump(ctx, ctx.speedFactor > 1.0);
+        // Vanilla jump: peak y=1.2522 at tick ~5-6; bot is ≥1 block up for
+        // ticks 3-8 (5-tick clearance window). At terminal sprint 0.28 b/t
+        // that covers ~1.4 blocks; at walk 0.21 b/t, ~1.05 blocks. Use
+        // a wider window when sprinting because the bot carries more
+        // horizontal momentum into the arc.
+        double jumpWindowMax = sprinting ? 2.3 : 1.6;
+
+        // Velocity floor at takeoff: if the bot hasn't built momentum,
+        // jumping now produces a short arc that lands on the wall face.
+        // Air acceleration (0.02 walk / 0.026 sprint) is too small to
+        // recover in the ~7 ticks of airtime.
+        double minTakeoffSpeed = sprinting ? 0.18 : 0.10;
+
+        if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump
+                && horizDist > 0.4 && horizDist < jumpWindowMax
+                && currentSpeed >= minTakeoffSpeed) {
+            MovementExecutors.jump(ctx, sprinting);
         }
 
-        boolean sprinting = ctx.speedFactor > 1.0;
         MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
 
         // Success only once we're up at the target Y

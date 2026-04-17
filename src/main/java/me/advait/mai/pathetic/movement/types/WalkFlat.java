@@ -53,6 +53,17 @@ public record WalkFlat() implements MovementType {
     @Override
     public MovementStatus tick(TickContext ctx) {
         boolean sprinting = ctx.speedFactor > 1.0;
+        double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
+
+        // Anti-clip auto-jump. The pathfinder plans flat walks against
+        // block-floor coordinates, but the entity's 0.6-wide bounding box
+        // can catch on adjacent block corners or unexpected 1-block
+        // obstacles. Detect that case and hop to recover.
+        if (ctx.onGround() && ctx.jumpCooldown == 0
+                && MovementExecutors.obstacleAheadNeedsJump(ctx.current, dir)) {
+            MovementExecutors.jump(ctx, sprinting);
+        }
+
         MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }

@@ -59,6 +59,20 @@ public final class TickContext {
      */
     public int phase;
 
+    /**
+     * Closest horizontal distance to the current waypoint we've observed
+     * since entering it. Reset by the driver on waypoint advance.
+     */
+    public double bestHorizDistToWaypoint = Double.MAX_VALUE;
+
+    /**
+     * Ticks since we last made horizontal progress toward the waypoint.
+     * If this exceeds a threshold while the movement is still {@code RUNNING}
+     * and {@link MovementType#safeToCancel} is true, the driver forces a
+     * replan — the pathfinder's model no longer matches the world.
+     */
+    public int ticksSinceProgress;
+
     /** The final target location of the entire walk (not the current waypoint). */
     public Location finalTarget;
 
