@@ -108,6 +108,27 @@ public final class MovementExecutors {
         ctx.jumpCooldown = JUMP_COOLDOWN_TICKS;
     }
 
+    /**
+     * Ensure horizontal velocity along {@code dir} is at least
+     * {@code targetSpeed}. Only adds velocity — never reduces. Used before
+     * firing a jump so the bot doesn't need to spend multiple ground-accel
+     * ticks building speed first. Needed for step-ups, where the airborne
+     * phase has too little horizontal accel (0.02/tick) to recover from a
+     * cold-start takeoff.
+     */
+    public static void kickToward(TickContext ctx, double[] dir, double targetSpeed) {
+        LivingEntity entity = ctx.entity();
+        Vector vel = entity.getVelocity();
+        double along = vel.getX() * dir[0] + vel.getZ() * dir[1];
+        if (along < targetSpeed) {
+            double delta = targetSpeed - along;
+            entity.setVelocity(new Vector(
+                    vel.getX() + dir[0] * delta,
+                    vel.getY(),
+                    vel.getZ() + dir[1] * delta));
+        }
+    }
+
     // =========================================================================
     // Geometry and arrival checks
     // =========================================================================

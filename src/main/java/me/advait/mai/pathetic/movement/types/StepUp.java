@@ -75,15 +75,17 @@ public record StepUp() implements MovementType {
         // horizontal momentum into the arc.
         double jumpWindowMax = sprinting ? 2.3 : 1.6;
 
-        // Velocity floor at takeoff: if the bot hasn't built momentum,
-        // jumping now produces a short arc that lands on the wall face.
-        // Air acceleration (0.02 walk / 0.026 sprint) is too small to
-        // recover in the ~7 ticks of airtime.
-        double minTakeoffSpeed = sprinting ? 0.18 : 0.10;
+        // Takeoff clearance velocity. Rather than waiting for ground accel
+        // to bring us up to this speed (which takes 3+ ticks and makes
+        // step-ups feel sluggish), we inject it directly before jumping.
+        // 0.18 b/t is enough for air drift to cover the 1-block horizontal
+        // distance during the 5-tick clearance window.
+        double takeoffSpeed = sprinting ? 0.24 : 0.18;
 
         if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump
-                && horizDist > 0.4 && horizDist < jumpWindowMax
-                && currentSpeed >= minTakeoffSpeed) {
+                && horizDist > 0.4 && horizDist < jumpWindowMax) {
+            double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
+            MovementExecutors.kickToward(ctx, dir, takeoffSpeed);
             PathDebugLog.event("STEP_UP_JUMP dist=%.2f speed=%.3f sprinting=%s bot=(%.2f,%.2f,%.2f)",
                     horizDist, currentSpeed, sprinting,
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());

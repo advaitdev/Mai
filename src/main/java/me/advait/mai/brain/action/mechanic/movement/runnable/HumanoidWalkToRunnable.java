@@ -295,11 +295,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             }
         }
 
-        // Pre-jump for staircase transitions.
+        // Pre-jump for staircase transitions. Inject clearance velocity
+        // toward the next waypoint so the bot doesn't need to re-build
+        // speed from whatever the brake above left it at.
         MovementType nextType = nextWp.type();
         if (nextType != null && "step_up".equals(nextType.key())
                 && tickCtx.onGround() && tickCtx.jumpCooldown == 0
                 && nextWp.y() > tickCtx.current.getY() + 0.3) {
+            double[] dir = MovementExecutors.direction2D(tickCtx.current, nextWp);
+            MovementExecutors.kickToward(tickCtx, dir, 0.18);
             PathDebugLog.event("PREJUMP nextType=step_up nextWp=(%.2f,%.2f,%.2f)",
                     nextWp.x(), nextWp.y(), nextWp.z());
             MovementExecutors.jump(tickCtx, false);
