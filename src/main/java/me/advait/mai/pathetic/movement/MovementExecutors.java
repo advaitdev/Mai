@@ -202,6 +202,27 @@ public final class MovementExecutors {
                 && !solidNearFacing(current, dir, 2.1, 0.5);
     }
 
+    /**
+     * The bot is at the edge of its current block in the given direction:
+     * on solid ground now, but a step past the leading edge would put it
+     * over empty space. Used by sprint-jump to time the takeoff for
+     * maximum horizontal range — jumping earlier wastes the block of
+     * runway that was supposed to bring the bot to terminal sprint.
+     */
+    public static boolean atEdgeAhead(Location current, double[] dir) {
+        World world = current.getWorld();
+        if (world == null) return false;
+        // Probe a bit past the player's leading edge (half-width 0.3).
+        double probeDist = 0.4;
+        double px = current.getX() + dir[0] * probeDist;
+        double pz = current.getZ() + dir[1] * probeDist;
+        Material belowNext = world.getBlockAt(
+                (int) Math.floor(px),
+                (int) Math.floor(current.getY() - 0.1),
+                (int) Math.floor(pz)).getType();
+        return !BlockClassifier.isSolid(belowNext);
+    }
+
     // =========================================================================
     // Rotation
     // =========================================================================

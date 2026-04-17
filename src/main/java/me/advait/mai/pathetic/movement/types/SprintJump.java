@@ -112,6 +112,7 @@ public record SprintJump() implements MovementType {
         int gap = ctx.waypoint.hint() != null ? ctx.waypoint.hint().gapLength() : 0;
         double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
         double distToLanding = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
+        double[] dirToLanding = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
 
         // Wider gaps need more runway. Vanilla terminal sprint is 0.2806
         // b/t; for gap ≥ 2 we want to be at or near terminal velocity when
@@ -124,9 +125,15 @@ public record SprintJump() implements MovementType {
         };
 
         boolean fastEnough = currentSpeed >= minSpeed;
-        boolean inJumpRange = distToLanding < gap + 2.5 && distToLanding > 0.5;
+        // Edge-jump timing: only fire once we're actually at the edge of
+        // the takeoff block. Otherwise the bot leaps from the middle of
+        // the block, wastes runway, and lands short. Distance-to-landing
+        // alone isn't enough — it fires the tick the SprintJump waypoint
+        // becomes active, long before we've reached the edge.
+        boolean atEdge = MovementExecutors.atEdgeAhead(ctx.current, dirToLanding);
+        boolean inJumpRange = distToLanding > 0.5 && distToLanding < gap + 2.5;
 
-        if (ctx.jumpCooldown == 0 && fastEnough && inJumpRange) {
+        if (ctx.jumpCooldown == 0 && fastEnough && inJumpRange && atEdge) {
             MovementExecutors.jump(ctx, true);
             ctx.phase = 1;
         }
