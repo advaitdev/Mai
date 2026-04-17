@@ -4,6 +4,7 @@ import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
 import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
 
@@ -83,6 +84,9 @@ public record StepUp() implements MovementType {
         if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump
                 && horizDist > 0.4 && horizDist < jumpWindowMax
                 && currentSpeed >= minTakeoffSpeed) {
+            PathDebugLog.event("STEP_UP_JUMP dist=%.2f speed=%.3f sprinting=%s bot=(%.2f,%.2f,%.2f)",
+                    horizDist, currentSpeed, sprinting,
+                    ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());
             MovementExecutors.jump(ctx, sprinting);
         }
 

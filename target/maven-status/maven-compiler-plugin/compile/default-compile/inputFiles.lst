@@ -42,6 +42,7 @@
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/pathetic/movement/ExecutionHint.java
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/pathetic/path/PathAnnotator.java
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/brain/action/event/HumanoidAttackActionEvent.java
+/Users/advait/Desktop/Mai/src/main/java/me/advait/mai/pathetic/debug/PathDebugLog.java
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/pathetic/path/AnnotatedWaypoint.java
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/brain/action/mechanic/building/HumanoidMineAction.java
 /Users/advait/Desktop/Mai/src/main/java/me/advait/mai/brain/ml/PvPAction.java

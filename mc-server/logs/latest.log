@@ -1,43 +1,43 @@
-[16:38:14] [ServerMain/INFO]: [bootstrap] Running Java 23 (OpenJDK 64-Bit Server VM 23.0.2; Homebrew Homebrew) on Mac OS X 26.2 (aarch64)
-[16:38:14] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) for Minecraft 1.21.11
-[16:38:15] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
-[16:38:15] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/Mai-GIT.jar'...
-[16:38:16] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/Mai-GIT.jar' in 1111ms.
-[16:38:16] [ServerMain/INFO]: [PluginInitializerManager] Initialized 1 plugin
-[16:38:16] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (1):
+[16:42:52] [ServerMain/INFO]: [bootstrap] Running Java 23 (OpenJDK 64-Bit Server VM 23.0.2; Homebrew Homebrew) on Mac OS X 26.2 (aarch64)
+[16:42:52] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) for Minecraft 1.21.11
+[16:42:52] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
+[16:42:52] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/Mai-GIT.jar'...
+[16:42:53] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/Mai-GIT.jar' in 619ms.
+[16:42:53] [ServerMain/INFO]: [PluginInitializerManager] Initialized 1 plugin
+[16:42:53] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (1):
  - Mai (1.0-SNAPSHOT)
-[16:38:21] [ServerMain/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
-[16:38:22] [ServerMain/INFO]: Loaded 1470 recipes
-[16:38:22] [ServerMain/INFO]: Loaded 1584 advancements
-[16:38:22] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
-[16:38:23] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 411.6ms
-[16:38:23] [Server thread/INFO]: Starting minecraft server version 1.21.11
-[16:38:23] [Server thread/INFO]: Loading properties
-[16:38:23] [Server thread/INFO]: This server is running Paper version 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
-[16:38:23] [Server thread/INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
-[16:38:23] [Server thread/INFO]: Server Ping Player Sample Count: 12
-[16:38:23] [Server thread/INFO]: Using 4 threads for Netty based IO
-[16:38:24] [Server thread/INFO]: [MoonriseCommon] Paper is using 2 worker threads, 1 I/O threads
-[16:38:24] [Server thread/INFO]: Default game type: SURVIVAL
-[16:38:24] [Server thread/INFO]: Generating keypair
-[16:38:24] [Server thread/INFO]: Starting Minecraft server on *:25565
-[16:38:25] [Server thread/INFO]: Paper: Using libdeflate (macOS ARM64 / Apple Silicon) compression from Velocity.
-[16:38:25] [Server thread/INFO]: Paper: Using native (macOS ARM64 / Apple Silicon) cipher from Velocity.
-[16:38:25] [Server thread/INFO]: [Mai] Loading server plugin Mai v1.0-SNAPSHOT
-[16:38:25] [Server thread/INFO]: Server permissions file permissions.yml is empty, ignoring it
-[16:38:25] [Server thread/INFO]: Preparing level "world"
-[16:38:26] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
-[16:38:26] [Server thread/INFO]: Prepared spawn area in 1 ms
-[16:38:26] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
-[16:38:26] [Server thread/INFO]: Prepared spawn area in 0 ms
-[16:38:26] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
-[16:38:26] [Server thread/INFO]: Prepared spawn area in 0 ms
-[16:38:26] [Server thread/INFO]: Done preparing level "world" (0.415s)
-[16:38:26] [Server thread/INFO]: [Mai] Enabling Mai v1.0-SNAPSHOT
-[16:38:26] [Server thread/INFO]: [Mai] [ACF] Enabled Asynchronous Tab Completion Support!
-[16:38:26] [Server thread/INFO]: [spark] Starting background profiler...
-[16:38:28] [Server thread/INFO]: Running delayed init tasks
-[16:38:28] [Server thread/INFO]: Done (14.291s)! For help, type "help"
-[16:38:28] [Paper Async Task Handler Thread - 1/INFO]: *** Currently you are 3 build(s) behind ***
-[16:38:28] [Paper Async Task Handler Thread - 1/INFO]: *** It is highly recommended to download the latest build from https://papermc.io/downloads/paper ***
-[16:38:29] [Server thread/INFO]: [Mai] Loaded 1 humanoid(s) from file
+[16:42:56] [ServerMain/INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[16:42:57] [ServerMain/INFO]: Loaded 1470 recipes
+[16:42:57] [ServerMain/INFO]: Loaded 1584 advancements
+[16:42:57] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
+[16:42:57] [ServerMain/INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 197.1ms
+[16:42:57] [Server thread/INFO]: Starting minecraft server version 1.21.11
+[16:42:57] [Server thread/INFO]: Loading properties
+[16:42:57] [Server thread/INFO]: This server is running Paper version 1.21.11-127-main@bd74bf6 (2026-03-10T02:55:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
+[16:42:57] [Server thread/INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[16:42:57] [Server thread/INFO]: Server Ping Player Sample Count: 12
+[16:42:57] [Server thread/INFO]: Using 4 threads for Netty based IO
+[16:42:57] [Server thread/INFO]: [MoonriseCommon] Paper is using 2 worker threads, 1 I/O threads
+[16:42:58] [Server thread/INFO]: Default game type: SURVIVAL
+[16:42:58] [Server thread/INFO]: Generating keypair
+[16:42:58] [Server thread/INFO]: Starting Minecraft server on *:25565
+[16:42:58] [Server thread/INFO]: Paper: Using libdeflate (macOS ARM64 / Apple Silicon) compression from Velocity.
+[16:42:58] [Server thread/INFO]: Paper: Using native (macOS ARM64 / Apple Silicon) cipher from Velocity.
+[16:42:58] [Server thread/INFO]: [Mai] Loading server plugin Mai v1.0-SNAPSHOT
+[16:42:58] [Server thread/INFO]: Server permissions file permissions.yml is empty, ignoring it
+[16:42:58] [Server thread/INFO]: Preparing level "world"
+[16:42:58] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
+[16:42:58] [Server thread/INFO]: Prepared spawn area in 0 ms
+[16:42:58] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
+[16:42:58] [Server thread/INFO]: Prepared spawn area in 0 ms
+[16:42:58] [Server thread/INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
+[16:42:58] [Server thread/INFO]: Prepared spawn area in 1 ms
+[16:42:58] [Server thread/INFO]: Done preparing level "world" (0.269s)
+[16:42:58] [Server thread/INFO]: [Mai] Enabling Mai v1.0-SNAPSHOT
+[16:42:59] [Server thread/INFO]: [Mai] [ACF] Enabled Asynchronous Tab Completion Support!
+[16:42:59] [Server thread/INFO]: [spark] Starting background profiler...
+[16:42:59] [Server thread/INFO]: Running delayed init tasks
+[16:42:59] [Server thread/INFO]: Done (8.117s)! For help, type "help"
+[16:42:59] [Paper Async Task Handler Thread - 1/INFO]: *** Currently you are 3 build(s) behind ***
+[16:42:59] [Paper Async Task Handler Thread - 1/INFO]: *** It is highly recommended to download the latest build from https://papermc.io/downloads/paper ***
+[16:43:00] [Server thread/INFO]: [Mai] Loaded 1 humanoid(s) from file

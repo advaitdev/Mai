@@ -16,6 +16,7 @@ import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.MaterialProvider;
 import me.advait.mai.pathetic.movement.MovementRegistry;
 import me.advait.mai.pathetic.path.AnnotatedPath;
@@ -215,6 +216,8 @@ public final class PatheticAgent {
     private Optional<PathPosition> resolveStandableTarget(Location to, PathContext ctx) {
         PathPosition strict = BukkitMapper.toPathPosition(to);
         if (registry.canReachAsEndpoint(strict, ctx)) {
+            PathDebugLog.event("TARGET_RESOLVED strict=(%d,%d,%d)",
+                    strict.getFlooredX(), strict.getFlooredY(), strict.getFlooredZ());
             return Optional.of(strict);
         }
 
@@ -228,10 +231,15 @@ public final class PatheticAgent {
                 int bz = (int) Math.floor(to.getZ() + dz);
                 PathPosition corner = PathPosition.of(bx, by, bz);
                 if (registry.canReachAsEndpoint(corner, ctx)) {
+                    PathDebugLog.event("TARGET_RESOLVED strict_fail=(%d,%d,%d) snapped=(%d,%d,%d)",
+                            strict.getFlooredX(), strict.getFlooredY(), strict.getFlooredZ(),
+                            bx, by, bz);
                     return Optional.of(corner);
                 }
             }
         }
+        PathDebugLog.event("TARGET_UNREACHABLE strict=(%d,%d,%d) — no AABB corner is standable",
+                strict.getFlooredX(), strict.getFlooredY(), strict.getFlooredZ());
         return Optional.empty();
     }
 

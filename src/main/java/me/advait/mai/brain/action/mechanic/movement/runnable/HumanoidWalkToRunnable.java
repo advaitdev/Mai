@@ -7,6 +7,7 @@ import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.MaterialProvider;
 import me.advait.mai.pathetic.movement.MovementExecutors;
 import me.advait.mai.pathetic.movement.MovementRegistry;
@@ -148,11 +149,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         //      few waypoints caught a world change that broke the path.
         //   3. Periodic refresh as a safety net for changes the lookahead
         //      window didn't cover.
-        boolean needsReplan = currentPath == null
-                || !isUpcomingPathValid()
-                || ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
+        boolean pathNull = currentPath == null;
+        boolean lookaheadBroken = !pathNull && !isUpcomingPathValid();
+        boolean periodic = !pathNull && !lookaheadBroken && ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
+        boolean needsReplan = pathNull || lookaheadBroken || periodic;
 
         if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
+            String reason = pathNull ? "no_path" : lookaheadBroken ? "lookahead_invalid" : "periodic";
+            PathDebugLog.event("REPLAN reason=%s bot=(%.2f,%.2f,%.2f)",
+                    reason, current.getX(), current.getY(), current.getZ());
             requestNewPath(current);
         }
 
@@ -203,6 +208,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 && tickCtx.onGround()
                 && tickCtx.jumpCooldown == 0
                 && type.allowsAutoUnstick()) {
+            PathDebugLog.event("EMERGENCY_JUMP type=%s stuck=%dt bot=(%.2f,%.2f,%.2f) wp=(%.2f,%.2f,%.2f) dist=%.2f",
+                    type.key(), tickCtx.ticksSinceProgress,
+                    tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ(),
+                    waypoint.x(), waypoint.y(), waypoint.z(), distNow);
             MovementExecutors.jump(tickCtx, tickCtx.speedFactor > 1.0);
         }
 
@@ -214,12 +223,19 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         if (status == MovementStatus.RUNNING
                 && tickCtx.ticksSinceProgress > STUCK_ON_MOVEMENT_TICKS
                 && type.safeToCancel(tickCtx)) {
+            PathDebugLog.event("STUCK_REPLAN type=%s stuck=%dt bot=(%.2f,%.2f,%.2f) wp=(%.2f,%.2f,%.2f)",
+                    type.key(), tickCtx.ticksSinceProgress,
+                    tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ(),
+                    waypoint.x(), waypoint.y(), waypoint.z());
             resetPathState();
             return;
         }
 
         switch (status) {
             case SUCCESS -> {
+                PathDebugLog.event("WAYPOINT_DONE type=%s index=%d/%d wp=(%.2f,%.2f,%.2f)",
+                        type.key(), pathIndex, currentPath.size() - 1,
+                        waypoint.x(), waypoint.y(), waypoint.z());
                 pathIndex++;
                 tickCtx.phase = 0;
                 tickCtx.ticksOnMovement = 0;
@@ -227,7 +243,11 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 tickCtx.ticksSinceProgress = 0;
             }
             case RUNNING -> tickCtx.ticksOnMovement++;
-            case FAILED -> resetPathState();
+            case FAILED -> {
+                PathDebugLog.event("MOVEMENT_FAILED type=%s wp=(%.2f,%.2f,%.2f)",
+                        type.key(), waypoint.x(), waypoint.y(), waypoint.z());
+                resetPathState();
+            }
             case UNREACHABLE -> complete(false, "Target became unreachable.");
         }
     }
@@ -363,6 +383,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
                     if (pathOpt.isPresent()) {
                         AnnotatedPath newPath = pathOpt.get();
+                        PathDebugLog.event("PATH_RECEIVED waypoints=%d firstType=%s lastType=%s",
+                                newPath.size(),
+                                newPath.size() > 1 && newPath.get(1).type() != null ? newPath.get(1).type().key() : "?",
+                                newPath.size() > 0 && newPath.get(newPath.size() - 1).type() != null ? newPath.get(newPath.size() - 1).type().key() : "?");
                         // Start from index 1 (skip the start node which is our
                         // current position). Avoids closest-waypoint oscillation.
                         currentPath = newPath;
@@ -373,6 +397,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                         tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
                         tickCtx.ticksSinceProgress = 0;
                     } else if (!hasEverHadPath) {
+                        PathDebugLog.event("PATH_REJECTED no valid path to target");
                         complete(false, "No valid path found to target.");
                     }
                 })

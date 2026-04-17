@@ -39,6 +39,7 @@ me/advait/mai/pathetic/movement/MovementRegistry.class
 me/advait/mai/listener/ChatListener.class
 me/advait/mai/Mai.class
 me/advait/mai/pathetic/movement/types/SprintJump.class
+me/advait/mai/pathetic/debug/PathDebugLog.class
 me/advait/mai/pathetic/path/AnnotatedWaypoint.class
 me/advait/mai/Settings.class
 me/advait/mai/brain/action/mechanic/movement/HumanoidWalkToAction.class

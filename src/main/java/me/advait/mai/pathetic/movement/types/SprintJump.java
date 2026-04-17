@@ -4,6 +4,7 @@ import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
 import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.*;
 
 /**
@@ -134,6 +135,9 @@ public record SprintJump() implements MovementType {
         boolean inJumpRange = distToLanding > 0.5 && distToLanding < gap + 2.5;
 
         if (ctx.jumpCooldown == 0 && fastEnough && inJumpRange && atEdge) {
+            PathDebugLog.event("SPRINT_JUMP_TAKEOFF gap=%d speed=%.3f distToLanding=%.2f bot=(%.2f,%.2f,%.2f)",
+                    gap, currentSpeed, distToLanding,
+                    ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());
             MovementExecutors.jump(ctx, true);
             ctx.phase = 1;
         }

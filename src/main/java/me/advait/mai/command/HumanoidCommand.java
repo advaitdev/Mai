@@ -173,11 +173,14 @@ public class HumanoidCommand extends BaseCommand {
 
     @Subcommand("debug particles")
     @CommandPermission("mai.humanoid.debug")
-    @Description("Toggle path debug particles")
+    @Description("Toggle path debug particles + event log")
     public void onDebugParticles(Player player) {
         boolean current = HumanoidWalkToRunnable.isDebugMode();
         HumanoidWalkToRunnable.setDebugMode(!current);
-        Messages.sendMessage(player, "&7Path debug particles: " + (!current ? "&aEnabled" : "&cDisabled"));
+        Messages.sendMessage(player, "&7Path debug: " + (!current ? "&aEnabled" : "&cDisabled"));
+        if (!current) {
+            Messages.sendMessage(player, "&7Events logged to console. Tail with: &ftail -f mc-server/logs/latest.log | grep PathDebug");
+        }
     }
 
     @Subcommand("debug gotome")

@@ -3,6 +3,7 @@ package me.advait.mai.pathetic.movement.types;
 import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
 import me.advait.mai.pathetic.BlockClassifier;
 import me.advait.mai.pathetic.PathContext;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
 
@@ -66,6 +67,8 @@ public record WalkDiagonal() implements MovementType {
         // cardinal side.
         if (ctx.onGround() && ctx.jumpCooldown == 0
                 && MovementExecutors.obstacleAheadNeedsJump(ctx.current, dir)) {
+            PathDebugLog.event("AUTO_JUMP type=walk_diagonal bot=(%.2f,%.2f,%.2f) dir=(%.2f,%.2f)",
+                    ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(), dir[0], dir[1]);
             MovementExecutors.jump(ctx, sprinting);
         }
 
