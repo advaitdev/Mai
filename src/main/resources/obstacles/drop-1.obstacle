@@ -1,0 +1,7 @@
+name: drop-1
+description: Step off a standalone 1-block ledge, then walk to the goal.
+timeout_ticks: 260
+spawn_yaw: 270
+origin_y: 120
+---
+S1 . . . E .

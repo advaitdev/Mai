@@ -1,0 +1,9 @@
+name: maze-turn-sw
+description: Head east, then turn south-west to the goal.
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . . .
+. _ _ _
+E _ _ _

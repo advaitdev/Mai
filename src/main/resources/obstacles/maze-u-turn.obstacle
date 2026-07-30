@@ -1,0 +1,9 @@
+name: maze-u-turn
+description: A U-shaped corridor.
+timeout_ticks: 400
+spawn_yaw: 0
+origin_y: 120
+---
+S _ E
+. _ .
+. . .

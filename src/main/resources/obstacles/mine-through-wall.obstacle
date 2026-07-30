@@ -1,0 +1,11 @@
+name: mine-through-wall
+description: A 2-high stone wall blocking a 1-wide corridor. Bot must mine through it.
+material: stone
+floor_material: gold_block
+bot_tool: diamond_pickaxe
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+ceiling: 3
+---
+S . 2 . E

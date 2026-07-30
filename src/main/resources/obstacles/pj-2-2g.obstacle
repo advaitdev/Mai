@@ -1,0 +1,7 @@
+name: pj-2-2g
+description: Jump between two 2-tall pillars over a 2 gap.
+timeout_ticks: 280
+spawn_yaw: 270
+origin_y: 120
+---
+S2 _ _ E2

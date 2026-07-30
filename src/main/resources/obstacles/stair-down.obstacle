@@ -1,0 +1,8 @@
+name: stair-down
+description: Four-block descending staircase. Tests StepDown chaining.
+material: gold_block
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S4 3 2 1 E

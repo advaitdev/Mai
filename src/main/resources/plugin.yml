@@ -5,3 +5,7 @@ api-version: '1.21.11'
 authors: [Advait]
 description: Creating an AI-powered world in Minecraft.
 commands:
+permissions:
+  mai.obstacle.run:
+    description: Run the obstacle-course test harness (/mai test ...)
+    default: op

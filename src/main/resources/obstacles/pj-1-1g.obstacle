@@ -1,0 +1,7 @@
+name: pj-1-1g
+description: Jump between two 1-tall pillars over a 1 gap.
+timeout_ticks: 260
+spawn_yaw: 270
+origin_y: 120
+---
+S1 _ E1

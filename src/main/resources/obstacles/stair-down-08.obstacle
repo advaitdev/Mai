@@ -1,0 +1,7 @@
+name: stair-down-08
+description: Descend 8 blocks, one step per cell.
+timeout_ticks: 510
+spawn_yaw: 270
+origin_y: 120
+---
+S8 7 6 5 4 3 2 1 E

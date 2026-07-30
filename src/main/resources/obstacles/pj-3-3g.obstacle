@@ -1,0 +1,7 @@
+name: pj-3-3g
+description: Jump between two 3-tall pillars over a 3 gap.
+timeout_ticks: 320
+spawn_yaw: 270
+origin_y: 120
+---
+S3 _ _ _ E3

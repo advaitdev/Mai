@@ -1,0 +1,7 @@
+name: jump-2-double
+description: Two 2-block gaps with run-ups.
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ _ . . . _ _ . . E . .

@@ -1,0 +1,11 @@
+name: maze-spiral-in
+description: Spiral inward to the centre.
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . .
+_ _ _ _ .
+. . . _ .
+. _ E _ .
+. . . . .

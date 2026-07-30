@@ -1,0 +1,18 @@
+name: walkv-12
+description: 12-cell straight walk heading south.
+timeout_ticks: 200
+spawn_yaw: 0
+origin_y: 120
+---
+S
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+E

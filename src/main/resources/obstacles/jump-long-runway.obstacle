@@ -1,0 +1,7 @@
+name: jump-long-runway
+description: Long runway into a 3-block gap, with a landing platform.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . . _ _ _ . . E . .

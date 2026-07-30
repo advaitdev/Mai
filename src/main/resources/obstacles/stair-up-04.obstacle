@@ -1,0 +1,7 @@
+name: stair-up-04
+description: Ascend 4 blocks, one step per cell.
+timeout_ticks: 330
+spawn_yaw: 270
+origin_y: 120
+---
+S 1 2 3 4 E4

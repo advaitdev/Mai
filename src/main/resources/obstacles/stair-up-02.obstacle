@@ -1,0 +1,7 @@
+name: stair-up-02
+description: Ascend 2 blocks, one step per cell.
+timeout_ticks: 240
+spawn_yaw: 270
+origin_y: 120
+---
+S 1 2 E2

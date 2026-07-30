@@ -1,0 +1,7 @@
+name: valley-03
+description: Descend 3 into a pit, then climb 3 back out.
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S3 2 1 . 1 2 E3

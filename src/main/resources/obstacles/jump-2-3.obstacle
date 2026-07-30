@@ -1,0 +1,7 @@
+name: jump-2-3
+description: A 2-gap then a 3-gap with run-ups.
+timeout_ticks: 420
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ _ . . . _ _ _ . . E . .

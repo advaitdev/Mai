@@ -10,6 +10,8 @@ import me.advait.mai.gui.GUIListener;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.listener.EntityCleanupListener;
 import me.advait.mai.listener.WorldChangeListener;
+import me.advait.mai.obstacle.ObstacleCommand;
+import me.advait.mai.obstacle.ObstacleTester;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.pathetic.config.MovementConfig;
 import org.bukkit.Bukkit;
@@ -44,6 +46,7 @@ public final class Mai extends JavaPlugin {
         PatheticBukkit.initialize(this);
         MovementConfig movementConfig = new MovementConfig(settingsFile.getConfiguration());
         PatheticAgent.getInstance().initialize(movementConfig);
+        ObstacleTester.getInstance().initialize();
         registerCommands();
         registerListeners();
 
@@ -56,7 +59,11 @@ public final class Mai extends JavaPlugin {
         commandManager.getCommandCompletions().registerCompletion("humanoids", c ->
                 Catalog.getInstance().getAllNames()
         );
+        commandManager.getCommandCompletions().registerCompletion("obstacles", c ->
+                ObstacleTester.getInstance().stems()
+        );
         commandManager.registerCommand(new HumanoidCommand());
+        commandManager.registerCommand(new ObstacleCommand());
     }
 
     private void registerListeners() {

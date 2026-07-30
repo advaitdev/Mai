@@ -1,0 +1,7 @@
+name: ascent-06-walk
+description: Walk, climb 6, then a short flat top.
+timeout_ticks: 520
+spawn_yaw: 270
+origin_y: 120
+---
+. . S 1 2 3 4 5 6 6 E6

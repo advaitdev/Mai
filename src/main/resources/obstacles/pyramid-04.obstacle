@@ -1,0 +1,7 @@
+name: pyramid-04
+description: Up to 4 then back down to ground.
+timeout_ticks: 440
+spawn_yaw: 270
+origin_y: 120
+---
+S 1 2 3 4 3 2 1 E

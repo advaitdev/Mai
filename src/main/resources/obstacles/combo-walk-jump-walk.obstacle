@@ -1,0 +1,7 @@
+name: combo-walk-jump-walk
+description: Walk, clear a 3-gap onto a platform, walk to the goal.
+timeout_ticks: 350
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ _ _ . . E . .

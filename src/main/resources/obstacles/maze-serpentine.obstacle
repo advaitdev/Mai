@@ -1,0 +1,11 @@
+name: maze-serpentine
+description: Long boustrophedon sweep across seven columns.
+timeout_ticks: 450
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . . . .
+_ _ _ _ _ _ .
+. . . . . . .
+. _ _ _ _ _ _
+. . . . . . E

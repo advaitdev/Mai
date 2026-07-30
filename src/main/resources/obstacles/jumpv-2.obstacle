@@ -1,0 +1,15 @@
+name: jumpv-2
+description: Two-block gap heading south.
+timeout_ticks: 300
+spawn_yaw: 0
+origin_y: 120
+---
+S
+.
+.
+_
+_
+.
+.
+E
+.

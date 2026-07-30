@@ -1,0 +1,8 @@
+name: bridge-planks
+description: Bridge a 5-wide gap using planks.
+bot_blocks: oak_planks 256
+timeout_ticks: 600
+spawn_yaw: 270
+origin_y: 120
+---
+S . _ _ _ _ _ . E

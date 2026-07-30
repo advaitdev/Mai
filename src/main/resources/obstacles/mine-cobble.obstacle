@@ -1,0 +1,11 @@
+name: mine-cobble
+description: Mine through a cobblestone wall.
+material: cobblestone
+floor_material: gold_block
+bot_tool: diamond_pickaxe
+ceiling: 3
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . 2 2 . E

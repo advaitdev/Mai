@@ -1,0 +1,7 @@
+name: jump-1-series5
+description: Five 1-block gaps with run-ups.
+timeout_ticks: 480
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ . . . _ . . . _ . . . _ . . . _ . . E . .

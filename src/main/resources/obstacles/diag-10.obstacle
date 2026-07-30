@@ -1,0 +1,16 @@
+name: diag-10
+description: 10x10 open field; optimal path is diagonal.
+timeout_ticks: 200
+spawn_yaw: 315
+origin_y: 120
+---
+S . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . E

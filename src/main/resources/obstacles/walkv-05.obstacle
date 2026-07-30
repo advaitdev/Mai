@@ -1,0 +1,11 @@
+name: walkv-05
+description: 5-cell straight walk heading south.
+timeout_ticks: 200
+spawn_yaw: 0
+origin_y: 120
+---
+S
+.
+.
+.
+E

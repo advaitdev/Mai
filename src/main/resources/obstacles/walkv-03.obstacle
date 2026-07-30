@@ -1,0 +1,9 @@
+name: walkv-03
+description: 3-cell straight walk heading south.
+timeout_ticks: 200
+spawn_yaw: 0
+origin_y: 120
+---
+S
+.
+E

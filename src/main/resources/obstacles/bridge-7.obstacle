@@ -1,0 +1,8 @@
+name: bridge-7
+description: Bridge across a 7-wide void gap.
+bot_blocks: cobblestone 256
+timeout_ticks: 690
+spawn_yaw: 270
+origin_y: 120
+---
+S . _ _ _ _ _ _ _ . E

@@ -1,0 +1,8 @@
+name: bridge-9
+description: Bridge across a 9-wide void gap.
+bot_blocks: cobblestone 256
+timeout_ticks: 830
+spawn_yaw: 270
+origin_y: 120
+---
+S . _ _ _ _ _ _ _ _ _ . E

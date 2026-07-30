@@ -1,0 +1,7 @@
+name: walk-04
+description: 4-cell straight walk on flat ground.
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S . . E

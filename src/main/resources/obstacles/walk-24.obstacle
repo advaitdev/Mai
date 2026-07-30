@@ -1,0 +1,7 @@
+name: walk-24
+description: 24-cell straight walk on flat ground.
+timeout_ticks: 288
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . . . . . . . . . . . . . . . . . . . . E

@@ -1,0 +1,8 @@
+name: walk-flat
+description: Five-block straight walk on flat ground.
+material: gold_block
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . . E

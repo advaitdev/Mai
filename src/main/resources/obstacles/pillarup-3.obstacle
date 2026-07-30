@@ -1,0 +1,8 @@
+name: pillarup-3
+description: Pillar straight up 3 blocks to the goal.
+bot_blocks: cobblestone 64
+timeout_ticks: 470
+spawn_yaw: 270
+origin_y: 120
+---
+S E3

@@ -1,0 +1,9 @@
+name: diag-03
+description: 3x3 open field; optimal path is diagonal.
+timeout_ticks: 200
+spawn_yaw: 315
+origin_y: 120
+---
+S . .
+. . .
+. . E

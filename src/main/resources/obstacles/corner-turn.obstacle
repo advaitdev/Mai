@@ -1,0 +1,10 @@
+name: corner-turn
+description: L-shaped corridor forcing a 90-degree turn. Void cells wall off the diagonal.
+material: gold_block
+timeout_ticks: 250
+spawn_yaw: 270
+origin_y: 120
+---
+S . . .
+_ _ _ .
+_ _ _ E

@@ -1,0 +1,8 @@
+name: gap-2
+description: Two-block gap with runway. Requires sprint-jump.
+material: gold_block
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S . _ _ . E

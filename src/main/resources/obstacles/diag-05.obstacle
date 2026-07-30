@@ -1,0 +1,11 @@
+name: diag-05
+description: 5x5 open field; optimal path is diagonal.
+timeout_ticks: 200
+spawn_yaw: 315
+origin_y: 120
+---
+S . . . .
+. . . . .
+. . . . .
+. . . . .
+. . . . E

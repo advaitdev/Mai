@@ -1,0 +1,11 @@
+name: mine-tool-golden
+description: Mine a stone wall with a golden pickaxe.
+material: stone
+floor_material: gold_block
+bot_tool: golden_pickaxe
+ceiling: 3
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . 2 . E

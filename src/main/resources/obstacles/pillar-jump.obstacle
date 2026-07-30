@@ -1,0 +1,8 @@
+name: pillar-jump
+description: Jump from a 3-tall pillar to a 3-tall pillar across a 2-block gap.
+material: gold_block
+timeout_ticks: 250
+spawn_yaw: 270
+origin_y: 120
+---
+S3 _ _ E3

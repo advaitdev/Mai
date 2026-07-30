@@ -1,0 +1,7 @@
+name: stair-down-03
+description: Descend 3 blocks, one step per cell.
+timeout_ticks: 285
+spawn_yaw: 270
+origin_y: 120
+---
+S3 2 1 E

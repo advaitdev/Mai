@@ -1,0 +1,8 @@
+name: stair-up
+description: Four-block ascending staircase. Tests StepUp chaining.
+material: gold_block
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S 1 2 3 4 E4

@@ -75,3 +75,22 @@ movement:
     path_update_interval: 5     # ticks between path recalculations
     stuck_timeout: 200          # ticks before declaring stuck
     near_target_distance: 0.5   # fallback distance check (exact block match is primary)
+
+# Obstacle-course test harness (/mai test ...)
+obstacle:
+  # The world arenas are built in. If `auto_create` is on and no world with
+  # this name is loaded, one is created on plugin enable using `type`:
+  #   VOID   - empty world, nothing but the arena (recommended)
+  #   FLAT   - superflat ground far below the arena
+  #   NORMAL - default terrain generation
+  # Set `name` to an existing world (e.g. "world") to build there instead;
+  # an already-loaded world is used as-is and never regenerated.
+  world:
+    name: obstacles
+    type: VOID
+    auto_create: true
+  # Horizontal origin within that world. The floor Y is per-file via the
+  # obstacle's `origin_y` header (defaults to 120).
+  arena_origin:
+    x: 0
+    z: 0

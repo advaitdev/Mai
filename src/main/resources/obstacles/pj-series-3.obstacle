@@ -1,0 +1,7 @@
+name: pj-series-3
+description: Hop across three 2-tall pillars (gap 1 between).
+timeout_ticks: 360
+spawn_yaw: 270
+origin_y: 120
+---
+S2 _ 2 _ E2

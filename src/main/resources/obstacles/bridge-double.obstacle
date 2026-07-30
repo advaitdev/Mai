@@ -1,0 +1,8 @@
+name: bridge-double
+description: Bridge two voids separated by a landing.
+bot_blocks: cobblestone 256
+timeout_ticks: 900
+spawn_yaw: 270
+origin_y: 120
+---
+S . _ _ _ _ . _ _ _ _ . E

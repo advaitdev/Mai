@@ -1,0 +1,11 @@
+name: maze-zigzag-1
+description: Zig-zag corridor.
+timeout_ticks: 400
+spawn_yaw: 0
+origin_y: 120
+---
+S . _ _ _
+_ . _ _ _
+_ . . . _
+_ _ _ . _
+_ _ _ . E

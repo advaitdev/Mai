@@ -1,0 +1,13 @@
+name: maze-zigzag-2
+description: Tall zig-zag descent-free corridor.
+timeout_ticks: 450
+spawn_yaw: 0
+origin_y: 120
+---
+S . . . .
+. _ _ _ _
+. . . . .
+_ _ _ _ .
+. . . . .
+. _ _ _ _
+. . . . E
