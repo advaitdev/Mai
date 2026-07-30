@@ -25,8 +25,11 @@ public final class BlockClassifier {
     private static final boolean[] LAVA = new boolean[N];
     private static final boolean[] DANGEROUS = new boolean[N];
     private static final boolean[] SOLID = new boolean[N];
+    private static final boolean[] BREAKABLE = new boolean[N];
     private static final double[] SLIPPERINESS = new double[N];
     private static final double[] SPEED_MULTIPLIER = new double[N];
+    private static final float[] HARDNESS = new float[N];
+    private static final double[] PLACEMENT_VALUE = new double[N];
 
     static {
         for (Material m : Material.values()) {
@@ -39,6 +42,9 @@ public final class BlockClassifier {
             SOLID[i]            = computeSolid(m);
             SLIPPERINESS[i]     = computeSlipperiness(m);
             SPEED_MULTIPLIER[i] = computeSpeedMultiplier(m);
+            HARDNESS[i]         = computeHardness(m);
+            BREAKABLE[i]        = computeBreakable(m);
+            PLACEMENT_VALUE[i]  = computePlacementValue(m);
         }
     }
 
@@ -89,6 +95,25 @@ public final class BlockClassifier {
     /** Whether the block should be treated as a solid surface to stand on. */
     public static boolean isSolid(Material material) {
         return SOLID[material.ordinal()];
+    }
+
+    /** Whether the bot may break this block during pathing (solid, finite hardness, not protected). */
+    public static boolean isBreakable(Material material) {
+        return BREAKABLE[material.ordinal()];
+    }
+
+    /** Vanilla block hardness (≥0); negative means unbreakable. */
+    public static float hardness(Material material) {
+        return HARDNESS[material.ordinal()];
+    }
+
+    /**
+     * Relative "value" of placing this block, used for the placement cost's
+     * scarcity term. Throwaway blocks (cobblestone/dirt/netherrack) are ~1;
+     * ores/metals/gems are very high so the pathfinder avoids wasting them.
+     */
+    public static double placementValue(Material material) {
+        return PLACEMENT_VALUE[material.ordinal()];
     }
 
     // =========================================================================
@@ -147,5 +172,59 @@ public final class BlockClassifier {
         // Leaves have collision but Material.isSolid() returns false
         if (material.name().endsWith("_LEAVES")) return true;
         return false;
+    }
+
+    private static float computeHardness(Material material) {
+        try {
+            return material.getHardness();
+        } catch (IllegalArgumentException e) {
+            // Non-block materials (items) throw; treat as unbreakable.
+            return -1f;
+        }
+    }
+
+    /**
+     * Breakable = a solid block with finite hardness that isn't protected.
+     * Protected blocks (containers, spawners, command/structure/portal blocks)
+     * are excluded so the bot never destroys something valuable or load-bearing
+     * to a build while pathing.
+     */
+    private static boolean computeBreakable(Material material) {
+        if (!computeSolid(material)) return false;
+        if (computeHardness(material) < 0) return false;   // bedrock, barrier, etc.
+        return switch (material) {
+            case BARRIER, COMMAND_BLOCK, CHAIN_COMMAND_BLOCK, REPEATING_COMMAND_BLOCK,
+                 STRUCTURE_BLOCK, JIGSAW, END_PORTAL_FRAME, SPAWNER,
+                 CHEST, TRAPPED_CHEST, ENDER_CHEST, BARREL, SHULKER_BOX,
+                 HOPPER, DISPENSER, DROPPER, FURNACE, BLAST_FURNACE, SMOKER,
+                 BEACON, CONDUIT -> false;
+            default -> true;
+        };
+    }
+
+    /**
+     * Placement value used for the scarcity-weighted placement cost. Cheap,
+     * mass-produced blocks are ~1; tiered storage/ore blocks scale up steeply
+     * so the planner only spends them when nothing cheaper is on hand.
+     */
+    private static double computePlacementValue(Material material) {
+        String n = material.name();
+        // Common throwaway blocks Baritone treats as free-ish.
+        if (material == Material.COBBLESTONE || material == Material.DIRT
+                || material == Material.NETHERRACK || material == Material.COBBLED_DEEPSLATE
+                || material == Material.GRAVEL || material == Material.SAND) return 1.0;
+        if (material == Material.DIAMOND_BLOCK || material == Material.EMERALD_BLOCK
+                || material == Material.NETHERITE_BLOCK) return 4000.0;
+        if (material == Material.GOLD_BLOCK) return 400.0;
+        if (material == Material.IRON_BLOCK || material == Material.LAPIS_BLOCK
+                || material == Material.REDSTONE_BLOCK) return 300.0;
+        if (n.contains("DIAMOND") || n.contains("EMERALD") || n.contains("NETHERITE")) return 2000.0;
+        if (n.contains("GOLD")) return 250.0;
+        if (n.contains("IRON")) return 150.0;
+        if (n.endsWith("_PLANKS") || n.contains("LOG") || n.contains("WOOD")) return 2.0;
+        if (n.contains("STONE") || n.contains("DEEPSLATE") || n.contains("TUFF")
+                || n.contains("ANDESITE") || n.contains("DIORITE") || n.contains("GRANITE")) return 3.0;
+        // Default: an ordinary building block — cheap but not throwaway.
+        return 5.0;
     }
 }

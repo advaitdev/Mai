@@ -15,6 +15,17 @@ public final class MovementConfig {
     private final int maxParkourReach;
     private final int maxFallHeight;
     private final boolean allowUnsafeFalls;
+    private final boolean miningEnabled;
+    private final boolean bridgeEnabled;
+
+    // --- Mining / placing ---
+    private final double mineCorrectToolDivisor;
+    private final double mineWrongToolDivisor;
+    private final double mineDurabilityWeight;
+    private final double costInf;
+    private final double placeBlockCost;
+    private final double placeEquipCost;
+    private final double placeValueWeight;
 
     // --- Costs (ticks) ---
     private final double walkFlat;
@@ -65,6 +76,19 @@ public final class MovementConfig {
         this.maxParkourReach = pf.getInt("max_parkour_reach", 4);
         this.maxFallHeight = pf.getInt("max_fall_height", 20);
         this.allowUnsafeFalls = pf.getBoolean("allow_unsafe_falls", true);
+        this.miningEnabled = pf.getBoolean("mining_enabled", true);
+        this.bridgeEnabled = pf.getBoolean("bridge_enabled", true);
+
+        ConfigurationSection mine = section(config, "movement.mine");
+        this.mineCorrectToolDivisor = mine.getDouble("correct_tool_divisor", 30.0);
+        this.mineWrongToolDivisor = mine.getDouble("wrong_tool_divisor", 100.0);
+        this.mineDurabilityWeight = mine.getDouble("durability_weight", 0.5);
+        this.costInf = mine.getDouble("cost_inf", 1_000_000.0);
+
+        ConfigurationSection place = section(config, "movement.place");
+        this.placeBlockCost = place.getDouble("place_block_cost", 20.0);
+        this.placeEquipCost = place.getDouble("equip_cost", 1.0);
+        this.placeValueWeight = place.getDouble("value_weight", 1.0);
 
         ConfigurationSection costs = section(config, "movement.costs");
         this.walkFlat = costs.getDouble("walk_flat", 4.63);
@@ -168,6 +192,16 @@ public final class MovementConfig {
     public int getMaxParkourReach() { return maxParkourReach; }
     public int getMaxFallHeight() { return maxFallHeight; }
     public boolean isAllowUnsafeFalls() { return allowUnsafeFalls; }
+    public boolean isMiningEnabled() { return miningEnabled; }
+    public boolean isBridgeEnabled() { return bridgeEnabled; }
+
+    public double getMineCorrectToolDivisor() { return mineCorrectToolDivisor; }
+    public double getMineWrongToolDivisor() { return mineWrongToolDivisor; }
+    public double getMineDurabilityWeight() { return mineDurabilityWeight; }
+    public double getCostInf() { return costInf; }
+    public double getPlaceBlockCost() { return placeBlockCost; }
+    public double getPlaceEquipCost() { return placeEquipCost; }
+    public double getPlaceValueWeight() { return placeValueWeight; }
 
     public double getWalkFlat() { return walkFlat; }
     public double getWalkDiagonal() { return walkDiagonal; }

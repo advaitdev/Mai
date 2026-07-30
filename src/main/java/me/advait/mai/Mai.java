@@ -9,6 +9,7 @@ import me.advait.mai.file.SettingsFile;
 import me.advait.mai.gui.GUIListener;
 import me.advait.mai.listener.ChatListener;
 import me.advait.mai.listener.EntityCleanupListener;
+import me.advait.mai.listener.WorldChangeListener;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.pathetic.config.MovementConfig;
 import org.bukkit.Bukkit;
@@ -62,6 +63,7 @@ public final class Mai extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
         getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
+        getServer().getPluginManager().registerEvents(new WorldChangeListener(), this);
     }
 
     @Override

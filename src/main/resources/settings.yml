@@ -14,6 +14,24 @@ movement:
     max_parkour_reach: 4        # max gap in blocks for sprint-jump
     max_fall_height: 20         # max blocks to consider falling
     allow_unsafe_falls: true    # allow falls that cause damage
+    mining_enabled: true        # allow the pathfinder to break blocks to make a route
+    bridge_enabled: true        # allow the pathfinder to place blocks to bridge/pillar
+
+  # Costs (ticks) for breaking blocks during pathing. The tick cost to break a
+  # block is the vanilla formula: hardness * divisor / tool_speed.
+  mine:
+    correct_tool_divisor: 30    # ticks per hardness with the right tool
+    wrong_tool_divisor: 100     # ticks per hardness with the wrong/no tool
+    durability_weight: 0.5      # how much tool durability wear adds to break cost
+    cost_inf: 1000000.0         # cost for unbreakable/disallowed blocks (never chosen)
+
+  # Costs (ticks) for placing blocks during pathing (bridge/pillar). Scarcity
+  # makes plentiful cheap blocks (cobblestone) preferred over valuable/rare ones
+  # (diamond): per-place cost = base + value_weight * value(block) / log2(count+2).
+  place:
+    place_block_cost: 20.0      # base tick cost to place one block
+    equip_cost: 1.0             # tick cost to swap the block into hand
+    value_weight: 1.0           # scales the material-value/scarcity penalty
 
   # Costs in ticks (20 ticks = 1 second). Lower = preferred by pathfinder.
   # Sprint-jumping is fastest (7.127 b/s) so it's cheapest per block.

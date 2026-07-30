@@ -43,6 +43,17 @@ public final class MovementRegistry {
         list.add(new FallSafe());
         list.add(new WalkDiagonal());
         list.add(new WalkFlat());
+        // Mining/placing are last-resort: their matches() only fire on blocked
+        // or floorless cells the natural moves reject, and their (higher) costs
+        // ensure A* prefers a free detour whenever one is cheaper.
+        if (config.isMiningEnabled()) {
+            list.add(new MineStepUp());
+            list.add(new MineThrough());
+        }
+        if (config.isBridgeEnabled()) {
+            list.add(new PillarUp());
+            list.add(new BridgePlace());
+        }
         this.types = Collections.unmodifiableList(list);
     }
 

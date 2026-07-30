@@ -76,6 +76,14 @@ public final class TickContext {
     /** The final target location of the entire walk (not the current waypoint). */
     public Location finalTarget;
 
+    /**
+     * In-progress sub-action future for mine/place movement types (a block
+     * break spans many ticks). Set by the type when it kicks off a break,
+     * polled each tick, and cleared by the driver whenever it advances to a
+     * new waypoint or resets the path so stale state can't leak across moves.
+     */
+    public java.util.concurrent.CompletableFuture<me.advait.mai.brain.action.result.HumanoidActionResult> subAction;
+
     /** Convenience accessor — the entity from {@link #humanoid}. */
     public LivingEntity entity() {
         return humanoid.getEntity();

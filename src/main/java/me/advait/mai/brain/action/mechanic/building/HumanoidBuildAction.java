@@ -5,8 +5,12 @@ import me.advait.mai.brain.action.mechanic.HumanoidAction;
 import me.advait.mai.brain.action.event.HumanoidActionEvent;
 import me.advait.mai.brain.action.event.HumanoidBuildActionEvent;
 import me.advait.mai.brain.action.result.HumanoidActionResult;
+import de.bsommerfeld.pathetic.bukkit.provider.FailingNavigationPointProvider;
 import me.advait.mai.util.LocationUtil;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.concurrent.CompletableFuture;
@@ -54,15 +58,47 @@ public class HumanoidBuildAction extends HumanoidAction {
             return;
         }
 
-        humanoid.getEntity().swingMainHand();
-        location.getBlock().setType(block.getType());
-
-        block.setAmount(block.getAmount() - 1);
-        if (humanoid.getEquipment() != null) {
-            humanoid.getEquipment().setItemInMainHand(block);
+        if (!placeBlock(humanoid.getEntity(), location, block)) {
+            resultFuture.complete(new HumanoidActionResult(false, "No solid face to place against."));
+            return;
         }
 
         resultFuture.complete(new HumanoidActionResult(true, "Block placed successfully."));
+    }
+
+    /**
+     * Places one block of {@code held}'s type at {@code location}, requiring a
+     * solid neighbour to place against (no floating placements), swinging the
+     * arm, decrementing the held stack and writing it back to the main hand,
+     * and invalidating the pathfinder's snapshot cache so the bot's own edit is
+     * visible to the next replan. Returns false if there's no solid face to
+     * build against. Main thread only.
+     */
+    public static boolean placeBlock(LivingEntity entity, Location location, ItemStack held) {
+        Block target = location.getBlock();
+        if (!hasSolidNeighbour(target)) return false;
+
+        LocationUtil.faceLocation(entity, location);
+        entity.swingMainHand();
+        target.setType(held.getType());
+
+        held.setAmount(held.getAmount() - 1);
+        if (entity.getEquipment() != null) {
+            entity.getEquipment().setItemInMainHand(held);
+        }
+
+        FailingNavigationPointProvider.invalidateChunk(
+                target.getWorld().getUID(), target.getX() >> 4, target.getZ() >> 4);
+        return true;
+    }
+
+    private static boolean hasSolidNeighbour(Block block) {
+        for (BlockFace face : new BlockFace[]{
+                BlockFace.DOWN, BlockFace.UP, BlockFace.NORTH,
+                BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+            if (block.getRelative(face).getType().isSolid()) return true;
+        }
+        return false;
     }
 
     @Override

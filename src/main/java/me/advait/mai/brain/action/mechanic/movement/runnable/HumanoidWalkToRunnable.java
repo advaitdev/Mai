@@ -23,8 +23,12 @@ import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import de.bsommerfeld.pathetic.bukkit.provider.FailingNavigationPointProvider;
+
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -73,6 +77,31 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     private static boolean debugMode = false;
 
+    /** Radius (blocks) around a bot within which a world change forces a replan. */
+    private static final double WORLD_CHANGE_RADIUS = 32.0;
+
+    /** Live runnables, so a world-change event can flag the affected bots. */
+    private static final Set<HumanoidWalkToRunnable> ACTIVE = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Called (main thread) when a block changes in the world. Invalidates the
+     * pathfinder's static chunk-snapshot cache so the next A* sees fresh blocks,
+     * and flags any nearby in-flight walk to replan immediately — this is what
+     * makes pathing adapt to a constantly-changing world.
+     */
+    public static void onWorldChange(org.bukkit.World world, int x, int y, int z) {
+        FailingNavigationPointProvider.invalidateChunk(world.getUID(), x >> 4, z >> 4);
+        for (HumanoidWalkToRunnable r : ACTIVE) {
+            LivingEntity e = r.humanoid.getEntity();
+            if (e == null || !world.equals(e.getWorld())) continue;
+            if (e.getLocation().distanceSquared(new Location(world, x, y, z)) <= WORLD_CHANGE_RADIUS * WORLD_CHANGE_RADIUS) {
+                r.worldDirty = true;
+            }
+        }
+    }
+
+    private volatile boolean worldDirty = false;
+
     private final Humanoid humanoid;
     private final Location target;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
@@ -99,6 +128,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         tickCtx.humanoid = humanoid;
         tickCtx.config = config;
         tickCtx.finalTarget = target;
+
+        ACTIVE.add(this);
     }
 
     public static void setDebugMode(boolean enabled) { debugMode = enabled; }
@@ -106,7 +137,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     @Override
     public void run() {
-        if (resultFuture.isDone()) { cancel(); return; }
+        if (resultFuture.isDone()) { ACTIVE.remove(this); cancel(); return; }
 
         LivingEntity entity = humanoid.getEntity();
         if (entity == null || !entity.isValid()) {
@@ -151,11 +182,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         //      window didn't cover.
         boolean pathNull = currentPath == null;
         boolean lookaheadBroken = !pathNull && !isUpcomingPathValid();
-        boolean periodic = !pathNull && !lookaheadBroken && ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
-        boolean needsReplan = pathNull || lookaheadBroken || periodic;
+        boolean dirty = !pathNull && !lookaheadBroken && worldDirty;
+        boolean periodic = !pathNull && !lookaheadBroken && !dirty && ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
+        boolean needsReplan = pathNull || lookaheadBroken || dirty || periodic;
 
         if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
-            String reason = pathNull ? "no_path" : lookaheadBroken ? "lookahead_invalid" : "periodic";
+            worldDirty = false;
+            String reason = pathNull ? "no_path" : lookaheadBroken ? "lookahead_invalid"
+                    : dirty ? "world_change" : "periodic";
             PathDebugLog.event("REPLAN reason=%s bot=(%.2f,%.2f,%.2f)",
                     reason, current.getX(), current.getY(), current.getZ());
             requestNewPath(current);
@@ -240,6 +274,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                         waypoint.x(), waypoint.y(), waypoint.z());
                 handleWaypointTransition();
                 pathIndex++;
+                tickCtx.subAction = null;
                 tickCtx.phase = 0;
                 tickCtx.ticksOnMovement = 0;
                 tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
@@ -314,6 +349,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private void resetPathState() {
         currentPath = null;
         pathIndex = 0;
+        tickCtx.subAction = null;
         tickCtx.phase = 0;
         tickCtx.ticksOnMovement = 0;
         tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
@@ -446,6 +482,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                         currentPath = newPath;
                         pathIndex = Math.min(1, newPath.size() - 1);
                         hasEverHadPath = true;
+                        tickCtx.subAction = null;
                         tickCtx.phase = 0;
                         tickCtx.ticksOnMovement = 0;
                         tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
@@ -468,6 +505,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         if (!resultFuture.isDone()) {
             resultFuture.complete(new HumanoidActionResult(success, message));
         }
+        ACTIVE.remove(this);
         cancel();
     }
 
@@ -496,6 +534,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                     case SNEAK -> Color.GRAY;
                     case SWIM -> Color.TEAL;
                     case CLIMB -> Color.PURPLE;
+                    case MINE -> Color.MAROON;
+                    case BRIDGE -> Color.LIME;
                 };
             } else {
                 color = Color.YELLOW;

@@ -20,7 +20,9 @@ public record ExecutionHint(
         SPRINT_JUMP,
         SNEAK,
         SWIM,
-        CLIMB
+        CLIMB,
+        MINE,
+        BRIDGE
     }
 
     public static ExecutionHint walk() {
@@ -49,5 +51,15 @@ public record ExecutionHint(
 
     public static ExecutionHint climb() {
         return new ExecutionHint(Locomotion.CLIMB, false, false, 0);
+    }
+
+    /** Mining moves: kept per-waypoint by simplify (non-WALK/SPRINT locomotion). */
+    public static ExecutionHint mine() {
+        return new ExecutionHint(Locomotion.MINE, false, false, 0);
+    }
+
+    /** Placing/bridging moves: kept per-waypoint by simplify so each cell executes. */
+    public static ExecutionHint bridge() {
+        return new ExecutionHint(Locomotion.BRIDGE, false, false, 0);
     }
 }
