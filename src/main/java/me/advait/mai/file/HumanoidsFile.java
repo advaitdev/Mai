@@ -18,6 +18,9 @@ public final class HumanoidsFile extends YMLBase {
 
     private static final String HUMANOIDS_KEY = "humanoids";
 
+    /** UUIDs whose entries failed to deserialize on the last load. */
+    private final java.util.Set<String> unreadable = new java.util.HashSet<>();
+
     public HumanoidsFile(String fileName) {
         super(Mai.getInstance(), new File(Mai.getInstance().getDataFolder(), fileName), false);
     }
@@ -56,6 +59,7 @@ public final class HumanoidsFile extends YMLBase {
      */
     public List<HumanoidData> loadAllHumanoids() {
         List<HumanoidData> result = new ArrayList<>();
+        unreadable.clear();
 
         ConfigurationSection humanoidsSection = getConfiguration().getConfigurationSection(HUMANOIDS_KEY);
         if (humanoidsSection == null) {
@@ -65,9 +69,18 @@ public final class HumanoidsFile extends YMLBase {
         for (String uuidString : humanoidsSection.getKeys(false)) {
             ConfigurationSection humanoidSection = humanoidsSection.getConfigurationSection(uuidString);
             if (humanoidSection != null) {
-                HumanoidData data = HumanoidSerializer.deserialize(humanoidSection);
-                if (data != null) {
-                    result.add(data);
+                // One unreadable entry (e.g. item data from an incompatible
+                // version) must not stop every other humanoid from loading.
+                try {
+                    HumanoidData data = HumanoidSerializer.deserialize(humanoidSection);
+                    if (data != null) {
+                        result.add(data);
+                    }
+                } catch (RuntimeException | LinkageError e) {
+                    unreadable.add(uuidString);
+                    me.advait.mai.Mai.getInstance().getLogger().warning(
+                            "Skipping humanoid " + uuidString + " - could not deserialize "
+                                    + "(its saved data is kept untouched): " + e);
                 }
             }
         }
@@ -81,10 +94,22 @@ public final class HumanoidsFile extends YMLBase {
      * @param humanoids the list of humanoids to save
      */
     public void saveAllHumanoids(List<Humanoid> humanoids) {
+        // Entries that failed to load aren't in memory; carry their raw data
+        // over so a bad load followed by a save can't erase them.
+        java.util.Map<String, ConfigurationSection> kept = new java.util.LinkedHashMap<>();
+        ConfigurationSection old = getConfiguration().getConfigurationSection(HUMANOIDS_KEY);
+        if (old != null) {
+            for (String uuid : unreadable) {
+                ConfigurationSection s = old.getConfigurationSection(uuid);
+                if (s != null) kept.put(uuid, s);
+            }
+        }
+
         // Clear existing data
         getConfiguration().set(HUMANOIDS_KEY, null);
 
         ConfigurationSection humanoidsSection = getOrCreateSection(HUMANOIDS_KEY);
+        kept.forEach(humanoidsSection::set);
         for (Humanoid humanoid : humanoids) {
             ConfigurationSection humanoidSection = humanoidsSection.createSection(humanoid.getUuid().toString());
             HumanoidSerializer.serialize(humanoidSection, humanoid);

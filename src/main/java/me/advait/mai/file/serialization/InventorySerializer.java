@@ -4,16 +4,24 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
-import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Serializes and deserializes Bukkit inventories to/from Base64 strings.
  */
 public final class InventorySerializer {
+
+    // Same format SnakeYAML's Base64Coder.encodeLines produced (76-char lines,
+    // LF separators), so data saved by older builds still decodes. Paper
+    // 26.x no longer exposes SnakeYAML's internal Base64Coder to plugins.
+    private static final Base64.Encoder ENCODER =
+            Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.US_ASCII));
+    private static final Base64.Decoder DECODER = Base64.getMimeDecoder();
 
     private InventorySerializer() {}
 
@@ -42,7 +50,7 @@ public final class InventorySerializer {
                 dataOutput.writeObject(item);
             }
 
-            return Base64Coder.encodeLines(outputStream.toByteArray());
+            return ENCODER.encodeToString(outputStream.toByteArray()) + "\n";
         } catch (IOException e) {
             throw new RuntimeException("Failed to serialize inventory", e);
         }
@@ -59,7 +67,7 @@ public final class InventorySerializer {
             return new ItemStack[0];
         }
 
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(DECODER.decode(data));
              BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream)) {
 
             int size = dataInput.readInt();

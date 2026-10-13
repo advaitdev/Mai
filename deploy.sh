@@ -9,6 +9,10 @@ SERVER_DIR="$PROJECT_DIR/mc-server"
 PLUGINS_DIR="$SERVER_DIR/plugins"
 JAR_NAME="Mai-GIT.jar"
 
+# Paper 26.2 needs Java 25. Use $JAVA_HOME if set (e.g. /home/advait/jdks/25),
+# else whatever `java` is on PATH. Maven picks up JAVA_HOME on its own.
+JAVA_BIN="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+
 # Build
 echo "Building..."
 mvn -f "$PROJECT_DIR/pom.xml" clean package -q
@@ -35,5 +39,5 @@ SCREEN_NAME="mc"
 screen -S "$SCREEN_NAME" -X quit 2>/dev/null || true
 
 echo "Starting server in screen session '$SCREEN_NAME'..."
-screen -dmS "$SCREEN_NAME" bash -c "cd '$SERVER_DIR' && java -Xmx2G -jar server.jar --nogui"
+screen -dmS "$SCREEN_NAME" bash -c "cd '$SERVER_DIR' && $JAVA_BIN -Xmx2G -jar server.jar --nogui"
 echo "Server started. Attach with: screen -r $SCREEN_NAME"

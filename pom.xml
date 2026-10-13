@@ -13,7 +13,7 @@
 
     <description>Creating an AI-powered world in Minecraft.</description>
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -23,16 +23,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.14.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>3.6.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -86,23 +85,23 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <version>26.2.build.133-stable</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>de.bsommerfeld.pathetic</groupId>
             <artifactId>api</artifactId>
-            <version>5.4.6</version>
+            <version>5.5.2</version>
         </dependency>
         <dependency>
             <groupId>de.bsommerfeld.pathetic</groupId>
             <artifactId>engine</artifactId>
-            <version>5.4.6</version>
+            <version>5.5.2</version>
         </dependency>
         <dependency>
             <groupId>com.github.bsommerfeld.pathetic-bukkit</groupId>
             <artifactId>core</artifactId>
-            <version>5.4.6</version>
+            <version>5.5.2</version>
         </dependency>
         <dependency>
             <groupId>co.aikar</groupId>
