@@ -1,0 +1,7 @@
+name: combo-up-gap-down
+description: Climb 2, sprint a 2-gap at height, descend to the goal.
+timeout_ticks: 460
+spawn_yaw: 270
+origin_y: 120
+---
+S 1 2 2 2 _ _ 2 2 1 E

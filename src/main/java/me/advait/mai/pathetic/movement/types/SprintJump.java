@@ -6,18 +6,46 @@ import me.advait.mai.pathetic.PathContext;
 import me.advait.mai.pathetic.capabilities.HumanoidCapabilities;
 import me.advait.mai.pathetic.debug.PathDebugLog;
 import me.advait.mai.pathetic.movement.*;
+import org.bukkit.util.Vector;
 
 /**
  * Sprint-jump across a gap of 1-4 blocks (horizontal distance 2-5).
  * Supports flat jumps (dy=0), ascending (+1), and descending (-1).
  *
- * Validates:
- * - Source has solid ground and 3-block headroom (room to jump)
- * - Landing has solid ground and is standable
- * - Intermediate columns are clear at feet+head+above-head level
- * - The gap is entirely air/passable (no walls blocking the arc)
+ * <p>Planning validates:
+ * <ul>
+ *   <li>Source has solid ground and 3-block headroom (room to jump)
+ *   <li>Landing has solid ground and is standable
+ *   <li>Intermediate columns are clear at feet+head+above-head level
+ *   <li><b>There is a real gap</b>: at least one intermediate column has no
+ *       floor at the source level. Without this A* happily "sprint-jumps"
+ *       across flat walkable ground because the per-block cost is lower
+ *       than walking — and a jump waypoint with no edge to take off from
+ *       never completes (the bot oscillates around it, then stuck-replans
+ *       from a standstill one block short of the real gap and walks off).
+ * </ul>
+ *
+ * <p>Execution is a small state machine on {@link TickContext#phase}:
+ * <pre>
+ *   RUNWAY  — sprint toward the landing; on the last tick still on the
+ *             takeoff block, jump if fast enough, else switch to RETREAT.
+ *   AIR     — steer toward the landing; on touchdown verify we actually
+ *             landed on/next to the landing block (else FAILED → replan).
+ *   RETREAT — reached the edge too slow (e.g. after a replan put us right
+ *             at the lip). Brake, back away to gain runway, then RUNWAY.
+ *   FORCED  — nowhere to retreat (edge behind too). Jump at the edge with
+ *             whatever speed we have; better than standing still forever.
+ * </pre>
  */
 public record SprintJump() implements MovementType {
+
+    private static final int RUNWAY = 0;
+    private static final int AIR = 1;
+    private static final int RETREAT = 2;
+    private static final int FORCED = 3;
+
+    /** How far off the landing center a touchdown may be and still count. */
+    private static final double LANDING_TOLERANCE = 1.2;
 
     @Override
     public String key() { return "sprint_jump"; }
@@ -53,8 +81,68 @@ public record SprintJump() implements MovementType {
         // Landing must be standable
         if (!WalkFlat.isStandable(current, materials)) return false;
 
-        // Validate the jump arc: intermediate columns must be clear
-        return validateArc(previous, dx, dy, dz, materials);
+        // Validate the jump arc: intermediate columns must be clear, and at
+        // least one of them must be a genuine gap.
+        if (!validateArc(previous, dx, dy, dz, materials)) return false;
+
+        // Physically achievable with the run-up the terrain provides?
+        return runUpSuffices(previous, dx, dy, dz, horizDist, ctx);
+    }
+
+    /** Max blocks of run-up behind the takeoff block considered by the planner. */
+    private static final int MAX_RUNUP_BLOCKS = 3;
+
+    /**
+     * Whether a bot could legitimately make this jump given the run-up
+     * behind the takeoff block. Counts standable blocks behind the source
+     * (opposite the jump direction, same level), simulates vanilla sprint
+     * acceleration from a standstill over that distance, and checks the
+     * resulting takeoff speed (ground speed + sprint-jump boost) against
+     * {@link AirControl#takeoffSpeeds}' minimum. Pure function of the world
+     * snapshot, so it is safe on the async pathfinding thread.
+     *
+     * <p>A standstill start is the conservative case: the bot may arrive
+     * with momentum, but the planner can't know that, and a jump that only
+     * works with momentum it might not have is exactly what used to strand
+     * bots on 1x1 pillars.
+     */
+    private static boolean runUpSuffices(PathPosition src, int dx, int dy, int dz,
+                                         double horizDist, PathContext ctx) {
+        var c = ctx.config();
+        int ux = Integer.signum(dx), uz = Integer.signum(dz);
+        int blocksBehind = 0;
+        for (int i = 1; i <= MAX_RUNUP_BLOCKS; i++) {
+            PathPosition back = PathPosition.of(src.getFlooredX() - ux * i, src.getFlooredY(),
+                    src.getFlooredZ() - uz * i);
+            if (!WalkFlat.isStandable(back, ctx.materials())) break;
+            blocksBehind++;
+        }
+        // Run distance: from the center of the farthest run-up block to the
+        // lip, minus the edge-probe lead (half-width + a hair).
+        double run = blocksBehind + 0.5 - 0.35;
+
+        // Vanilla ground sprint: v' = v * groundDrag + accel, displacement v'.
+        double slip = me.advait.mai.pathetic.BlockClassifier.slipperiness(
+                ctx.materials().getMaterial(src.getFlooredX(), src.getFlooredY() - 1, src.getFlooredZ()));
+        double groundDrag = slip * c.getAirDrag();
+        double accel = c.getWalkAcceleration() * c.getSprintFactor()
+                * (0.16277136 / (groundDrag * groundDrag * groundDrag));
+        double v = 0, travelled = 0;
+        while (travelled < run) {
+            v = v * groundDrag + accel;
+            travelled += v;
+        }
+        // Bot standing still on a lone block still gets one accel tick.
+        if (v == 0) v = accel;
+
+        double maxTakeoff = v + c.getSprintJumpBoost();
+        // Same geometry the executor uses: the takeoff fires when the edge
+        // probe (0.35 + this tick's travel) passes the lip, so the bot's
+        // center is that far behind the lip, and the lip is 0.5 from the
+        // source center.
+        double dist = (horizDist - 0.5) + 0.35 + v;
+        double[] need = AirControl.takeoffSpeeds(dist, dy, slip, MovementExecutors.SPRINT_AIR_ACCEL, c);
+        return need != null && need[1] <= maxTakeoff;
     }
 
     @Override
@@ -64,9 +152,17 @@ public record SprintJump() implements MovementType {
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         int gap = Math.max(0, (int) Math.round(horizDist) - 1);
 
-        // Sprint-jump cost: base per block + jump hunger penalty + sprint hunger
-        return ctx.config().getSprintJumpBase() + gap * ctx.config().getSprintJumpPerGap()
-                + ctx.config().getJumpPenalty() + horizDist * ctx.config().getHungerSprintCost();
+        // Priced as "sprinting the same distance, plus a per-jump overhead,
+        // plus a risk term that grows with the gap". It must never be cheaper
+        // per block than walking: if it were, A* would plan the LONGEST jump
+        // that fits (even across flat ground), and a max-range jump over a
+        // 1-block gap has no margin for error. With this shape the planner
+        // picks the shortest jump that clears the gap, like a human would.
+        return horizDist * ctx.config().getWalkFlat()
+                + ctx.config().getSprintJumpBase()
+                + gap * ctx.config().getSprintJumpPerGap()
+                + ctx.config().getJumpPenalty()
+                + horizDist * ctx.config().getHungerSprintCost();
     }
 
     @Override
@@ -88,68 +184,185 @@ public record SprintJump() implements MovementType {
         return WalkFlat.isStandable(position, ctx.materials());
     }
 
+    // =========================================================================
+    // Execution
+    // =========================================================================
+
     @Override
     public MovementStatus tick(TickContext ctx) {
-        // phase 0 = building momentum on ground; phase 1 = airborne
-        if (ctx.phase == 1) {
-            // Airborne — steer toward landing with sprint air accel
-            MovementExecutors.airSteer(ctx, MovementExecutors.SPRINT_AIR_ACCEL);
-            // Touchdown: on ground with non-positive Y velocity
-            if (ctx.onGround() && ctx.entity().getVelocity().getY() <= 0) {
-                return MovementStatus.SUCCESS;
-            }
-            return MovementStatus.RUNNING;
+        switch (ctx.phase) {
+            case AIR -> { return tickAir(ctx); }
+            case RETREAT -> { return tickRetreat(ctx); }
+            default -> { return tickRunway(ctx, ctx.phase == FORCED); }
+        }
+    }
+
+    private MovementStatus tickRunway(TickContext ctx, boolean forced) {
+        // Defensive: if we're somehow already standing on the landing
+        // (replan landed us there, or a trivially short hop), we're done.
+        if (ctx.onGround() && MovementExecutors.reachedFully(ctx)) {
+            return MovementStatus.SUCCESS;
         }
 
-        // Ground phase: sprint to build momentum, then jump when fast enough.
-        MovementExecutors.groundAccelerate(ctx, ctx.config.getSprintFactor(), true);
-
         if (!ctx.onGround()) {
-            // Lost the ground (e.g. we already cleared a step) — go to air phase
-            ctx.phase = 1;
-            return MovementStatus.RUNNING;
+            // Left the ground without an explicit jump (stepped off a lip,
+            // or the previous waypoint's jump is still in flight). Treat as
+            // airborne and steer for the landing.
+            ctx.phase = AIR;
+            return tickAir(ctx);
         }
 
         int gap = ctx.waypoint.hint() != null ? ctx.waypoint.hint().gapLength() : 0;
-        double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
         double distToLanding = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
-        double[] dirToLanding = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
+        double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
 
-        // Wider gaps need more runway. Vanilla terminal sprint is 0.2806
-        // b/t; for gap ≥ 2 we want to be at or near terminal velocity when
-        // the jump fires, because air accel (0.026) can't recover a
-        // shortfall in the ~11 airborne ticks.
-        double minSpeed = switch (gap) {
-            case 0, 1 -> 0.12;
-            case 2 -> 0.22;
-            default -> 0.27;
-        };
+        // Runway: sprint toward the landing. Apply this tick's acceleration
+        // FIRST — the velocity read back from the entity is the post-friction
+        // value from last tick (~55% of the real per-tick displacement on
+        // default blocks); only after adding this tick's input does it equal
+        // the distance the bot will actually move this tick.
+        MovementExecutors.groundAccelerate(ctx, ctx.config.getSprintFactor(), true);
+        Vector vel = ctx.entity().getVelocity();
+        double speed = MovementExecutors.horizontalSpeed(vel);
+        // Only velocity along the jump direction counts toward takeoff.
+        double alongSpeed = vel.getX() * dir[0] + vel.getZ() * dir[1];
 
-        boolean fastEnough = currentSpeed >= minSpeed;
-        // Edge-jump timing: only fire once we're actually at the edge of
-        // the takeoff block. Otherwise the bot leaps from the middle of
-        // the block, wastes runway, and lands short. Distance-to-landing
-        // alone isn't enough — it fires the tick the SprintJump waypoint
-        // becomes active, long before we've reached the edge.
-        boolean atEdge = MovementExecutors.atEdgeAhead(ctx.current, dirToLanding);
-        boolean inJumpRange = distToLanding > 0.5 && distToLanding < gap + 2.5;
+        // Will this tick's movement carry our leading edge past the lip of
+        // this block? Probe half-width + this tick's displacement + a hair.
+        boolean atEdge = MovementExecutors.atEdgeAhead(ctx.current, dir, 0.35 + Math.max(0.0, alongSpeed));
+        // The edge we care about is the one right before the landing — not
+        // some unrelated lip far behind on a long runway.
+        boolean edgeIsOurGap = distToLanding < gap + 2.6;
 
-        if (ctx.jumpCooldown == 0 && fastEnough && inJumpRange && atEdge) {
-            PathDebugLog.event("SPRINT_JUMP_TAKEOFF gap=%d speed=%.3f distToLanding=%.2f bot=(%.2f,%.2f,%.2f)",
-                    gap, currentSpeed, distToLanding,
-                    ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());
-            MovementExecutors.jump(ctx, true);
-            ctx.phase = 1;
+        if (atEdge && edgeIsOurGap) {
+            // Physics-planned takeoff: how fast must we leave the lip to land
+            // on the block center, given the airtime this height change gives
+            // us and the air-control budget? The fastest legitimate takeoff
+            // is current ground speed plus the vanilla sprint-jump boost.
+            double dyJump = ctx.waypoint.y() - ctx.current.getY();
+            double[] need = AirControl.takeoffSpeeds(distToLanding, dyJump,
+                    MovementExecutors.slipperinessBelow(ctx.current),
+                    MovementExecutors.SPRINT_AIR_ACCEL, ctx.config);
+            double maxTakeoff = Math.max(0.0, alongSpeed) + ctx.config.getSprintJumpBoost();
+            boolean feasible = need != null && need[1] <= maxTakeoff;
+            if (feasible || forced) {
+                double vSet = need == null ? maxTakeoff : Math.min(need[0], maxTakeoff);
+                PathDebugLog.event("SPRINT_JUMP_TAKEOFF gap=%d along=%.3f vset=%.3f need=%.3f/%.3f max=%.3f dist=%.2f dy=%.1f forced=%s bot=(%.2f,%.2f,%.2f)",
+                        gap, alongSpeed, vSet,
+                        need == null ? -1.0 : need[0], need == null ? -1.0 : need[1], maxTakeoff,
+                        distToLanding, dyJump, forced,
+                        ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());
+                MovementExecutors.face(ctx.entity(), dir);
+                ctx.setVelocity(new Vector(dir[0] * vSet, ctx.config.getJumpVelocity(), dir[1] * vSet));
+                ctx.jumpCooldown = MovementExecutors.JUMP_COOLDOWN_TICKS;
+                ctx.phase = AIR;
+                return MovementStatus.RUNNING;
+            }
+            // Too slow to make it. Don't walk off the edge: kill horizontal
+            // velocity now and back up for a run-up.
+            PathDebugLog.event("SPRINT_JUMP_TOO_SLOW gap=%d along=%.3f need=%.3f max=%.3f dist=%.2f → retreat",
+                    gap, alongSpeed, need == null ? -1.0 : need[1], maxTakeoff, distToLanding);
+            ctx.setVelocity(new Vector(0, vel.getY(), 0));
+            ctx.phase = RETREAT;
+            suspendProgress(ctx);
+            return MovementStatus.RUNNING;
         }
         return MovementStatus.RUNNING;
+    }
+
+    /**
+     * Backing up is deliberate "negative progress" toward the waypoint; keep
+     * the driver's stuck detector from reading it as a stall and replanning
+     * out from under us.
+     */
+    private static void suspendProgress(TickContext ctx) {
+        ctx.ticksSinceProgress = 0;
+        ctx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+    }
+
+    private MovementStatus tickRetreat(TickContext ctx) {
+        int gap = ctx.waypoint.hint() != null ? ctx.waypoint.hint().gapLength() : 0;
+        double distToLanding = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
+        double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
+        double[] back = {-dir[0], -dir[1]};
+        suspendProgress(ctx);
+
+        // Enough runway: the lip is ~(gap+1) from the landing center; we
+        // want runwayFor(gap) blocks of ground behind the lip.
+        if (distToLanding >= gap + 1.0 + runwayFor(gap)) {
+            PathDebugLog.event("SPRINT_JUMP_RUNWAY_READY dist=%.2f", distToLanding);
+            ctx.setVelocity(new Vector(0, ctx.velocity().getY(), 0));
+            ctx.phase = RUNWAY;
+            return MovementStatus.RUNNING;
+        }
+
+        if (!ctx.onGround()) {
+            // Fell off something while backing up — nothing sensible left.
+            PathDebugLog.event("SPRINT_JUMP_RETREAT_FELL");
+            return MovementStatus.FAILED;
+        }
+
+        // Edge behind us: can't back up further. Jump from here with what
+        // we can build on the way back to the lip.
+        if (MovementExecutors.atEdgeAhead(ctx.current, back, 0.45)) {
+            PathDebugLog.event("SPRINT_JUMP_NO_RUNWAY dist=%.2f → forced takeoff", distToLanding);
+            ctx.setVelocity(new Vector(0, ctx.velocity().getY(), 0));
+            ctx.phase = FORCED;
+            return MovementStatus.RUNNING;
+        }
+
+        // Walk backward (no sprint: precision over speed).
+        Vector vel = ctx.velocity();
+        double accel = 0.1;
+        ctx.setVelocity(new Vector(vel.getX() + back[0] * accel, vel.getY(), vel.getZ() + back[1] * accel));
+        MovementExecutors.face(ctx.entity(), dir);   // keep looking at the gap
+        return MovementStatus.RUNNING;
+    }
+
+    private MovementStatus tickAir(TickContext ctx) {
+        AirControl.steer(ctx, ctx.waypoint.x(), ctx.waypoint.z(), ctx.waypoint.y(),
+                MovementExecutors.SPRINT_AIR_ACCEL);
+
+        // Fell below the landing level with nothing under us: this jump
+        // missed. Report failure so the driver replans from wherever we
+        // end up (if we end up anywhere).
+        if (ctx.current.getY() < ctx.waypoint.y() - 1.5 && !ctx.onGround()) {
+            PathDebugLog.event("SPRINT_JUMP_MISSED y=%.2f landingY=%.2f", ctx.current.getY(), ctx.waypoint.y());
+            return MovementStatus.FAILED;
+        }
+
+        // Touchdown: on ground with non-positive Y velocity.
+        if (ctx.onGround() && ctx.entity().getVelocity().getY() <= 0) {
+            double dist = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
+            double dy = Math.abs(ctx.current.getY() - ctx.waypoint.y());
+            if (dist <= LANDING_TOLERANCE && dy < 1.5) {
+                return MovementStatus.SUCCESS;
+            }
+            // Landed somewhere else (overshoot onto later floor, or short
+            // onto an unexpected ledge). Replan from here rather than
+            // pretending the waypoint was reached.
+            PathDebugLog.event("SPRINT_JUMP_OFF_TARGET dist=%.2f dy=%.2f bot=(%.2f,%.2f,%.2f) wp=(%.2f,%.2f,%.2f)",
+                    dist, dy, ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(),
+                    ctx.waypoint.x(), ctx.waypoint.y(), ctx.waypoint.z());
+            return MovementStatus.FAILED;
+        }
+        return MovementStatus.RUNNING;
+    }
+
+    /** Blocks of ground behind the lip needed to reach {@link #minTakeoffSpeed}. */
+    static double runwayFor(int gap) {
+        return switch (gap) {
+            case 0, 1 -> 1.5;
+            case 2 -> 2.5;
+            default -> 3.5;
+        };
     }
 
     @Override
     public boolean safeToCancel(TickContext ctx) {
         // Don't replan mid-arc — would strand the bot in the air. Only
-        // safe to swap paths while still on the runway, before we've left
-        // the ground.
-        return ctx.phase == 0 && ctx.onGround();
+        // safe to swap paths while still on the ground.
+        return ctx.phase != AIR && ctx.onGround();
     }
 
     @Override
@@ -159,9 +372,14 @@ public record SprintJump() implements MovementType {
         return false;
     }
 
+    /**
+     * Intermediate columns must be traversable at feet/head/above-head of
+     * the source level, and at least one must be floorless (a real gap).
+     */
     private boolean validateArc(PathPosition src, int dx, int dy, int dz, MaterialProvider materials) {
         int steps = Math.max(Math.abs(dx), Math.abs(dz));
         int srcY = src.getFlooredY();
+        boolean sawGap = false;
 
         // Check each intermediate column (excluding source and destination)
         for (int i = 1; i < steps; i++) {
@@ -177,7 +395,10 @@ public record SprintJump() implements MovementType {
                     return false;
                 }
             }
+            if (!BlockClassifier.isSolid(materials.getMaterial(ix, srcY - 1, iz))) {
+                sawGap = true;
+            }
         }
-        return true;
+        return sawGap;
     }
 }

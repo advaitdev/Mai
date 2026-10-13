@@ -1,0 +1,7 @@
+name: jump-1-tight
+description: Three 1-gaps separated by single-cell platforms.
+timeout_ticks: 380
+spawn_yaw: 270
+origin_y: 120
+---
+S . . _ . _ . _ E .

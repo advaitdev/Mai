@@ -44,6 +44,19 @@ public final class MovementExecutors {
         double[] dir = direction2D(ctx.current, ctx.waypoint);
         boolean onGround = ctx.onGround();
 
+        // Idempotent per tick. When the driver chains into the next waypoint
+        // in the same tick (previous one just completed), the finished
+        // waypoint has already added this tick's input; a second call must
+        // only re-aim the existing horizontal velocity, not add to it, or the
+        // bot gets a one-tick speed spike right before e.g. a takeoff.
+        if (ctx.accelTick == ctx.totalTicks) {
+            double speed = horizontalSpeed(vel);
+            face(entity, dir);
+            entity.setVelocity(new Vector(dir[0] * speed, vel.getY(), dir[1] * speed));
+            return;
+        }
+        ctx.accelTick = ctx.totalTicks;
+
         double vx, vz;
         if (onGround) {
             double slip = slipperinessBelow(ctx.current);
@@ -242,10 +255,18 @@ public final class MovementExecutors {
      * runway that was supposed to bring the bot to terminal sprint.
      */
     public static boolean atEdgeAhead(Location current, double[] dir) {
+        return atEdgeAhead(current, dir, 0.4);
+    }
+
+    /**
+     * Velocity-aware edge probe: {@code probeDist} should be at least the
+     * leading-edge half-width (0.3) plus the distance the bot will travel
+     * next tick, so a sprinting bot sees the edge on the last tick it is
+     * still standing on the block — not one tick after it has stepped off.
+     */
+    public static boolean atEdgeAhead(Location current, double[] dir, double probeDist) {
         World world = current.getWorld();
         if (world == null) return false;
-        // Probe a bit past the player's leading edge (half-width 0.3).
-        double probeDist = 0.4;
         double px = current.getX() + dir[0] * probeDist;
         double pz = current.getZ() + dir[1] * probeDist;
         Material belowNext = world.getBlockAt(

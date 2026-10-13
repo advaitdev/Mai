@@ -1,0 +1,9 @@
+name: drop-diag-2
+description: Drop 2 off a ledge corner diagonally onto open floor.
+timeout_ticks: 300
+spawn_yaw: 315
+origin_y: 120
+---
+S2 2 _
+2 . .
+_ . E

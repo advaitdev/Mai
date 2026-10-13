@@ -34,7 +34,9 @@ movement:
     value_weight: 1.0           # scales the material-value/scarcity penalty
 
   # Costs in ticks (20 ticks = 1 second). Lower = preferred by pathfinder.
-  # Sprint-jumping is fastest (7.127 b/s) so it's cheapest per block.
+  # A sprint-jump is priced as sprinting the same distance plus a per-jump
+  # overhead plus a per-gap-block risk term, so the planner always picks the
+  # shortest jump that clears a gap (never the longest that fits).
   costs:
     walk_flat: 3.56             # sprint speed: 20 / 5.612 b/s (default to sprint)
     walk_diagonal: 5.04         # sprint diagonal: walk_flat * sqrt(2)
@@ -44,8 +46,8 @@ movement:
     fall_safe_base: 3.07        # base cost for safe falls
     fall_per_block: 0.5         # additional cost per block fallen
     fall_damage_penalty: 10.0   # cost per heart of damage taken
-    sprint_jump_base: 2.81      # 20 / 7.127 b/s (sprint-jump avg speed)
-    sprint_jump_per_gap: 2.81   # cost per block of gap
+    sprint_jump_base: 1.0       # flat overhead per jump (on top of walk_flat * distance)
+    sprint_jump_per_gap: 1.5    # risk penalty per block of gap (wider = riskier)
     jump_penalty: 0.8           # hunger cost per jump (sprinting drains hunger)
     hunger_sprint_cost: 0.1     # extra cost per block when sprinting (hunger drain)
     ladder_up: 8.51             # 20 / 2.35 b/s
@@ -75,6 +77,34 @@ movement:
     path_update_interval: 5     # ticks between path recalculations
     stuck_timeout: 200          # ticks before declaring stuck
     near_target_distance: 0.5   # fallback distance check (exact block match is primary)
+    lookahead_depth: 10         # waypoints re-validated each tick to catch world changes
+    periodic_replan_ticks: 100  # safety-net full replan interval
+    emergency_jump_ticks: 8     # ticks without progress before a blind unstick hop
+    stuck_replan_ticks: 20      # ticks without progress before forcing a replan
+
+# Named overrides for the movement section, applied with `/mai tune profile <name>`
+# or MovementTuning.applyProfile(name). Keys are paths under `movement:`.
+movement_profiles:
+  default:
+    costs:
+      fall_damage_penalty: 10.0
+      sprint_jump_per_gap: 1.5
+    pathfinding:
+      allow_unsafe_falls: true
+  # Avoid risk: no damaging falls, jumps priced high so walking detours win.
+  safe:
+    costs:
+      fall_damage_penalty: 50.0
+      sprint_jump_per_gap: 6.0
+    pathfinding:
+      allow_unsafe_falls: false
+  # Speedrun: take any jump or fall that saves time.
+  speedrun:
+    costs:
+      fall_damage_penalty: 2.0
+      sprint_jump_per_gap: 0.5
+    pathfinding:
+      allow_unsafe_falls: true
 
 # Obstacle-course test harness (/mai test ...)
 obstacle:

@@ -1,0 +1,7 @@
+name: jump-stagger
+description: Alternating 1,2,1 gaps with platforms.
+timeout_ticks: 420
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ . . . _ _ . . . _ . . E . .

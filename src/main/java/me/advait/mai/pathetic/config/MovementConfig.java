@@ -65,6 +65,10 @@ public final class MovementConfig {
     private final int pathUpdateInterval;
     private final int stuckTimeout;
     private final double nearTargetDistance;
+    private final int lookaheadDepth;
+    private final int periodicReplanTicks;
+    private final int emergencyJumpTicks;
+    private final int stuckReplanTicks;
 
     // --- Pre-computed fall costs (Baritone gravity model) ---
     private final double[] fallTickCosts;
@@ -128,6 +132,10 @@ public final class MovementConfig {
         this.pathUpdateInterval = nav.getInt("path_update_interval", 40);
         this.stuckTimeout = nav.getInt("stuck_timeout", 200);
         this.nearTargetDistance = nav.getDouble("near_target_distance", 2.0);
+        this.lookaheadDepth = nav.getInt("lookahead_depth", 10);
+        this.periodicReplanTicks = nav.getInt("periodic_replan_ticks", 100);
+        this.emergencyJumpTicks = nav.getInt("emergency_jump_ticks", 8);
+        this.stuckReplanTicks = nav.getInt("stuck_replan_ticks", 20);
 
         this.fallTickCosts = computeFallCosts(maxFallHeight + 1);
     }
@@ -238,4 +246,8 @@ public final class MovementConfig {
     public int getPathUpdateInterval() { return pathUpdateInterval; }
     public int getStuckTimeout() { return stuckTimeout; }
     public double getNearTargetDistance() { return nearTargetDistance; }
+    public int getLookaheadDepth() { return lookaheadDepth; }
+    public int getPeriodicReplanTicks() { return periodicReplanTicks; }
+    public int getEmergencyJumpTicks() { return emergencyJumpTicks; }
+    public int getStuckReplanTicks() { return stuckReplanTicks; }
 }

@@ -34,12 +34,14 @@ public class HumanoidCostProcessor implements CostProcessor {
     private final MovementRegistry registry;
     private final MovementConfig config;
     private final HumanoidCapabilities capabilities;
+    private final SearchCache cache;
 
     public HumanoidCostProcessor(MovementRegistry registry, MovementConfig config,
-                                 HumanoidCapabilities capabilities) {
+                                 HumanoidCapabilities capabilities, SearchCache cache) {
         this.registry = registry;
         this.config = config;
         this.capabilities = capabilities;
+        this.cache = cache;
     }
 
     @Override
@@ -48,17 +50,19 @@ public class HumanoidCostProcessor implements CostProcessor {
         PathPosition previous = context.getPreviousPathPosition();
         if (previous == null) return Cost.ZERO;
 
-        MaterialProvider materials = MaterialProvider.fromNavigationProvider(
+        MaterialProvider materials = cache.materials(
                 context.getNavigationPointProvider(), context.getEnvironmentContext());
         PathContext pathCtx = new PathContext(capabilities, config, materials);
 
-        Optional<MovementType> typeOpt = registry.classify(current, previous, pathCtx);
-
-        if (typeOpt.isEmpty()) {
-            return Cost.of(UNCLASSIFIED_PENALTY);
+        // The validation processor just classified this exact transition.
+        MovementType type = cache.isCached(previous, current) ? cache.cachedType() : null;
+        if (type == null) {
+            Optional<MovementType> typeOpt = registry.classify(current, previous, pathCtx);
+            if (typeOpt.isEmpty()) {
+                return Cost.of(UNCLASSIFIED_PENALTY);
+            }
+            type = typeOpt.get();
         }
-
-        MovementType type = typeOpt.get();
         double movementCost = type.computeCost(current, previous, pathCtx);
         double baseTransition = context.getBaseTransitionCost();
 

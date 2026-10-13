@@ -1,0 +1,7 @@
+name: drop-5
+description: Drop 5 blocks (takes damage) onto the floor, then walk to the goal.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S5 . . E .

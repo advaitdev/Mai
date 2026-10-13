@@ -1,0 +1,8 @@
+name: impossible-gap-5
+description: 5-block gap: beyond any sprint-jump.
+expect: no_path
+timeout_ticks: 120
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ _ _ _ _ E

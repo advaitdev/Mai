@@ -1,0 +1,7 @@
+name: ledge-drop-2
+description: Walk a 2-high ledge, drop 2 to the floor, reach the goal.
+timeout_ticks: 320
+spawn_yaw: 270
+origin_y: 120
+---
+S2 2 2 2 . . E .

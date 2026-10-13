@@ -36,12 +36,6 @@ import java.util.function.Consumer;
  */
 public final class ObstacleTester {
 
-    /** Seed files copied into the runtime dir on first load when it's empty. */
-    private static final String[] SEEDS = {
-            "walk-flat", "stair-up", "stair-down", "gap-1", "gap-2", "gap-3",
-            "pillar-jump", "corner-turn"
-    };
-
     /** Fixed tester name; Mannequin custom names are capped at 16 chars. */
     private static final String HUMANOID_NAME = "obstacle-test";
 
@@ -72,7 +66,7 @@ public final class ObstacleTester {
     public void initialize() {
         obstaclesDir = new File(Mai.getInstance().getDataFolder(), "obstacles");
         if (!obstaclesDir.exists()) obstaclesDir.mkdirs();
-        copySeedsIfEmpty();
+        copyMissingBundledFixtures();
         reloadCache();
         arenaWorld = resolveOrCreateWorld();
     }
@@ -118,15 +112,31 @@ public final class ObstacleTester {
         return world;
     }
 
-    private void copySeedsIfEmpty() {
-        File[] existing = obstaclesDir.listFiles((d, n) -> n.endsWith(".obstacle"));
-        if (existing != null && existing.length > 0) return;
-        for (String seed : SEEDS) {
-            try {
-                Mai.getInstance().saveResource("obstacles/" + seed + ".obstacle", false);
-            } catch (IllegalArgumentException e) {
-                Mai.getInstance().getLogger().warning("Missing seed obstacle resource: " + seed);
+    /**
+     * Copies every {@code obstacles/*.obstacle} bundled in the plugin jar that
+     * isn't already in the runtime dir. Never overwrites, so local edits to a
+     * fixture survive upgrades while newly bundled fixtures still arrive.
+     */
+    private void copyMissingBundledFixtures() {
+        int copied = 0;
+        try {
+            java.net.URL src = Mai.class.getProtectionDomain().getCodeSource().getLocation();
+            try (java.util.jar.JarFile jar = new java.util.jar.JarFile(new File(src.toURI()))) {
+                var entries = jar.entries();
+                while (entries.hasMoreElements()) {
+                    String name = entries.nextElement().getName();
+                    if (!name.startsWith("obstacles/") || !name.endsWith(".obstacle")) continue;
+                    File out = new File(obstaclesDir, name.substring("obstacles/".length()));
+                    if (out.exists()) continue;
+                    Mai.getInstance().saveResource(name, false);
+                    copied++;
+                }
             }
+        } catch (Exception e) {
+            Mai.getInstance().getLogger().warning("Could not copy bundled obstacles: " + e);
+        }
+        if (copied > 0) {
+            Mai.getInstance().getLogger().info("Copied " + copied + " bundled obstacle fixture(s).");
         }
     }
 
@@ -225,6 +235,10 @@ public final class ObstacleTester {
         }
         chain.whenComplete((v, ex) -> {
             batchRunning = false;
+            if (ex != null) {
+                Mai.getInstance().getLogger().log(java.util.logging.Level.WARNING,
+                        "Obstacle batch aborted early", ex);
+            }
             long elapsed = System.currentTimeMillis() - startMs;
             int pass = counts[Result.Status.PASS.ordinal()];
             int fail = counts[Result.Status.FAIL.ordinal()];
@@ -323,9 +337,20 @@ public final class ObstacleTester {
         // Always complete on the main thread: the pathfinder resolves no_path
         // from an async thread, and teardown (entity ops, block writes) plus
         // batch chaining must run on the main thread.
-        Consumer<Result> resolve = r -> {
-            if (Bukkit.isPrimaryThread()) future.complete(r);
-            else Bukkit.getScheduler().runTask(Mai.getInstance(), () -> future.complete(r));
+        Consumer<Result> resolve = raw -> {
+            // Negative fixtures: the course is impossible under vanilla
+            // physics, so the correct behaviour is to refuse it up front.
+            Result r = raw;
+            if (obs.expectNoPath()) {
+                if (raw.status() == Result.Status.FAIL && "no_path".equals(raw.reason())) {
+                    r = new Result(Result.Status.PASS, "refused_impossible");
+                } else if (raw.status() == Result.Status.PASS) {
+                    r = Result.fail("expected_no_path");
+                }
+            }
+            final Result fr = r;
+            if (Bukkit.isPrimaryThread()) future.complete(fr);
+            else Bukkit.getScheduler().runTask(Mai.getInstance(), () -> future.complete(fr));
         };
 
         try {
@@ -343,7 +368,8 @@ public final class ObstacleTester {
                 LivingEntity ent = humanoid.getEntity();
                 if (ent == null) return; // briefly null right after spawn
                 Location loc = ent.getLocation();
-                log.tick(ticks[0], loc, ent.isOnGround(), humanoid.getActionAgent().getCurrentActionName());
+                log.tick(ticks[0], loc, ent.getVelocity(), ent.isOnGround(),
+                        humanoid.getActionAgent().getCurrentActionName());
 
                 if (ent.isDead() || !ent.isValid()) { resolve.accept(Result.fail("died")); return; }
                 if (loc.getY() < arena.floorY() - 2) { resolve.accept(Result.fail("fell")); return; }
@@ -389,12 +415,21 @@ public final class ObstacleTester {
                             }
                         }
                     });
-        } catch (Exception e) {
-            // Build/spawn/dispatch failed. Tear down whatever exists.
+        } catch (Exception | LinkageError e) {
+            // Build/spawn/dispatch failed. Tear down whatever exists. LinkageError
+            // is caught too: a library/server incompatibility (e.g. a removed
+            // method) must surface as an ERROR result, not silently end a batch.
+            Mai.getInstance().getLogger().log(java.util.logging.Level.WARNING,
+                    "Obstacle run " + obs.stem() + " crashed", e);
             if (!future.isDone()) {
                 Humanoid h = humanoidRef[0];
-                if (h != null) Catalog.getInstance().unregister(h);
-                arena.teardown();
+                try {
+                    if (h != null) Catalog.getInstance().unregister(h);
+                    arena.teardown();
+                } catch (Exception | LinkageError teardownEx) {
+                    Mai.getInstance().getLogger().warning(
+                            "Teardown after crash failed for " + obs.stem() + ": " + teardownEx);
+                }
                 active = null;
                 Result rr = Result.error(e.getClass().getSimpleName() + ":" + e.getMessage());
                 emitResult(sender, obs.stem(), rr, ticks[0], h == null ? null : h.getUuid());

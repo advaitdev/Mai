@@ -21,6 +21,8 @@ import org.bukkit.Material;
  * @param botBlockCount how many {@code botBlock} to give
  * @param ceiling       if &gt;0, a solid roof at {@code originY+ceiling} over every
  *                      floored cell, enclosing the course into a tunnel
+ * @param expectNoPath  if true the course is deliberately impossible under
+ *                      vanilla physics; PASS means the planner refused it
  * @param grid          {@code grid[row][col]} cell data
  * @param startRow      row index of the start cell
  * @param startCol      column index of the start cell
@@ -40,6 +42,7 @@ public record ObstacleFile(
         Material botBlock,
         int botBlockCount,
         int ceiling,
+        boolean expectNoPath,
         Cell[][] grid,
         int startRow, int startCol,
         int endRow, int endCol

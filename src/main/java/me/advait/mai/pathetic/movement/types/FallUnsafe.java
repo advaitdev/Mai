@@ -22,18 +22,18 @@ public record FallUnsafe(MovementConfig fallConfig) implements MovementType {
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
 
-        // dy must be -4 or worse, horizontal offset 0-1
+        // dy must be -4 or worse, horizontal offset exactly 1
         if (dy > -4) return false;
         int fallDist = Math.abs(dy);
         if (fallDist > fallConfig.getMaxFallHeight()) return false;
-        double horizDist = Math.sqrt(dx * dx + dz * dz);
-        if (horizDist > 1.5) return false;
+        if (Math.abs(dx) > 1 || Math.abs(dz) > 1) return false;
+        if (dx == 0 && dz == 0) return false;
 
         // Landing must be standable
         if (!WalkFlat.isStandable(current, ctx.materials())) return false;
 
-        // Vertical path must be clear
-        return FallSafe.isFallClear(previous, dy, ctx.materials());
+        // Destination column must be open from source level down to landing
+        return FallSafe.isFallClear(previous, current, ctx.materials());
     }
 
     @Override
@@ -63,18 +63,8 @@ public record FallUnsafe(MovementConfig fallConfig) implements MovementType {
 
     @Override
     public MovementStatus tick(TickContext ctx) {
-        // Same shape as FallSafe — gravity does the work, we just steer.
-        if (ctx.onGround()) {
-            MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, ctx.speedFactor > 1.0);
-        } else {
-            ctx.phase = 1;
-            MovementExecutors.airSteer(ctx, MovementExecutors.WALK_AIR_ACCEL);
-        }
-
-        if (ctx.phase == 1 && ctx.onGround() && MovementExecutors.reachedFully(ctx)) {
-            return MovementStatus.SUCCESS;
-        }
-        return MovementStatus.RUNNING;
+        // Same executor as FallSafe — gravity does the work, we just steer.
+        return FallSafe.tickFall(ctx);
     }
 
     @Override

@@ -1,0 +1,8 @@
+name: impossible-up-2
+description: Ledge 2 higher across a 1 gap: beyond jump height.
+expect: no_path
+timeout_ticks: 120
+spawn_yaw: 270
+origin_y: 120
+---
+S . . _ E2

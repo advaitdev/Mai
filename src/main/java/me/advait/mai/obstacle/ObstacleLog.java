@@ -1,7 +1,9 @@
 package me.advait.mai.obstacle;
 
 import me.advait.mai.Mai;
+import me.advait.mai.pathetic.debug.PathDebugLog;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,13 +14,19 @@ import java.util.Date;
 /**
  * Per-run debug log. Writes one file per test under
  * {@code plugins/Mai/obstacle-logs/<timestamp>-<stem>.log} containing the
- * parsed obstacle, arena origin, tick-by-tick humanoid state, and the final
- * result. This is the artifact the user greps to diagnose a FAIL.
+ * parsed obstacle, arena origin, tick-by-tick humanoid state (position,
+ * velocity, ground flag), every {@link PathDebugLog} event the locomotion
+ * pipeline emitted (indented, stamped with the tick it happened on), and the
+ * final result. This is the artifact to read to diagnose a FAIL or to
+ * calibrate physics: the velocity columns are the bot's actual per-tick
+ * motion on this server.
  */
 public final class ObstacleLog {
 
     private final PrintWriter writer;
     private final boolean ok;
+    /** Tick most recently written by {@link #tick}; stamps PathDebug events. */
+    private int currentTick = 0;
 
     public ObstacleLog(ObstacleFile obs) {
         File dir = new File(Mai.getInstance().getDataFolder(), "obstacle-logs");
@@ -65,16 +73,28 @@ public final class ObstacleLog {
         }
         writer.println("ticks:");
         writer.flush();
+
+        // Capture every locomotion decision into this file for the run's
+        // duration. The watcher logs the tick line before the driver runs,
+        // so events stamped [t] happened during tick t's decision pass.
+        PathDebugLog.setSink(msg -> {
+            writer.println("  [" + currentTick + "] " + msg);
+            writer.flush();
+        });
     }
 
-    public void tick(int tick, Location loc, boolean onGround, String movementKey) {
+    public void tick(int tick, Location loc, Vector vel, boolean onGround, String movementKey) {
         if (!ok) return;
-        writer.printf("t=%d x=%.3f y=%.3f z=%.3f onGround=%b move=%s%n",
-                tick, loc.getX(), loc.getY(), loc.getZ(), onGround, movementKey);
+        currentTick = tick;
+        double hSpeed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
+        writer.printf("t=%d x=%.3f y=%.3f z=%.3f vx=%.3f vy=%.3f vz=%.3f hspeed=%.3f onGround=%b move=%s%n",
+                tick, loc.getX(), loc.getY(), loc.getZ(),
+                vel.getX(), vel.getY(), vel.getZ(), hSpeed, onGround, movementKey);
         writer.flush();
     }
 
     public void finish(Result result, int ticks) {
+        PathDebugLog.setSink(null);
         if (!ok) return;
         writer.println("result: status=" + result.status() + " reason=" + result.reason() + " ticks=" + ticks);
         writer.flush();

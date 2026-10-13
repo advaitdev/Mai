@@ -24,6 +24,7 @@ import me.advait.mai.pathetic.path.AnnotatedWaypoint;
 import me.advait.mai.pathetic.path.PathAnnotator;
 import me.advait.mai.pathetic.processor.HumanoidCostProcessor;
 import me.advait.mai.pathetic.processor.HumanoidValidationProcessor;
+import me.advait.mai.pathetic.processor.SearchCache;
 import me.advait.mai.pathetic.strategy.HumanoidNeighborStrategy;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -133,6 +134,7 @@ public final class PatheticAgent {
         Pathfinder pathfinder = buildPathfinder(caps);
         EnvironmentContext context = new BukkitEnvironmentContext(world);
 
+        final long t0 = System.nanoTime();
         PathfindingSearch search = pathfinder.findPath(startPos, targetPos, context);
 
         CompletableFuture<PathfinderResult> rawFuture = new CompletableFuture<>();
@@ -141,7 +143,9 @@ public final class PatheticAgent {
         search.exceptionally(rawFuture::completeExceptionally);
 
         return rawFuture.thenCompose(result -> {
+            final long searchMs = (System.nanoTime() - t0) / 1_000_000;
             if (!result.successful()) {
+                PathDebugLog.event("PATHFIND_FAILED search_ms=%d", searchMs);
                 return CompletableFuture.completedFuture(Optional.empty());
             }
 
@@ -153,6 +157,9 @@ public final class PatheticAgent {
                 try {
                     AnnotatedPath annotated = annotator.annotate(rawPath, world, caps, config);
                     AnnotatedPath simplified = annotated.simplify();
+                    PathDebugLog.event("PATHFIND_DONE search_ms=%d total_ms=%d raw=%d simplified=%d",
+                            searchMs, (System.nanoTime() - t0) / 1_000_000,
+                            rawPath.length(), simplified.size());
 
                     // Step 3: verify the path actually reaches the target
                     // block. With fallback disabled this should always be
@@ -172,16 +179,18 @@ public final class PatheticAgent {
     }
 
     private Pathfinder buildPathfinder(HumanoidCapabilities caps) {
+        // Per-request scratch caches shared by both processors (see SearchCache).
+        SearchCache cache = new SearchCache();
         PathfinderConfiguration pfConfig = PathfinderConfiguration.builder()
                 .provider(new LoadingNavigationPointProvider())
                 .async(true)
                 .maxIterations(config.getMaxIterations())
                 .neighborStrategy(neighborStrategy)
                 .validationProcessors(List.of(
-                        new HumanoidValidationProcessor(registry, config, caps)
+                        new HumanoidValidationProcessor(registry, config, caps, cache)
                 ))
                 .costProcessor(List.of(
-                        new HumanoidCostProcessor(registry, config, caps)
+                        new HumanoidCostProcessor(registry, config, caps, cache)
                 ))
                 .heuristicWeights(HEURISTIC_WEIGHTS)
                 // No fallback: if pathetic can't reach the target, return

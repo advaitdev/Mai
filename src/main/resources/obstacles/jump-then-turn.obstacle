@@ -1,0 +1,9 @@
+name: jump-then-turn
+description: Sprint a 2-gap, then turn south to the goal.
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S . . _ _ . .
+_ _ _ _ _ _ .
+_ _ _ _ _ _ E

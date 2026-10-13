@@ -1,0 +1,7 @@
+name: pj-up-2g
+description: Sprint-jump a 2 gap up onto a ledge one block higher.
+timeout_ticks: 320
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . _ _ E1 1

@@ -1,0 +1,7 @@
+name: pj-3-2g-down
+description: Jump from a 3-tall pillar across a 2 gap down to a 2-tall landing.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S3 _ _ E2 2

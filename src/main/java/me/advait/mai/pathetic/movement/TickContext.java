@@ -73,6 +73,13 @@ public final class TickContext {
      */
     public int ticksSinceProgress;
 
+    /**
+     * The {@link #totalTicks} value on which ground acceleration was last
+     * applied. Lets {@code MovementExecutors.groundAccelerate} be idempotent
+     * within a tick when the driver chains waypoints.
+     */
+    public int accelTick = -1;
+
     /** The final target location of the entire walk (not the current waypoint). */
     public Location finalTarget;
 

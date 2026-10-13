@@ -22,7 +22,7 @@ written = []
 
 
 def write(stem, desc, grid, *, material=None, floor_material=None, bot_tool=None,
-          bot_blocks=None, ceiling=None, timeout=200, yaw=270, origin_y=None):
+          bot_blocks=None, ceiling=None, timeout=200, yaw=270, origin_y=None, expect=None):
     global count
     assert stem not in SEEDS, f"would clobber seed: {stem}"
     assert "/" not in stem
@@ -32,6 +32,7 @@ def write(stem, desc, grid, *, material=None, floor_material=None, bot_tool=None
     if bot_tool:       header.append(f"bot_tool: {bot_tool}")
     if bot_blocks:     header.append(f"bot_blocks: {bot_blocks}")
     if ceiling:        header.append(f"ceiling: {ceiling}")
+    if expect:         header.append(f"expect: {expect}")
     header.append(f"timeout_ticks: {timeout}")
     header.append(f"spawn_yaw: {yaw}")
     header.append(f"origin_y: {origin_y if origin_y else 120}")
@@ -150,7 +151,8 @@ def pj(h_start, gap, h_end):
 write("pj-1-1g", "Jump between two 1-tall pillars over a 1 gap.", [pj(1, 1, 1)], timeout=260)
 write("pj-2-1g", "Jump between two 2-tall pillars over a 1 gap.", [pj(2, 1, 2)], timeout=260)
 write("pj-2-2g", "Jump between two 2-tall pillars over a 2 gap.", [pj(2, 2, 2)], timeout=280)
-write("pj-3-3g", "Jump between two 3-tall pillars over a 3 gap.", [pj(3, 3, 3)], timeout=320)
+write("pj-3-3g", "Run along a 2-wide 3-tall pillar and jump a 3 gap to another.",
+      [["S3", "3", "_", "_", "_", "E3"]], timeout=320)
 # NOTE: pillar-to-LOWER-pillar jumps (jump + descend across a gap) need FallSafe,
 # which is currently broken, so they are omitted (see the drop section note).
 # pillar hop series (single-cell pillars give no run-up, so keep the chain short)
@@ -379,6 +381,68 @@ write("maze-zigzag-2", "Tall zig-zag descent-free corridor.",
        [".", ".", ".", ".", "."],
        [".", "_", "_", "_", "_"],
        [".", ".", ".", ".", "E"]], timeout=450, yaw=0)
+
+# =====================================================================
+# P. Drops, descending jumps and mixed chains (added once FallSafe scanned
+#    the landing column; these are the "known gaps" the earlier suite skipped).
+# =====================================================================
+# Multi-block ledge drops onto an adjacent column (FallSafe: 2-3 blocks).
+for H in (2, 3):
+    write(f"drop-{H}", f"Step off a {H}-tall ledge onto the floor, then walk to the goal.",
+          [["S" + str(H), ".", ".", "E", "."]], timeout=260)
+# Walk along a raised ledge, then drop.
+write("ledge-drop-2", "Walk a 2-high ledge, drop 2 to the floor, reach the goal.",
+      [["S2", "2", "2", "2", ".", ".", "E", "."]], timeout=320)
+# Drop heading south (different axis).
+write("dropv-2", "Drop 2 heading south.",
+      [["S2"], ["."], ["."], ["E"], ["."]], timeout=260, yaw=0)
+# Diagonal drop: ledge corner onto open floor.
+write("drop-diag-2", "Drop 2 off a ledge corner diagonally onto open floor.",
+      [["S2", "2", "_"],
+       ["2", ".", "."],
+       ["_", ".", "E"]], timeout=300, yaw=315)
+# Unsafe (damaging) falls: 4 and 5 blocks. allow_unsafe_falls is on by default.
+for H in (4, 5):
+    write(f"drop-{H}", f"Drop {H} blocks (takes damage) onto the floor, then walk to the goal.",
+          [["S" + str(H), ".", ".", "E", "."]], timeout=300)
+# Descending sprint-jump: pillar to a lower pillar across a gap (dy=-1).
+write("pj-2-1g-down", "Jump from a 2-tall pillar across a 1 gap to a 1-tall pillar.",
+      [["S2", "_", "E1", "1"]], timeout=280)
+write("pj-3-2g-down", "Jump from a 3-tall pillar across a 2 gap down to a 2-tall landing.",
+      [["S3", "_", "_", "E2", "2"]], timeout=300)
+# Ascending sprint-jump: 1-gap up onto a 1-higher ledge with a run-up.
+write("pj-up-1", "Sprint-jump a 1 gap up onto a ledge one block higher.",
+      [["S", ".", ".", "_", "E1", "1"]], timeout=300)
+write("pj-up-2g", "Sprint-jump a 2 gap up onto a ledge one block higher.",
+      [["S", ".", ".", ".", "_", "_", "E1", "1"]], timeout=320)
+# Mixed-width gap chains (previously too flaky to include).
+write("jump-stagger", "Alternating 1,2,1 gaps with platforms.",
+      [gap_course([1, 2, 1])], timeout=420)
+write("jump-3-2-1", "Descending gap widths 3,2,1 with platforms.",
+      [gap_course([3, 2, 1])], timeout=440)
+# Climb, sprint a gap, descend (previously omitted).
+write("combo-up-gap-down", "Climb 2, sprint a 2-gap at height, descend to the goal.",
+      [["S", "1", "2", "2", "2", "_", "_", "2", "2", "1", "E"]], timeout=460)
+# Tight landings: single-cell platforms between gaps (no run-up to rebuild).
+write("jump-1-tight", "Three 1-gaps separated by single-cell platforms.",
+      [["S", ".", ".", "_", ".", "_", ".", "_", "E", "."]], timeout=380)
+write("jump-2-tight", "Two 2-gaps separated by a single-cell platform.",
+      [["S", ".", ".", ".", "_", "_", ".", "_", "_", "E", "."]], timeout=400)
+# Jump then immediate turn: landing platform leads 90 degrees away.
+write("jump-then-turn", "Sprint a 2-gap, then turn south to the goal.",
+      [["S", ".", ".", "_", "_", ".", "."],
+       ["_", "_", "_", "_", "_", "_", "."],
+       ["_", "_", "_", "_", "_", "_", "E"]], timeout=400)
+
+# =====================================================================
+# Q. Impossible under vanilla physics: the planner must refuse, not suicide.
+# =====================================================================
+write("impossible-pj-3g-standing", "3 gap from a lone 1x1 pillar (no run-up): impossible.",
+      [["S3", "_", "_", "_", "E3"]], timeout=120, expect="no_path")
+write("impossible-gap-5", "5-block gap: beyond any sprint-jump.",
+      [["S", ".", ".", ".", "_", "_", "_", "_", "_", "E"]], timeout=120, expect="no_path")
+write("impossible-up-2", "Ledge 2 higher across a 1 gap: beyond jump height.",
+      [["S", ".", ".", "_", "E2"]], timeout=120, expect="no_path")
 
 print(f"Generated {count} obstacle files.")
 print("Stems:", ", ".join(sorted(written)))

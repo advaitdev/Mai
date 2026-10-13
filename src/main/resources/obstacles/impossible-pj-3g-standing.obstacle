@@ -1,0 +1,8 @@
+name: impossible-pj-3g-standing
+description: 3 gap from a lone 1x1 pillar (no run-up): impossible.
+expect: no_path
+timeout_ticks: 120
+spawn_yaw: 270
+origin_y: 120
+---
+S3 _ _ _ E3

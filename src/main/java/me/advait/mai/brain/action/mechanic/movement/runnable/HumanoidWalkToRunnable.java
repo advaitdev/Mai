@@ -55,25 +55,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class HumanoidWalkToRunnable extends BukkitRunnable {
 
-    /** How many waypoints ahead to re-classify per tick to detect world changes. */
-    private static final int LOOKAHEAD_DEPTH = 10;
-    /** Periodic full-replan interval as a safety net (5 seconds). */
-    private static final int PERIODIC_REPLAN_TICKS = 100;
-    /**
-     * Ticks without horizontal progress before the driver fires a blind
-     * "emergency jump" to try to free the bot from geometry the obstacle
-     * probe didn't detect (corner catches, misaligned waypoints, etc.).
-     * Only applies to types where {@link MovementType#allowsAutoUnstick}
-     * is true.
-     */
-    private static final int EMERGENCY_JUMP_THRESHOLD = 8;
-    /**
-     * Ticks without horizontal progress toward the current waypoint before
-     * we assume the movement is stuck (world differs from plan) and force
-     * a replan. Short enough to recover quickly, long enough to tolerate
-     * mid-jump arcs where horizontal progress temporarily stalls.
-     */
-    private static final int STUCK_ON_MOVEMENT_TICKS = 20;
+    // Replan/stuck thresholds (lookahead depth, periodic replan interval,
+    // emergency-jump and stuck-replan tick counts) live in settings.yml under
+    // movement.navigation so they can be tuned at runtime; see MovementConfig.
+    /** Max waypoints that may complete in a single tick (see run()). */
+    private static final int MAX_WAYPOINT_CHAIN = 3;
 
     private static boolean debugMode = false;
 
@@ -183,7 +169,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         boolean pathNull = currentPath == null;
         boolean lookaheadBroken = !pathNull && !isUpcomingPathValid();
         boolean dirty = !pathNull && !lookaheadBroken && worldDirty;
-        boolean periodic = !pathNull && !lookaheadBroken && !dirty && ticksSinceReplan >= PERIODIC_REPLAN_TICKS;
+        boolean periodic = !pathNull && !lookaheadBroken && !dirty && ticksSinceReplan >= config.getPeriodicReplanTicks();
         boolean needsReplan = pathNull || lookaheadBroken || dirty || periodic;
 
         if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
@@ -195,9 +181,17 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             requestNewPath(current);
         }
 
-        // Execute the current waypoint's movement type
-        if (currentPath != null && pathIndex < currentPath.size()) {
-            tickWaypoint();
+        // Execute the current waypoint's movement type. When a waypoint
+        // completes, fall through and tick the next one in the same tick:
+        // otherwise the SUCCESS tick is "lost" — the bot keeps its momentum
+        // but nobody decides anything for it, which is exactly the tick a
+        // sprinting bot needs to fire its takeoff before leaving the edge.
+        // Bounded so a chain of trivially-reached waypoints can't spin.
+        for (int chain = 0; chain < MAX_WAYPOINT_CHAIN; chain++) {
+            if (currentPath == null || pathIndex >= currentPath.size()) break;
+            if (resultFuture.isDone()) break;
+            boolean advanced = tickWaypoint();
+            if (!advanced) break;
         }
 
         if (debugMode) showDebugParticles(current);
@@ -207,7 +201,12 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     // Execution dispatch
     // =========================================================================
 
-    private void tickWaypoint() {
+    /**
+     * Ticks the current waypoint's movement type once. Returns true when the
+     * waypoint completed and the path index advanced, so the caller may
+     * immediately tick the next waypoint within the same server tick.
+     */
+    private boolean tickWaypoint() {
         AnnotatedWaypoint waypoint = currentPath.get(pathIndex);
         MovementType type = waypoint.type();
 
@@ -240,7 +239,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // naturally rate-limits this to once every ~4 ticks.
         // Pure-vertical so lingering horizontal momentum can't fling the
         // bot off a narrow ledge.
-        if (tickCtx.ticksSinceProgress >= EMERGENCY_JUMP_THRESHOLD
+        if (tickCtx.ticksSinceProgress >= config.getEmergencyJumpTicks()
                 && tickCtx.onGround()
                 && tickCtx.jumpCooldown == 0
                 && type.allowsAutoUnstick()) {
@@ -257,14 +256,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // paths (don't abort a bot mid-arc). Clears the path so the next
         // tick's replan check fires immediately.
         if (status == MovementStatus.RUNNING
-                && tickCtx.ticksSinceProgress > STUCK_ON_MOVEMENT_TICKS
+                && tickCtx.ticksSinceProgress > config.getStuckReplanTicks()
                 && type.safeToCancel(tickCtx)) {
             PathDebugLog.event("STUCK_REPLAN type=%s stuck=%dt bot=(%.2f,%.2f,%.2f) wp=(%.2f,%.2f,%.2f)",
                     type.key(), tickCtx.ticksSinceProgress,
                     tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ(),
                     waypoint.x(), waypoint.y(), waypoint.z());
             resetPathState();
-            return;
+            return false;
         }
 
         switch (status) {
@@ -279,6 +278,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 tickCtx.ticksOnMovement = 0;
                 tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
                 tickCtx.ticksSinceProgress = 0;
+                return true;
             }
             case RUNNING -> tickCtx.ticksOnMovement++;
             case FAILED -> {
@@ -288,6 +288,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             }
             case UNREACHABLE -> complete(false, "Target became unreachable.");
         }
+        return false;
     }
 
     /**
@@ -392,7 +393,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     /**
-     * Cheap lookahead validation: check the next {@link #LOOKAHEAD_DEPTH}
+     * Cheap lookahead validation: check the next {@code movement.navigation.lookahead_depth}
      * waypoints are still sensible. Returns false if any upcoming waypoint
      * is no longer allowed (capability change) or no longer standable
      * (landing block was removed). That's enough to catch the world-change
@@ -416,7 +417,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         PathContext ctx = new PathContext(caps, config, materials);
 
         int start = Math.max(1, pathIndex);
-        int end = Math.min(pathIndex + LOOKAHEAD_DEPTH, currentPath.size());
+        int end = Math.min(pathIndex + config.getLookaheadDepth(), currentPath.size());
 
         for (int i = start; i < end; i++) {
             AnnotatedWaypoint curr = currentPath.get(i);
@@ -447,6 +448,10 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     private boolean isAtTarget(Location current) {
+        // Must be standing: passing over the target column mid-jump is not
+        // arriving (the bot then drifts off and the walk is reported done).
+        LivingEntity e = humanoid.getEntity();
+        if (e == null || !e.isOnGround()) return false;
         return current.getBlockX() == target.getBlockX()
                 && current.getBlockZ() == target.getBlockZ()
                 && Math.abs(current.getY() - target.getY()) < 2.0;

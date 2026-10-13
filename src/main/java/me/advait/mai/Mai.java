@@ -80,6 +80,20 @@ public final class Mai extends JavaPlugin {
         INSTANCE = null;
     }
 
+    /**
+     * Re-reads settings.yml from disk and rebuilds the movement config and
+     * pathfinder registry from it. In-flight walks keep the config they
+     * started with; every new walk/pathfind uses the reloaded values, so
+     * movement weights can be tuned (by a human or, later, a model) without
+     * a server restart.
+     */
+    public void reloadSettings() {
+        settingsFile.reload();
+        MovementConfig movementConfig = new MovementConfig(settingsFile.getConfiguration());
+        PatheticAgent.getInstance().initialize(movementConfig);
+        getLogger().info("Settings reloaded; movement config rebuilt.");
+    }
+
     public SettingsFile getSettingsFile() {
         return settingsFile;
     }

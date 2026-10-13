@@ -24,12 +24,14 @@ public class HumanoidValidationProcessor implements ValidationProcessor {
     private final MovementRegistry registry;
     private final HumanoidCapabilities capabilities;
     private final MovementConfig config;
+    private final SearchCache cache;
 
     public HumanoidValidationProcessor(MovementRegistry registry, MovementConfig config,
-                                       HumanoidCapabilities capabilities) {
+                                       HumanoidCapabilities capabilities, SearchCache cache) {
         this.registry = registry;
         this.config = config;
         this.capabilities = capabilities;
+        this.cache = cache;
     }
 
     @Override
@@ -40,10 +42,14 @@ public class HumanoidValidationProcessor implements ValidationProcessor {
         // Start node has no incoming transition to validate.
         if (previous == null) return true;
 
-        MaterialProvider materials = MaterialProvider.fromNavigationProvider(
+        if (cache.isCached(previous, current)) return true;
+
+        MaterialProvider materials = cache.materials(
                 context.getNavigationPointProvider(), context.getEnvironmentContext());
         PathContext pathCtx = new PathContext(capabilities, config, materials);
 
-        return registry.classify(current, previous, pathCtx).isPresent();
+        var type = registry.classify(current, previous, pathCtx);
+        type.ifPresent(t -> cache.storeClassification(previous, current, t));
+        return type.isPresent();
     }
 }

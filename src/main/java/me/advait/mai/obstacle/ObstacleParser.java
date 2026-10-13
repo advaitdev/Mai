@@ -55,6 +55,7 @@ public final class ObstacleParser {
         Material floorMaterial = null;
         Material botTool = null, botBlock = null;
         int botBlockCount = 0, ceiling = 0;
+        boolean expectNoPath = false;
         int timeoutTicks = 200, spawnYaw = 0, originY = 120;
 
         for (int i = 0; i < sep; i++) {
@@ -80,6 +81,13 @@ public final class ObstacleParser {
                     botBlockCount = parts.length > 1 ? parseInt(parts[1], "bot_blocks count") : 256;
                 }
                 case "ceiling" -> ceiling = parseInt(value, "ceiling");
+                case "expect" -> {
+                    switch (value.toLowerCase(Locale.ROOT)) {
+                        case "pass" -> expectNoPath = false;
+                        case "no_path" -> expectNoPath = true;
+                        default -> throw new ParseException("expect must be 'pass' or 'no_path': " + value);
+                    }
+                }
                 default -> throw new ParseException("Unknown header key: " + key);
             }
         }
@@ -140,7 +148,7 @@ public final class ObstacleParser {
 
         return new ObstacleFile(stem, name, description, material, floorMaterial,
                 timeoutTicks, spawnYaw, originY, botTool, botBlock, botBlockCount,
-                ceiling, grid, startRow, startCol, endRow, endCol);
+                ceiling, expectNoPath, grid, startRow, startCol, endRow, endCol);
     }
 
     private static int suffixHeight(String tok, String marker) throws ParseException {

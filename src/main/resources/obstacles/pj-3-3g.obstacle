@@ -1,7 +1,7 @@
 name: pj-3-3g
-description: Jump between two 3-tall pillars over a 3 gap.
+description: Run along a 2-wide 3-tall pillar and jump a 3 gap to another.
 timeout_ticks: 320
 spawn_yaw: 270
 origin_y: 120
 ---
-S3 _ _ _ E3
+S3 3 _ _ _ E3
