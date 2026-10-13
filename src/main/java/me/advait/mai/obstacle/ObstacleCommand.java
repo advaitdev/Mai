@@ -159,4 +159,120 @@ public class ObstacleCommand extends BaseCommand {
         Messages.sendMessage(sender, "&e/mai reload &7- Hot-reload settings.yml movement config");
         Messages.sendMessage(sender, "&e/mai tune list|get|set|profile|save &7- Runtime movement tuning");
     }
+
+    @Subcommand("do")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@humanoids @tools")
+    @Syntax("<humanoid> <tool> [json args]")
+    @Description("Call an assistant tool from the console, e.g. mai do Mai follow {\"player\":\"Steve\"}")
+    public void onDo(CommandSender sender, String humanoid, String tool, @co.aikar.commands.annotation.Optional String[] json) {
+        me.advait.mai.body.Humanoid h = me.advait.mai.Catalog.getInstance().getByName(humanoid);
+        if (h == null) {
+            Messages.sendMessage(sender, "&cNo humanoid named " + humanoid);
+            return;
+        }
+        com.google.gson.JsonObject args = new com.google.gson.JsonObject();
+        if (json != null && json.length > 0) {
+            try {
+                args = com.google.gson.JsonParser.parseString(String.join(" ", json)).getAsJsonObject();
+            } catch (RuntimeException e) {
+                Messages.sendMessage(sender, "&cArguments must be a JSON object.");
+                return;
+            }
+        }
+        me.advait.mai.assistant.Tools.run(tool, h, args, sender).whenComplete((msg, ex) ->
+                org.bukkit.Bukkit.getScheduler().runTask(me.advait.mai.Mai.getInstance(), () ->
+                        Messages.sendMessage(sender, ex != null
+                                ? "&c[Tool] " + tool + " failed: " + me.advait.mai.assistant.Tools.errorMessage(ex)
+                                : "&a[Tool] " + tool + ": " + msg)));
+    }
+
+    @Subcommand("tools")
+    @CommandPermission("mai.obstacle.run")
+    @Description("Print the assistant tool schema as JSON (for LLM function calling)")
+    public void onTools(CommandSender sender) {
+        sender.sendMessage(me.advait.mai.assistant.Tools.schema().toString());
+    }
+
+    @Subcommand("observe")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@humanoids")
+    @Syntax("<humanoid>")
+    @Description("Print a humanoid's observation JSON")
+    public void onObserve(CommandSender sender, String humanoid) {
+        me.advait.mai.body.Humanoid h = me.advait.mai.Catalog.getInstance().getByName(humanoid);
+        if (h == null) {
+            Messages.sendMessage(sender, "&cNo humanoid named " + humanoid);
+            return;
+        }
+        sender.sendMessage(me.advait.mai.assistant.Observation.of(h).toString());
+    }
+
+    @Subcommand("spawn")
+    @CommandPermission("mai.obstacle.run")
+    @Syntax("<name> <x> <y> <z> [world]")
+    @Description("Spawn a humanoid at coordinates (console-safe)")
+    public void onSpawn(CommandSender sender, String name, double x, double y, double z,
+                        @co.aikar.commands.annotation.Optional String world) {
+        if (me.advait.mai.Catalog.getInstance().nameExists(name)) {
+            Messages.sendMessage(sender, "&cA humanoid named " + name + " already exists.");
+            return;
+        }
+        org.bukkit.World w = world != null ? org.bukkit.Bukkit.getWorld(world) : org.bukkit.Bukkit.getWorlds().getFirst();
+        if (w == null) {
+            Messages.sendMessage(sender, "&cNo world named " + world);
+            return;
+        }
+        me.advait.mai.Catalog.getInstance().register(name, new org.bukkit.Location(w, x, y, z));
+        Messages.sendMessage(sender, "&aSpawned " + name + " in " + w.getName());
+    }
+
+    @Subcommand("give")
+    @CommandPermission("mai.obstacle.run")
+    @Syntax("<humanoid> <item> [count]")
+    @Description("Put items in a humanoid's inventory (admin setup, console-safe)")
+    public void onGive(CommandSender sender, String humanoid, String item,
+                       @co.aikar.commands.annotation.Optional Integer count) {
+        me.advait.mai.body.Humanoid h = me.advait.mai.Catalog.getInstance().getByName(humanoid);
+        org.bukkit.Material m = org.bukkit.Material.matchMaterial(item);
+        if (h == null || m == null) {
+            Messages.sendMessage(sender, "&cUnknown humanoid or item.");
+            return;
+        }
+        h.getInventory().addItem(new org.bukkit.inventory.ItemStack(m, count == null ? 1 : count));
+        me.advait.mai.Catalog.getInstance().save(h);
+        Messages.sendMessage(sender, "&aGave " + humanoid + " " + (count == null ? 1 : count) + " " + m.getKey().getKey());
+    }
+
+    @Subcommand("duel trace")
+    @CommandPermission("mai.obstacle.run")
+    @Description("Toggle per-tick combat decision logging")
+    public void onDuelTrace(CommandSender sender) {
+        me.advait.mai.assistant.CombatBehavior.trace = !me.advait.mai.assistant.CombatBehavior.trace;
+        Messages.sendMessage(sender, "&7Combat trace: " + me.advait.mai.assistant.CombatBehavior.trace);
+    }
+
+    @Subcommand("duel")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@nothing smart|basic smart|basic @nothing")
+    @Syntax("[rounds] [styleA] [styleB] [weapon]")
+    @Description("PvP benchmark: two humanoids fight on a platform in the obstacle world")
+    public void onDuel(CommandSender sender, @co.aikar.commands.annotation.Optional Integer rounds,
+                       @co.aikar.commands.annotation.Optional String a,
+                       @co.aikar.commands.annotation.Optional String b,
+                       @co.aikar.commands.annotation.Optional String weapon) {
+        org.bukkit.Material w = org.bukkit.Material.matchMaterial(weapon == null ? "iron_sword" : weapon);
+        if (w == null) {
+            Messages.sendMessage(sender, "&cUnknown weapon " + weapon);
+            return;
+        }
+        me.advait.mai.assistant.Duel.start(sender, rounds == null ? 10 : rounds, style(a, true), style(b, false), w);
+    }
+
+    private static me.advait.mai.assistant.CombatBehavior.Style style(String s, boolean smartDefault) {
+        if (s == null) return smartDefault ? me.advait.mai.assistant.CombatBehavior.Style.SMART
+                : me.advait.mai.assistant.CombatBehavior.Style.BASIC;
+        return s.equalsIgnoreCase("basic") ? me.advait.mai.assistant.CombatBehavior.Style.BASIC
+                : me.advait.mai.assistant.CombatBehavior.Style.SMART;
+    }
 }

@@ -87,9 +87,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     private volatile boolean worldDirty = false;
+    /** Set by {@link #retarget}; replans toward the new target once safe. */
+    private volatile boolean retargeted = false;
 
     private final Humanoid humanoid;
-    private final Location target;
+    private volatile Location target;
+    /**
+     * 0 = arrive on the exact target block. Above 0 = arrive anywhere within
+     * this horizontal distance (follow and chase stop short of the target).
+     */
+    private final double arrivalRadius;
     private final CompletableFuture<HumanoidActionResult> resultFuture;
     private final MovementConfig config;
     private final TickContext tickCtx = new TickContext();
@@ -106,8 +113,14 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     public HumanoidWalkToRunnable(Humanoid humanoid, Location target,
                                   CompletableFuture<HumanoidActionResult> resultFuture) {
+        this(humanoid, target, 0, resultFuture);
+    }
+
+    public HumanoidWalkToRunnable(Humanoid humanoid, Location target, double arrivalRadius,
+                                  CompletableFuture<HumanoidActionResult> resultFuture) {
         this.humanoid = humanoid;
         this.target = target;
+        this.arrivalRadius = arrivalRadius;
         this.resultFuture = resultFuture;
         this.config = PatheticAgent.getInstance().getConfig();
 
@@ -117,6 +130,30 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         ACTIVE.add(this);
     }
+
+    /**
+     * Point an in-flight walk at a new target (a moving player, a fleeing
+     * mob). The current path keeps executing until it is safe to swap, then
+     * a replan toward the new target runs, so no arc is cut short.
+     */
+    public void retarget(Location newTarget) {
+        Location old = target;
+        target = newTarget;
+        tickCtx.finalTarget = newTarget;
+        if (old == null || old.getWorld() != newTarget.getWorld()
+                || old.getBlockX() != newTarget.getBlockX()
+                || old.getBlockY() != newTarget.getBlockY()
+                || old.getBlockZ() != newTarget.getBlockZ()) {
+            retargeted = true;
+        }
+    }
+
+    public Location getTarget() { return target; }
+
+    /** Ends the walk now (reported as unsuccessful: "Stopped."). */
+    public void stop() { complete(false, "Stopped."); }
+
+    public boolean isDone() { return resultFuture.isDone(); }
 
     public static void setDebugMode(boolean enabled) { debugMode = enabled; }
     public static boolean isDebugMode() { return debugMode; }
@@ -168,14 +205,15 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         //      window didn't cover.
         boolean pathNull = currentPath == null;
         boolean lookaheadBroken = !pathNull && !isUpcomingPathValid();
-        boolean dirty = !pathNull && !lookaheadBroken && worldDirty;
+        boolean dirty = !pathNull && !lookaheadBroken && (worldDirty || retargeted);
         boolean periodic = !pathNull && !lookaheadBroken && !dirty && ticksSinceReplan >= config.getPeriodicReplanTicks();
         boolean needsReplan = pathNull || lookaheadBroken || dirty || periodic;
 
         if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
-            worldDirty = false;
             String reason = pathNull ? "no_path" : lookaheadBroken ? "lookahead_invalid"
-                    : dirty ? "world_change" : "periodic";
+                    : retargeted ? "retarget" : dirty ? "world_change" : "periodic";
+            worldDirty = false;
+            retargeted = false;
             PathDebugLog.event("REPLAN reason=%s bot=(%.2f,%.2f,%.2f)",
                     reason, current.getX(), current.getY(), current.getZ());
             requestNewPath(current);
@@ -187,6 +225,11 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // but nobody decides anything for it, which is exactly the tick a
         // sprinting bot needs to fire its takeoff before leaving the edge.
         // Bounded so a chain of trivially-reached waypoints can't spin.
+        if (currentPath != null && pathIndex < currentPath.size()) {
+            MovementExecutors.openDoorsAhead(entity, current,
+                    MovementExecutors.direction2D(current, currentPath.get(pathIndex)));
+        }
+
         for (int chain = 0; chain < MAX_WAYPOINT_CHAIN; chain++) {
             if (currentPath == null || pathIndex >= currentPath.size()) break;
             if (resultFuture.isDone()) break;
@@ -337,7 +380,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         MovementType nextType = nextWp.type();
         if (nextType != null && "step_up".equals(nextType.key())
                 && tickCtx.onGround() && tickCtx.jumpCooldown == 0
-                && nextWp.y() > tickCtx.current.getY() + 0.3) {
+                && MovementExecutors.needsJumpUp(tickCtx.current, nextWp)) {
             double[] dir = MovementExecutors.direction2D(tickCtx.current, nextWp);
             MovementExecutors.kickToward(tickCtx, dir, 0.18);
             PathDebugLog.event("PREJUMP nextType=step_up nextWp=(%.2f,%.2f,%.2f)",
@@ -368,7 +411,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         boolean nearDestination = distToTarget < 3.0;
 
         double horizDist = MovementExecutors.horizontalDistance(tickCtx.current, wp);
-        boolean needsJump = wp.y() > tickCtx.current.getY() + 0.3;
+        boolean needsJump = MovementExecutors.needsJumpUp(tickCtx.current, wp);
 
         if (nearDestination) return 1.0;
         if (needsJump && horizDist < 2.5) return 1.0;
@@ -452,6 +495,11 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         // arriving (the bot then drifts off and the walk is reported done).
         LivingEntity e = humanoid.getEntity();
         if (e == null || !e.isOnGround()) return false;
+        if (arrivalRadius > 0) {
+            double dx = current.getX() - target.getX(), dz = current.getZ() - target.getZ();
+            return dx * dx + dz * dz <= arrivalRadius * arrivalRadius
+                    && Math.abs(current.getY() - target.getY()) < 2.5;
+        }
         return current.getBlockX() == target.getBlockX()
                 && current.getBlockZ() == target.getBlockZ()
                 && Math.abs(current.getY() - target.getY()) < 2.0;
@@ -471,7 +519,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         pathfindingInProgress.set(true);
         ticksSinceReplan = 0;
 
-        PatheticAgent.getInstance().getAnnotatedPath(humanoid, current, target)
+        final Location goal = target;
+        PatheticAgent.getInstance().getAnnotatedPath(humanoid, current, goal)
                 .thenAccept(pathOpt -> {
                     pathfindingInProgress.set(false);
                     if (resultFuture.isDone()) return;

@@ -49,6 +49,7 @@ public final class Mai extends JavaPlugin {
         ObstacleTester.getInstance().initialize();
         registerCommands();
         registerListeners();
+        me.advait.mai.assistant.Assistant.startTicker();
 
         Bukkit.getScheduler().runTaskLater(this, () -> Catalog.getInstance().loadAll(), 20);
     }
@@ -62,6 +63,9 @@ public final class Mai extends JavaPlugin {
         commandManager.getCommandCompletions().registerCompletion("obstacles", c ->
                 ObstacleTester.getInstance().stems()
         );
+        commandManager.getCommandCompletions().registerCompletion("tools", c ->
+                me.advait.mai.assistant.Tools.all().stream().map(me.advait.mai.assistant.Tools.Tool::name).toList()
+        );
         commandManager.registerCommand(new HumanoidCommand());
         commandManager.registerCommand(new ObstacleCommand());
     }
@@ -71,6 +75,8 @@ public final class Mai extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
         getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
         getServer().getPluginManager().registerEvents(new WorldChangeListener(), this);
+        getServer().getPluginManager().registerEvents(new me.advait.mai.assistant.AssistantChatListener(), this);
+        getServer().getPluginManager().registerEvents(new me.advait.mai.assistant.GuardBehavior.DamageListener(), this);
     }
 
     @Override

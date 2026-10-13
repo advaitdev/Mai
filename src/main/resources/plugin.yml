@@ -9,3 +9,6 @@ permissions:
   mai.obstacle.run:
     description: Run the obstacle-course test harness (/mai test ...)
     default: op
+  mai.humanoid.command:
+    description: Give humanoids instructions (/h come, follow, mine, ... and chat like "Mai, follow me")
+    default: op
