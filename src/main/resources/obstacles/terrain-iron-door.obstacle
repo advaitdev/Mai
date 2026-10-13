@@ -1,0 +1,13 @@
+name: terrain-iron-door
+description: The only opening is an iron door, which needs redstone: no path.
+material: stone
+floor_material: stone
+blocks: d=iron_door[facing=east]
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+expect: no_path
+---
+2 2 2 2 2
+S . d . E
+2 2 2 2 2

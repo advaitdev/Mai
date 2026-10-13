@@ -1,0 +1,10 @@
+name: terrain-ice-gap
+description: Sprint-jump a 2-block gap taking off from packed ice.
+material: stone
+floor_material: stone
+blocks: i=packed_ice
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+Si i i _ _ . E

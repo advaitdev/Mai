@@ -1,0 +1,10 @@
+name: terrain-soul-sand
+description: Walk across soul sand (slow, 14/16 tall) and step back onto full blocks.
+material: stone
+floor_material: stone
+blocks: o=soul_sand
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+S o o o o o . E

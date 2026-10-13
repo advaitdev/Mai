@@ -71,11 +71,12 @@ public record WalkFlat() implements MovementType {
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 
-    static boolean isStandable(PathPosition pos, MaterialProvider materials) {
+    public static boolean isStandable(PathPosition pos, MaterialProvider materials) {
         Material below = materials.getMaterial(pos.getFlooredX(), pos.getFlooredY() - 1, pos.getFlooredZ());
         Material atFeet = materials.getMaterial(pos);
         Material atHead = materials.getMaterial(pos.getFlooredX(), pos.getFlooredY() + 1, pos.getFlooredZ());
         return BlockClassifier.isSolid(below)
+                && !BlockClassifier.isTall(below)
                 && BlockClassifier.isTraversable(atFeet)
                 && BlockClassifier.isTraversable(atHead);
     }

@@ -78,6 +78,10 @@ public record SprintJump() implements MovementType {
         int sx = previous.getFlooredX(), sy = previous.getFlooredY(), sz = previous.getFlooredZ();
         if (!BlockClassifier.isTraversable(materials.getMaterial(sx, sy + 2, sz))) return false;
 
+        // Soul sand, honey and other slow blocks cap the run-up speed far
+        // below what the takeoff model assumes; never plan a jump off one.
+        if (BlockClassifier.speedMultiplier(materials.getMaterial(sx, sy - 1, sz)) < 1.0) return false;
+
         // Landing must be standable
         if (!WalkFlat.isStandable(current, materials)) return false;
 

@@ -1,0 +1,14 @@
+name: terrain-fence-detour
+description: A fence line blocks the direct route; the only way is around its open end. Fences are 1.5 tall: not a step.
+material: stone
+floor_material: stone
+blocks: f=oak_fence
+timeout_ticks: 500
+spawn_yaw: 270
+origin_y: 120
+---
+. . f . .
+S . f . E
+. . f . .
+. . f . .
+. . . . .

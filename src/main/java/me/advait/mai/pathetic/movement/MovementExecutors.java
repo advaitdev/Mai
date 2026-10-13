@@ -196,8 +196,72 @@ public final class MovementExecutors {
     // =========================================================================
 
     public static double slipperinessBelow(Location loc) {
-        Material below = loc.clone().add(0, -1, 0).getBlock().getType();
+        // Vanilla samples the block 0.5 below the feet, so a bot standing on
+        // a slab, soul sand or a dirt path reads that block, not the one under it.
+        Material below = loc.clone().add(0, -0.5000001, 0).getBlock().getType();
         return BlockClassifier.slipperiness(below);
+    }
+
+    /**
+     * World Y of the top of a block's collision (not its outline: a fence's
+     * outline is 1.0 tall but it collides up to 1.5). A block without
+     * collision returns its own base Y.
+     */
+    public static double collisionTop(org.bukkit.block.Block b) {
+        if (b.isPassable()) return b.getY();
+        double max = 0;
+        for (org.bukkit.util.BoundingBox box : b.getCollisionShape().getBoundingBoxes()) {
+            max = Math.max(max, box.getMaxY());
+        }
+        return b.getY() + max;
+    }
+
+    /** Vanilla step height: rises up to this are climbed by walking, no jump. */
+    public static final double STEP_HEIGHT = 0.6;
+
+    /**
+     * How far the top of the waypoint's supporting block sits above the
+     * bot's feet. Uses the real collision box, so a slab, carpet, path or
+     * soul sand reads as a short rise the bot simply walks up.
+     */
+    public static double stepRise(Location current, AnnotatedWaypoint wp) {
+        World world = current.getWorld();
+        if (world == null) return wp.y() - current.getY();
+        org.bukkit.block.Block support = world.getBlockAt(
+                (int) Math.floor(wp.x()), (int) Math.floor(wp.y()) - 1, (int) Math.floor(wp.z()));
+        return collisionTop(support) - current.getY();
+    }
+
+    /** Whether reaching {@code wp} needs a jump rather than a walking step. */
+    public static boolean needsJumpUp(Location current, AnnotatedWaypoint wp) {
+        return wp.y() > current.getY() + 0.3 && stepRise(current, wp) > STEP_HEIGHT;
+    }
+
+    /**
+     * Opens any closed wooden door or fence gate the bot is about to walk
+     * into (feet or head height, within reach ahead). The planner treats
+     * these as passable, so the executor has to make that true.
+     */
+    public static void openDoorsAhead(LivingEntity entity, Location current, double[] dir) {
+        World world = current.getWorld();
+        if (world == null || (dir[0] == 0 && dir[1] == 0)) return;
+        for (double probe : new double[]{0.4, 0.9}) {
+            for (double yOff : new double[]{0.1, 1.1}) {
+                org.bukkit.block.Block b = world.getBlockAt(
+                        (int) Math.floor(current.getX() + dir[0] * probe),
+                        (int) Math.floor(current.getY() + yOff),
+                        (int) Math.floor(current.getZ() + dir[1] * probe));
+                if (!BlockClassifier.isOpenable(b.getType())) continue;
+                if (b.getBlockData() instanceof org.bukkit.block.data.Openable o && !o.isOpen()) {
+                    o.setOpen(true);
+                    b.setBlockData(o);
+                    entity.swingMainHand();
+                    world.playSound(b.getLocation(), b.getType().name().endsWith("_FENCE_GATE")
+                            ? org.bukkit.Sound.BLOCK_FENCE_GATE_OPEN
+                            : org.bukkit.Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 1f);
+                }
+            }
+        }
     }
 
     // Player half-width is 0.3; subtract an epsilon so the probe samples
@@ -242,9 +306,31 @@ public final class MovementExecutors {
      * anticipate the obstacle (placed block, corner-clip, etc.).
      */
     public static boolean obstacleAheadNeedsJump(Location current, double[] dir) {
-        return solidNearFacing(current, dir, 0.1, 0.5)
-                && !solidNearFacing(current, dir, 1.1, 0.5)
-                && !solidNearFacing(current, dir, 2.1, 0.5);
+        if (!solidNearFacing(current, dir, 0.1, 0.5)
+                || solidNearFacing(current, dir, 1.1, 0.5)
+                || solidNearFacing(current, dir, 2.1, 0.5)) {
+            return false;
+        }
+        // Only a rise between the step height and a jump's reach is worth a
+        // hop: slabs, carpets, paths and soul sand are walked up, and a
+        // fence or wall (1.5) can't be jumped onto at all.
+        double rise = obstacleTopAhead(current, dir, 0.5) - current.getY();
+        return rise > STEP_HEIGHT && rise <= 1.25;
+    }
+
+    /** Highest collision top among the blocks the bounding-box corners would enter at feet level. */
+    private static double obstacleTopAhead(Location current, double[] dir, double probeDist) {
+        World world = current.getWorld();
+        double top = current.getY();
+        if (world == null) return top;
+        for (double[] corner : CORNER_OFFSETS) {
+            org.bukkit.block.Block b = world.getBlockAt(
+                    (int) Math.floor(current.getX() + corner[0] + dir[0] * probeDist),
+                    (int) Math.floor(current.getY() + 0.1),
+                    (int) Math.floor(current.getZ() + corner[1] + dir[1] * probeDist));
+            top = Math.max(top, collisionTop(b));
+        }
+        return top;
     }
 
     /**

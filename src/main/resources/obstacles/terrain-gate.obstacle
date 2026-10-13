@@ -1,0 +1,12 @@
+name: terrain-gate
+description: The only way out of a fenced pen is through a closed fence gate.
+material: stone
+floor_material: stone
+blocks: f=oak_fence g=oak_fence_gate[facing=east]
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+f f f f f . .
+f S . . g . E
+f f f f f . .

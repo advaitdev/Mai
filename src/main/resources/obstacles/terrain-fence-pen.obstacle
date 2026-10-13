@@ -1,0 +1,13 @@
+name: terrain-fence-pen
+description: Fully fenced in: a 1.5-tall fence cannot be stepped or jumped onto.
+material: stone
+floor_material: stone
+blocks: f=oak_fence
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+expect: no_path
+---
+f f f f f . .
+f S . . f . E
+f f f f f . .

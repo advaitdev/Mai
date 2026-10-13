@@ -1,0 +1,10 @@
+name: terrain-carpet
+description: Carpet-covered floor plus a carpet on a block: 1/16 rises everywhere.
+material: stone
+floor_material: stone
+blocks: c=white_carpet
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S c c 1c c c E

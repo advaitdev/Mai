@@ -1,0 +1,10 @@
+name: terrain-slab-steps
+description: Half-slab staircase: every rise is 0.5, climbed by the step height with no jump.
+material: stone
+floor_material: stone
+blocks: a=oak_slab
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S a 1 1a 2 2a E3

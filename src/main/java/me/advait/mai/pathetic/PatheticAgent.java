@@ -113,7 +113,8 @@ public final class PatheticAgent {
 
         HumanoidCapabilities caps = HumanoidCapabilities.from(humanoid, config);
 
-        PathPosition startPos = BukkitMapper.toPathPosition(from);
+        PathPosition startPos = BukkitMapper.toPathPosition(feetCell(from));
+        to = feetCell(to);
 
         // Step 1: resolve the target to a standable block. When a player
         // stands on the edge of a block, {@code getBlockX/Z()} can point
@@ -250,6 +251,31 @@ public final class PatheticAgent {
         PathDebugLog.event("TARGET_UNREACHABLE strict=(%d,%d,%d) — no AABB corner is standable",
                 strict.getFlooredX(), strict.getFlooredY(), strict.getFlooredZ());
         return Optional.empty();
+    }
+
+    /**
+     * The path cell an entity at {@code loc} occupies. Standing on a
+     * partial block (slab, dirt path, farmland, soul sand, carpet, chest)
+     * puts the feet inside that block's cell, but the pathfinder's cell is
+     * the one above it, since the partial block is the floor. Main thread only.
+     */
+    public static Location feetCell(Location loc) {
+        org.bukkit.block.Block b = loc.getBlock();
+        if (BlockClassifier.isTraversable(b.getType()) || b.isPassable()) return loc;
+        double top = me.advait.mai.pathetic.movement.MovementExecutors.collisionTop(b);
+        if (loc.getY() >= top - 0.01 && top < b.getY() + 1.01) {
+            Location up = loc.clone();
+            up.setY(b.getY() + 1);
+            return up;
+        }
+        return loc;
+    }
+
+    /** Whether a bot could stand in the block cell at {@code loc}. Main thread only. */
+    public boolean isStandable(Location loc) {
+        if (loc.getWorld() == null) return false;
+        return me.advait.mai.pathetic.movement.types.WalkFlat.isStandable(
+                BukkitMapper.toPathPosition(loc), MaterialProvider.fromWorld(loc.getWorld()));
     }
 
     public MovementConfig getConfig() {

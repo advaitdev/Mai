@@ -1,0 +1,12 @@
+name: terrain-dirt-path
+description: Village road of dirt paths (15/16 tall) with a turn, ending on farmland.
+material: stone
+floor_material: stone
+blocks: p=dirt_path f=farmland
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+Sp p p p _ _
+_ _ _ p _ _
+_ _ _ p p Ef

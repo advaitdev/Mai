@@ -8,7 +8,8 @@ import me.advait.mai.pathetic.movement.*;
 import org.bukkit.Material;
 
 /**
- * Swimming through water or lava. Current position's feet block is liquid.
+ * Swimming through water. Lava is never a route: without fire resistance
+ * it is death, so it is neither traversable nor swimmable.
  */
 public record Swim() implements MovementType {
 
@@ -17,8 +18,7 @@ public record Swim() implements MovementType {
 
     @Override
     public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
-        Material atFeet = ctx.materials().getMaterial(current);
-        return BlockClassifier.isLiquid(atFeet);
+        return ctx.materials().getMaterial(current) == Material.WATER;
     }
 
     @Override
@@ -40,9 +40,7 @@ public record Swim() implements MovementType {
 
     @Override
     public boolean canReachAsEndpoint(PathPosition position, PathContext ctx) {
-        // Any position whose feet block is a liquid is a valid swim endpoint.
-        Material atFeet = ctx.materials().getMaterial(position);
-        return BlockClassifier.isLiquid(atFeet);
+        return ctx.materials().getMaterial(position) == Material.WATER;
     }
 
     @Override

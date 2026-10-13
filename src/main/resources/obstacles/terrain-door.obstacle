@@ -1,0 +1,12 @@
+name: terrain-door
+description: A 2-tall wall with a closed oak door: the bot opens it and walks through.
+material: stone
+floor_material: stone
+blocks: d=oak_door[facing=east]
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+. . 2 . .
+S . d . E
+. . 2 . .

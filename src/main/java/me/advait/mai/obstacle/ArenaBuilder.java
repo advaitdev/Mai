@@ -63,7 +63,8 @@ public final class ArenaBuilder {
         int maxHeight = 0;
         for (int r = 0; r < obs.rows(); r++) {
             for (int c = 0; c < obs.cols(); c++) {
-                maxHeight = Math.max(maxHeight, obs.grid()[r][c].height());
+                ObstacleFile.Cell cl = obs.grid()[r][c];
+                maxHeight = Math.max(maxHeight, cl.height() + (cl.tallTop() ? 1 : 0));
             }
         }
         int clearTop = originY + maxHeight + HEADROOM;
@@ -80,14 +81,19 @@ public final class ArenaBuilder {
                 // Floor layer (or air for void cells, so falls register).
                 set(bx, originY, bz, cell.hasFloor() ? obs.floorMaterial() : Material.AIR);
 
-                // Stacked blocks above the floor.
-                for (int h = 1; h <= cell.height(); h++) {
-                    set(bx, originY + h, bz, obs.material());
+                // Clear the column first so a two-tall top (door) isn't
+                // overwritten by the headroom pass.
+                for (int y = originY + 1; y <= clearTop; y++) {
+                    set(bx, y, bz, Material.AIR);
                 }
 
-                // Clear headroom above the stack so the bot can stand/jump.
-                for (int y = originY + cell.height() + 1; y <= clearTop; y++) {
-                    set(bx, y, bz, Material.AIR);
+                // Stacked blocks above the floor; the last one may be a legend block.
+                for (int h = 1; h <= cell.height(); h++) {
+                    if (h == cell.height() && cell.top() != null) {
+                        placeTop(bx, originY + h, bz, cell);
+                    } else {
+                        set(bx, originY + h, bz, obs.material());
+                    }
                 }
 
                 // Optional roof: encloses floored cells into a tunnel so the
@@ -184,6 +190,19 @@ public final class ArenaBuilder {
                 originY + height + 1,
                 originZ + row + 0.5,
                 yaw, 0f);
+    }
+
+    private void placeTop(int x, int y, int z, ObstacleFile.Cell cell) {
+        org.bukkit.block.data.BlockData data = cell.top().clone();
+        if (cell.tallTop() && data instanceof org.bukkit.block.data.Bisected lower) {
+            lower.setHalf(org.bukkit.block.data.Bisected.Half.BOTTOM);
+            world.getBlockAt(x, y, z).setBlockData(lower, false);
+            org.bukkit.block.data.Bisected upper = (org.bukkit.block.data.Bisected) lower.clone();
+            upper.setHalf(org.bukkit.block.data.Bisected.Half.TOP);
+            world.getBlockAt(x, y + 1, z).setBlockData(upper, false);
+            return;
+        }
+        world.getBlockAt(x, y, z).setBlockData(data, false);
     }
 
     private void set(int x, int y, int z, Material material) {

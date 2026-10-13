@@ -60,12 +60,21 @@ public record ObstacleFile(
      * A single grid cell.
      *
      * @param hasFloor whether the safety floor block is present below the cell
-     * @param height   number of {@code material} blocks stacked above the floor
+     * @param height   blocks stacked above the floor, including {@code top}
+     * @param top      block data for the topmost stacked block (from the
+     *                 {@code blocks:} legend), or null to use {@code material}
      */
-    public record Cell(boolean hasFloor, int height) {
-        static final Cell VOID = new Cell(false, 0);
-        static final Cell FLOOR = new Cell(true, 0);
+    public record Cell(boolean hasFloor, int height, org.bukkit.block.data.BlockData top) {
+        static final Cell VOID = new Cell(false, 0, null);
+        static final Cell FLOOR = new Cell(true, 0, null);
 
-        static Cell stack(int height) { return new Cell(true, height); }
+        static Cell stack(int height) { return new Cell(true, height, null); }
+
+        /** Whether the top block is the lower half of a two-tall block (door). */
+        public boolean tallTop() {
+            return top instanceof org.bukkit.block.data.Bisected
+                    && !(top instanceof org.bukkit.block.data.type.Stairs)
+                    && !(top instanceof org.bukkit.block.data.type.TrapDoor);
+        }
     }
 }

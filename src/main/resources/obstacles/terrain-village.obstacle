@@ -1,0 +1,12 @@
+name: terrain-village
+description: Mixed village street between walls: dirt path, a door, slab and block steps, then a gate.
+material: stone
+floor_material: stone
+blocks: p=dirt_path a=oak_slab d=spruce_door[facing=east] g=oak_fence_gate[facing=east]
+timeout_ticks: 600
+spawn_yaw: 270
+origin_y: 120
+---
+3 3 3 3 3 3 3 3 3 3 3
+S p p d p a 1 . g . E
+3 3 3 3 3 3 3 3 3 3 3

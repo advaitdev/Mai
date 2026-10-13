@@ -30,6 +30,8 @@ public final class BlockClassifier {
     private static final double[] SPEED_MULTIPLIER = new double[N];
     private static final float[] HARDNESS = new float[N];
     private static final double[] PLACEMENT_VALUE = new double[N];
+    private static final boolean[] TALL = new boolean[N];
+    private static final boolean[] OPENABLE = new boolean[N];
 
     static {
         for (Material m : Material.values()) {
@@ -45,6 +47,8 @@ public final class BlockClassifier {
             HARDNESS[i]         = computeHardness(m);
             BREAKABLE[i]        = computeBreakable(m);
             PLACEMENT_VALUE[i]  = computePlacementValue(m);
+            TALL[i]             = computeTall(m);
+            OPENABLE[i]         = computeOpenable(m);
         }
     }
 
@@ -116,17 +120,36 @@ public final class BlockClassifier {
         return PLACEMENT_VALUE[material.ordinal()];
     }
 
+    /**
+     * Collision taller than a full block (fences, walls: 1.5). Nothing can
+     * stand on one after a normal step or jump, and nothing jumps over one,
+     * so such a block is never a valid floor.
+     */
+    public static boolean isTall(Material material) {
+        return TALL[material.ordinal()];
+    }
+
+    /**
+     * Doors and fence gates a bot can open by hand. The planner treats them
+     * as passable; the executor opens them on the way through.
+     */
+    public static boolean isOpenable(Material material) {
+        return OPENABLE[material.ordinal()];
+    }
+
     // =========================================================================
     // Compute helpers (run once at class init, never on the hot path)
     // =========================================================================
 
     private static boolean computeTraversable(Material material) {
         if (material.isAir()) return true;
+        if (computeOpenable(material)) return true;
         if (material.isSolid()) return false;
         // Non-solid blocks that still have collision boxes
         if (material.name().endsWith("_LEAVES")) return false;
         return switch (material) {
-            case COBWEB, POWDER_SNOW, SWEET_BERRY_BUSH -> false;
+            // No collision, but walking into them hurts or traps: never path through.
+            case COBWEB, POWDER_SNOW, SWEET_BERRY_BUSH, LAVA, FIRE, SOUL_FIRE, WITHER_ROSE -> false;
             default -> true;
         };
     }
@@ -168,10 +191,24 @@ public final class BlockClassifier {
     }
 
     private static boolean computeSolid(Material material) {
+        if (computeOpenable(material)) return false;
         if (material.isSolid()) return true;
         // Leaves have collision but Material.isSolid() returns false
         if (material.name().endsWith("_LEAVES")) return true;
         return false;
+    }
+
+    private static boolean computeTall(Material material) {
+        String n = material.name();
+        return n.endsWith("_FENCE") || n.endsWith("_WALL") || n.endsWith("_FENCE_GATE");
+    }
+
+    private static boolean computeOpenable(Material material) {
+        String n = material.name();
+        // Iron doors need redstone; trapdoors open into the walkway and are
+        // left solid for now.
+        if (material == Material.IRON_DOOR) return false;
+        return n.endsWith("_DOOR") || n.endsWith("_FENCE_GATE");
     }
 
     private static float computeHardness(Material material) {

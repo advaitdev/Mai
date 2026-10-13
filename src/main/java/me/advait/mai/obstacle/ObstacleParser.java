@@ -56,6 +56,7 @@ public final class ObstacleParser {
         Material botTool = null, botBlock = null;
         int botBlockCount = 0, ceiling = 0;
         boolean expectNoPath = false;
+        java.util.Map<Character, org.bukkit.block.data.BlockData> legend = new java.util.HashMap<>();
         int timeoutTicks = 200, spawnYaw = 0, originY = 120;
 
         for (int i = 0; i < sep; i++) {
@@ -81,6 +82,7 @@ public final class ObstacleParser {
                     botBlockCount = parts.length > 1 ? parseInt(parts[1], "bot_blocks count") : 256;
                 }
                 case "ceiling" -> ceiling = parseInt(value, "ceiling");
+                case "blocks" -> parseLegend(value, legend);
                 case "expect" -> {
                     switch (value.toLowerCase(Locale.ROOT)) {
                         case "pass" -> expectNoPath = false;
@@ -124,21 +126,17 @@ public final class ObstacleParser {
                 switch (head) {
                     case '.' -> grid[r][c] = ObstacleFile.Cell.FLOOR;
                     case '_' -> grid[r][c] = ObstacleFile.Cell.VOID;
-                    case 'S', 's' -> {
+                    case 'S' -> {
                         if (startRow != -1) throw new ParseException("Multiple start (S) markers found.");
                         startRow = r; startCol = c;
-                        grid[r][c] = ObstacleFile.Cell.stack(suffixHeight(tok, "S"));
+                        grid[r][c] = stackCell(tok.substring(1), legend, "S");
                     }
-                    case 'E', 'e' -> {
+                    case 'E' -> {
                         if (endRow != -1) throw new ParseException("Multiple end (E) markers found.");
                         endRow = r; endCol = c;
-                        grid[r][c] = ObstacleFile.Cell.stack(suffixHeight(tok, "E"));
+                        grid[r][c] = stackCell(tok.substring(1), legend, "E");
                     }
-                    default -> {
-                        int h = parseInt(tok, "grid cell");
-                        if (h < 0) throw new ParseException("Negative cell height: " + tok);
-                        grid[r][c] = ObstacleFile.Cell.stack(h);
-                    }
+                    default -> grid[r][c] = stackCell(tok, legend, "grid cell");
                 }
             }
         }
@@ -151,9 +149,44 @@ public final class ObstacleParser {
                 ceiling, expectNoPath, grid, startRow, startCol, endRow, endCol);
     }
 
-    private static int suffixHeight(String tok, String marker) throws ParseException {
-        if (tok.length() == 1) return 0;
-        return parseInt(tok.substring(1), marker + " pillar height");
+    /**
+     * A stack token: optional digits (blocks of {@code material}) followed by
+     * an optional lowercase legend letter (one more block of that type on
+     * top). {@code 2} = two blocks, {@code a} = one 'a' block, {@code 2a} =
+     * two blocks then an 'a'. Empty = floor only.
+     */
+    private static ObstacleFile.Cell stackCell(String tok, java.util.Map<Character, org.bukkit.block.data.BlockData> legend,
+                                               String what) throws ParseException {
+        if (tok.isEmpty()) return ObstacleFile.Cell.stack(0);
+        char last = tok.charAt(tok.length() - 1);
+        if (Character.isDigit(last)) {
+            int h = parseInt(tok, what + " height");
+            if (h < 0) throw new ParseException("Negative cell height: " + tok);
+            return ObstacleFile.Cell.stack(h);
+        }
+        org.bukkit.block.data.BlockData data = legend.get(last);
+        if (data == null) throw new ParseException("Unknown block letter '" + last + "' in " + what + " (define it in 'blocks:')");
+        String digits = tok.substring(0, tok.length() - 1);
+        int base = digits.isEmpty() ? 0 : parseInt(digits, what + " height");
+        return new ObstacleFile.Cell(true, base + 1, data);
+    }
+
+    /** {@code blocks: a=OAK_SLAB b=oak_stairs[facing=east] d=OAK_DOOR} */
+    private static void parseLegend(String value, java.util.Map<Character, org.bukkit.block.data.BlockData> legend)
+            throws ParseException {
+        for (String entry : value.trim().split("\\s+")) {
+            int eq = entry.indexOf('=');
+            if (eq != 1 || !Character.isLowerCase(entry.charAt(0)) || entry.charAt(0) == 's' || entry.charAt(0) == 'e') {
+                throw new ParseException("blocks: entries must be '<letter>=<block>' with a lowercase letter other than s/e: " + entry);
+            }
+            String spec = entry.substring(2);
+            try {
+                String id = spec.contains(":") ? spec : "minecraft:" + spec.toLowerCase(Locale.ROOT);
+                legend.put(entry.charAt(0), org.bukkit.Bukkit.createBlockData(id));
+            } catch (IllegalArgumentException e) {
+                throw new ParseException("Invalid block in blocks: " + spec);
+            }
+        }
     }
 
     private static Material resolveMaterial(String value, String key) throws ParseException {

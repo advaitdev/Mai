@@ -1,0 +1,12 @@
+name: terrain-ice-walk
+description: Packed-ice floor with two turns: low friction, the bot must not slide off the corners.
+material: stone
+floor_material: stone
+blocks: i=packed_ice
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+Si i i i _ _
+_ _ _ i _ _
+_ _ _ i i Ei

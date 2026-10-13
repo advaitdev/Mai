@@ -66,7 +66,9 @@ public record StepUp() implements MovementType {
         boolean sprinting = ctx.speedFactor > 1.0;
         double horizDist = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
         double currentSpeed = MovementExecutors.horizontalSpeed(ctx.entity().getVelocity());
-        boolean needsJump = ctx.waypoint.y() > ctx.current.getY() + 0.3;
+        // A slab, path or carpet is climbed by the vanilla step height; only
+        // jump when the real rise is taller than that.
+        boolean needsJump = MovementExecutors.needsJumpUp(ctx.current, ctx.waypoint);
 
         // Vanilla jump: peak y=1.2522 at tick ~5-6; bot is ≥1 block up for
         // ticks 3-8 (5-tick clearance window). At terminal sprint 0.28 b/t
@@ -94,9 +96,11 @@ public record StepUp() implements MovementType {
 
         MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
 
-        // Success only once we're up at the target Y
+        // Success once we're standing on the step: feet at (or above) the
+        // real top of its support, which is half a block short of the
+        // waypoint's cell for a slab, 1/16 short for a path or carpet.
         if (MovementExecutors.reachedHorizontally(ctx)
-                && ctx.current.getY() >= ctx.waypoint.y() - 0.1) {
+                && MovementExecutors.stepRise(ctx.current, ctx.waypoint) <= 0.1) {
             return MovementStatus.SUCCESS;
         }
         return MovementStatus.RUNNING;

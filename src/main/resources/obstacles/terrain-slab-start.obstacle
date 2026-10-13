@@ -1,0 +1,10 @@
+name: terrain-slab-start
+description: Starts standing on a slab and ends on one: the bot's feet are inside the slab's cell.
+material: stone
+floor_material: stone
+blocks: a=stone_slab
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+Sa a a . . a Ea

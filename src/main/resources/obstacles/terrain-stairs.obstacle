@@ -1,0 +1,10 @@
+name: terrain-stairs
+description: Real stair blocks up two levels, then a slab down.
+material: stone
+floor_material: stone
+blocks: t=oak_stairs[facing=east] u=oak_slab
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S t 1t 2 1u E1
