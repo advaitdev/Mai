@@ -1,1 +1,16 @@
 target/
+
+# Dev server runtime state (configs stay tracked)
+mc-server/*
+!mc-server/bukkit.yml
+!mc-server/commands.yml
+!mc-server/config/
+!mc-server/eula.txt
+!mc-server/help.yml
+!mc-server/ops.json
+!mc-server/permissions.yml
+!mc-server/server.properties
+!mc-server/spigot.yml
+!mc-server/whitelist.json
+!mc-server/banned-ips.json
+!mc-server/banned-players.json
