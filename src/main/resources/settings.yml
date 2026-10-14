@@ -81,6 +81,12 @@ movement:
     periodic_replan_ticks: 100  # safety-net full replan interval
     emergency_jump_ticks: 8     # ticks without progress before a blind unstick hop
     stuck_replan_ticks: 20      # ticks without progress before forcing a replan
+    # Sprint-jump along long straight runs of flat ground, like a player
+    # does: about 7 b/s instead of 5.6. Only when the whole jump's runway
+    # (floor and 3 blocks of headroom) is clear and the waypoint is at
+    # least `min_distance` away, so the bot always lands before a turn.
+    sprint_jump_flat: true
+    sprint_jump_flat_min_distance: 5.0
 
 # Named overrides for the movement section, applied with `/mai tune profile <name>`
 # or MovementTuning.applyProfile(name). Keys are paths under `movement:`.
@@ -150,6 +156,8 @@ assistant:
     # Circle the target, switching sides at random. Lost duels against bots
     # (no aim to dodge, slower approach); may help against players who aim.
     strafe: false
+    # Back out of the target's reach while recharging, re-engage when charged.
+    space_out: false
     # Release sprint after a sprint hit so the next hit gets sprint knockback too.
     w_tap: true
     # Fraction of a full attack charge needed before swinging (1.0 = full).
@@ -157,3 +165,19 @@ assistant:
   guard:
     # Engage hostile mobs within this many blocks of the guarded player.
     radius: 12.0
+  # Talk to humanoids in plain English through Claude instead of the keyword
+  # rules. The model sees what the humanoid sees (the /mai observe JSON) and
+  # acts through the same tools as /h commands. If the API can't be reached,
+  # chat falls back to the keyword rules.
+  llm:
+    enabled: false
+    # Leave empty to use the ANTHROPIC_API_KEY environment variable.
+    api_key: ""
+    model: claude-opus-5-5
+    # low answers fastest; medium/high think longer about multi-step requests.
+    effort: low
+    # Model turns per chat message (each turn may call several tools).
+    max_steps: 6
+    # Wait this long for a one-shot job (goto, mine...) before telling the
+    # model it's still running.
+    tool_wait_seconds: 20

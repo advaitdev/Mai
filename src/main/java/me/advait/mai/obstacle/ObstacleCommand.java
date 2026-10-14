@@ -208,6 +208,26 @@ public class ObstacleCommand extends BaseCommand {
         sender.sendMessage(me.advait.mai.assistant.Observation.of(h).toString());
     }
 
+    @Subcommand("ask")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@humanoids")
+    @Syntax("<humanoid> <message...>")
+    @Description("Say something to a humanoid through the Claude chat brain (assistant.llm)")
+    public void onAsk(CommandSender sender, String humanoid, String message) {
+        me.advait.mai.body.Humanoid h = me.advait.mai.Catalog.getInstance().getByName(humanoid);
+        if (h == null) {
+            Messages.sendMessage(sender, "&cNo humanoid named " + humanoid);
+            return;
+        }
+        if (!me.advait.mai.assistant.LlmBrain.available()) {
+            Messages.sendMessage(sender, "&cThe chat brain is off: set assistant.llm.enabled and an API key"
+                    + " (assistant.llm.api_key or ANTHROPIC_API_KEY), then /mai reload.");
+            return;
+        }
+        me.advait.mai.assistant.LlmBrain.handle(h, sender, message,
+                () -> Messages.sendMessage(sender, "&cCouldn't reach the model; see the console."));
+    }
+
     @Subcommand("spawn")
     @CommandPermission("mai.obstacle.run")
     @Syntax("<name> <x> <y> <z> [world]")

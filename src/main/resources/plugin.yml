@@ -4,6 +4,8 @@ main: me.advait.mai.Mai
 api-version: '26.2'
 authors: [Advait]
 description: Creating an AI-powered world in Minecraft.
+libraries:
+  - com.anthropic:anthropic-java:2.34.0
 commands:
 permissions:
   mai.obstacle.run:

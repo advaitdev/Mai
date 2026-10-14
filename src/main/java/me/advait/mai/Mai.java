@@ -7,7 +7,6 @@ import me.advait.mai.command.HumanoidCommand;
 import me.advait.mai.file.HumanoidsFile;
 import me.advait.mai.file.SettingsFile;
 import me.advait.mai.gui.GUIListener;
-import me.advait.mai.listener.ChatListener;
 import me.advait.mai.listener.EntityCleanupListener;
 import me.advait.mai.listener.WorldChangeListener;
 import me.advait.mai.obstacle.ObstacleCommand;
@@ -72,7 +71,6 @@ public final class Mai extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
-        getServer().getPluginManager().registerEvents(new ChatListener(), this);
         getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
         getServer().getPluginManager().registerEvents(new WorldChangeListener(), this);
         getServer().getPluginManager().registerEvents(new me.advait.mai.assistant.AssistantChatListener(), this);

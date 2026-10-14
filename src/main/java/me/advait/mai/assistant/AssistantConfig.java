@@ -54,6 +54,9 @@ public final class AssistantConfig {
 
     public static boolean strafe() { return b("combat.strafe", false); }
 
+    /** Back out of the target's reach while recharging, re-engage when charged. */
+    public static boolean spaceOut() { return b("combat.space_out", false); }
+
     /** Release sprint after a sprint hit so the next hit gets sprint knockback again. */
     public static boolean wTap() { return b("combat.w_tap", true); }
 
@@ -62,4 +65,27 @@ public final class AssistantConfig {
 
     /** Guard: engage hostiles within this many blocks of the protected player. */
     public static double guardRadius() { return d("guard.radius", 12.0); }
+
+    private static String s(String key, String def) {
+        ConfigurationSection s = section();
+        String v = s == null ? def : s.getString(key, def);
+        return v == null ? def : v.trim();
+    }
+
+    /** Send chat to Claude instead of the keyword rules (needs an API key). */
+    public static boolean llmEnabled() { return b("llm.enabled", false); }
+
+    /** API key; empty means use the ANTHROPIC_API_KEY environment variable. */
+    public static String llmApiKey() { return s("llm.api_key", ""); }
+
+    public static String llmModel() { return s("llm.model", "claude-opus-5-5"); }
+
+    /** low, medium or high. */
+    public static String llmEffort() { return s("llm.effort", "low").toLowerCase(java.util.Locale.ROOT); }
+
+    /** Model turns per chat message (each may call tools). */
+    public static int llmMaxSteps() { return (int) d("llm.max_steps", 6); }
+
+    /** How long to wait for a one-shot job before telling the model it's still running. */
+    public static int llmToolWaitSeconds() { return (int) d("llm.tool_wait_seconds", 20); }
 }

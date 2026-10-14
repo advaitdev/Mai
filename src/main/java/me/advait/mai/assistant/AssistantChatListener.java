@@ -17,8 +17,9 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Lets players talk to humanoids by name in normal chat: "Mai, follow me",
  * "@Mai mine this", "mai: attack nearest". The message still shows in chat;
- * the humanoid answers as itself. Parsing is {@link ChatIntents}; execution
- * is {@link Tools}, the same path commands and a future LLM use.
+ * the humanoid answers as itself. Parsing is {@link LlmBrain} when enabled,
+ * else (or if the API fails) the {@link ChatIntents} keyword rules; either
+ * way execution is {@link Tools}, the same path commands use.
  */
 public final class AssistantChatListener implements Listener {
 
@@ -51,6 +52,17 @@ public final class AssistantChatListener implements Listener {
             assistant.say("Hi " + player.getName() + "! " + ChatIntents.HELP);
             return;
         }
+        if (LlmBrain.available()) {
+            Humanoid h = target;
+            String said = instruction;
+            LlmBrain.handle(h, player, said, () -> runKeywordIntent(h, player, said));
+            return;
+        }
+        runKeywordIntent(target, player, instruction);
+    }
+
+    private void runKeywordIntent(Humanoid target, Player player, String instruction) {
+        Assistant assistant = Assistant.of(target);
         ChatIntents.Intent intent = ChatIntents.parse(instruction, player);
         if (intent == null) {
             assistant.say("Sorry, I don't know how to do that yet. " + ChatIntents.HELP);

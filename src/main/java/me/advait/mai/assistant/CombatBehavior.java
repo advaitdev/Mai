@@ -163,6 +163,11 @@ public final class CombatBehavior implements Behavior {
         boolean letThemCome = !edgeBehind && AssistantConfig.approachCrits() && targetToward > 0.12
                 && ticksSinceAttack + TICKS_TO_FALL >= period && reach > reachMax;
         if (letThemCome && forward > 0) forward = 0;
+        // Spacing: while recharging, back out of the target's reach instead
+        // of standing in it, then come back in once the swing is ready.
+        if (AssistantConfig.spaceOut() && !edgeBehind && charge < AssistantConfig.minCharge()) {
+            forward = Motor.reachDistance(bot, target) < AssistantConfig.reach() + 0.6 ? -1 : 0;
+        }
         double strafe = 0;
         if (AssistantConfig.strafe()) {
             if (--strafeTimer <= 0) {
