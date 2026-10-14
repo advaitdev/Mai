@@ -264,6 +264,41 @@ public final class MovementExecutors {
         }
     }
 
+    /**
+     * Whether a sprint-jump along a flat run is worth it and safe right now:
+     * on the ground, already at sprint speed, the waypoint far enough away
+     * that the bot lands before it, and every point of the jump's runway has
+     * a full-height floor level with the feet (no slow blocks) plus three
+     * blocks of headroom for the jump arc. Sprint-jumping on the flat is
+     * how players outrun plain sprinting (about 7 b/s against 5.6).
+     */
+    public static boolean flatRunJumpClear(TickContext ctx, double[] dir) {
+        if (!ctx.config.isSprintJumpFlat() || !ctx.onGround() || ctx.jumpCooldown > 0) return false;
+        // Velocity read at tick start is post-friction: full sprint reads ~0.156.
+        if (horizontalSpeed(ctx.velocity()) < 0.12) return false;
+        double dist = horizontalDistance(ctx.current, ctx.waypoint);
+        if (dist < ctx.config.getSprintJumpFlatMinDistance()) return false;
+        if (Math.abs(ctx.waypoint.y() - ctx.current.getY()) > 0.5) return false;
+        World world = ctx.current.getWorld();
+        if (world == null) return false;
+        double y = ctx.current.getY();
+        int feetY = (int) Math.floor(y + 0.01);
+        double runway = Math.min(dist, 4.5);
+        for (double d = 0.0; d <= runway; d += 0.5) {
+            int bx = (int) Math.floor(ctx.current.getX() + dir[0] * d);
+            int bz = (int) Math.floor(ctx.current.getZ() + dir[1] * d);
+            org.bukkit.block.Block floor = world.getBlockAt(bx, feetY - 1, bz);
+            Material fm = floor.getType();
+            if (!BlockClassifier.isSolid(fm) || BlockClassifier.isTall(fm)
+                    || BlockClassifier.speedMultiplier(fm) < 1.0
+                    || Math.abs(collisionTop(floor) - y) > 0.01) return false;
+            for (int h = 0; h <= 2; h++) {
+                if (!world.getBlockAt(bx, feetY + h, bz).isPassable()) return false;
+            }
+        }
+        return true;
+    }
+
     // Player half-width is 0.3; subtract an epsilon so the probe samples
     // the block an overlapping corner would actually land in.
     private static final double HALF_WIDTH = 0.29;

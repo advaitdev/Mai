@@ -69,6 +69,8 @@ public final class MovementConfig {
     private final int periodicReplanTicks;
     private final int emergencyJumpTicks;
     private final int stuckReplanTicks;
+    private final boolean sprintJumpFlat;
+    private final double sprintJumpFlatMinDistance;
 
     // --- Pre-computed fall costs (Baritone gravity model) ---
     private final double[] fallTickCosts;
@@ -136,6 +138,8 @@ public final class MovementConfig {
         this.periodicReplanTicks = nav.getInt("periodic_replan_ticks", 100);
         this.emergencyJumpTicks = nav.getInt("emergency_jump_ticks", 8);
         this.stuckReplanTicks = nav.getInt("stuck_replan_ticks", 20);
+        this.sprintJumpFlat = nav.getBoolean("sprint_jump_flat", true);
+        this.sprintJumpFlatMinDistance = nav.getDouble("sprint_jump_flat_min_distance", 5.0);
 
         this.fallTickCosts = computeFallCosts(maxFallHeight + 1);
     }
@@ -250,4 +254,6 @@ public final class MovementConfig {
     public int getPeriodicReplanTicks() { return periodicReplanTicks; }
     public int getEmergencyJumpTicks() { return emergencyJumpTicks; }
     public int getStuckReplanTicks() { return stuckReplanTicks; }
+    public boolean isSprintJumpFlat() { return sprintJumpFlat; }
+    public double getSprintJumpFlatMinDistance() { return sprintJumpFlatMinDistance; }
 }
