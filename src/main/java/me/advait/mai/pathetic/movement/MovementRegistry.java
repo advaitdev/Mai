@@ -35,8 +35,11 @@ public final class MovementRegistry {
         }
         list.add(new LadderClimb());
         list.add(new Swim());
+        list.add(new FallIntoWater());
         list.add(new StepUp());
         list.add(new StepDown());
+        // Before FallUnsafe: with a bucket, a long drop is taken without damage.
+        list.add(new WaterClutch());
         if (config.isAllowUnsafeFalls()) {
             list.add(new FallUnsafe(config));
         }

@@ -1,0 +1,11 @@
+name: reflex-block-clutch
+description: Knocked off a 1-wide walkway over void: clutch a block against it.
+bot_blocks: COBBLESTONE 64
+knockback: 25 0 0.36 0.45
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+_ _ _ _ _ _ _ _ _ _ _ _
+S . . . . . . . . . . E
+_ _ _ _ _ _ _ _ _ _ _ _

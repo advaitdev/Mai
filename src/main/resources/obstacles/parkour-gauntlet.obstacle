@@ -1,0 +1,9 @@
+name: parkour-gauntlet
+description: Back-to-back course jumps: 1-4 block gaps, ascents, drops, angled.
+timeout_ticks: 900
+spawn_yaw: 270
+origin_y: 120
+---
+S1 1 1 _ 1 1 _ _ 1 1 _ _ _ 1 1 1 _ _ 2 2 _ 3 3 _ _ _ 2 2 _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 2 2 _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 2 2 2 _ 2 _ _ E2

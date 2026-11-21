@@ -85,19 +85,37 @@ public record PillarUp() implements MovementType {
         // Wait for leftover momentum to die on friction first, or the hop
         // drifts off the pillar cell.
         if (!placed && ctx.onGround() && ctx.jumpCooldown == 0) {
+            // Over the middle of the column first (a pillar is 1x1), then
+            // still, then a straight hop with no keys held.
+            if (MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint) > 0.25) {
+                MovementExecutors.walk(ctx, false);
+                return MovementStatus.RUNNING;
+            }
+            ctx.body().keys(0, 0);
             if (MovementExecutors.horizontalSpeed(ctx.velocity()) > 0.03) return MovementStatus.RUNNING;
             MovementExecutors.jump(ctx);
             return MovementStatus.RUNNING;
         }
 
-        // Airborne and clear of the placement cell: place the pillar block.
-        if (!placed && ctx.current.getY() > sourceY + 0.3) {
-            Location target = new Location(ctx.entity().getWorld(), bx + 0.5, by - 1, bz + 0.5);
-            if (!BridgePlace.placeSupport(ctx.humanoid, target)) {
-                PathDebugLog.event("PILLAR_FAILED no placeable block at (%d,%d,%d)", bx, by - 1, bz);
-                return MovementStatus.FAILED;
+        // Airborne: look straight down, and once the feet have cleared the
+        // cell (vanilla won't place a block into the bot's own hitbox),
+        // click the top of the block below.
+        if (!placed && !ctx.onGround()) {
+            ctx.body().look(ctx.entity().getLocation().getYaw(), 90f);
+            if (ctx.current.getY() >= by + 0.001) {
+                if (BridgePlace.ensurePlaceableInHand(ctx.humanoid) == null) {
+                    PathDebugLog.event("PILLAR_FAILED no placeable block at (%d,%d,%d)", bx, by - 1, bz);
+                    return MovementStatus.FAILED;
+                }
+                org.bukkit.block.Block below = ctx.entity().getWorld().getBlockAt(bx, by - 2, bz);
+                if (me.advait.mai.body.Hands.placeBlock(ctx.entity(), below, org.bukkit.block.BlockFace.UP)) {
+                    PathDebugLog.event("PILLAR_PLACED at (%d,%d,%d) feet=%.2f", bx, by - 1, bz, ctx.current.getY());
+                }
             }
-            PathDebugLog.event("PILLAR_PLACED at (%d,%d,%d)", bx, by - 1, bz);
+        }
+        if (!placed && ctx.onGround() && ctx.current.getY() < sourceY + 0.5 && ctx.ticksOnMovement > 20) {
+            PathDebugLog.event("PILLAR_FAILED landed without placing at (%d,%d,%d)", bx, by - 1, bz);
+            return MovementStatus.FAILED;
         }
         return MovementStatus.RUNNING;
     }

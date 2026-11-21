@@ -1,0 +1,20 @@
+name: reflex-water-clutch
+description: Knocked off a walkway 24 up: bucket-clutch, then pillar back up.
+bot_blocks: COBBLESTONE 64
+bot_items: water_bucket
+knockback: 25 0 0.36 0.45
+timeout_ticks: 800
+spawn_yaw: 270
+origin_y: 120
+---
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+S24 24 24 24 24 24 24 24 24 24 24 E24
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .
+. . . . . . . . . . . .

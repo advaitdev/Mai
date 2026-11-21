@@ -160,6 +160,7 @@ public final class Body {
             b.right = 0;
             b.jump = false;
             b.sprint = false;
+            b.sneak = false;
             b.apply();
             return false;
         });
@@ -220,9 +221,9 @@ public final class Body {
         return this;
     }
 
+    /** Hold shift this tick: slower keys, and in water it sinks ({@code LocalPlayer.aiStep}). */
     public Body sneak(boolean sneak) {
         this.sneak = sneak;
-        entity.setSneaking(sneak);
         apply();
         return this;
     }
@@ -361,9 +362,14 @@ public final class Body {
         boolean sprinting = was;
         boolean blocked = sprintBlockedTick == Bukkit.getCurrentTick();
         if (!was && sprint && effectiveForward > 0 && !sneak && !shallow && !blocked) sprinting = true;
-        else if (was && (effectiveForward <= 0 || shallow || hardCollision)) sprinting = false;
+        else if (was && entity.isSwimming()) {
+            // shouldStopSwimSprinting: a swimmer keeps the sprint at the
+            // surface; it ends out of the water or letting go of W mid-water.
+            if (!entity.isInWater() || (effectiveForward <= 0 && !entity.isOnGround() && !sneak)) sprinting = false;
+        } else if (was && (effectiveForward <= 0 || shallow || hardCollision)) sprinting = false;
         if (sprinting != (boolean) call(isSprinting)) call(setSprinting, sprinting);
 
+        if (entity.isSneaking() != sneak) entity.setSneaking(sneak);
         float[] in = input(effectiveForward, right, sneak);
         xxa.set(h, in[0]);
         zza.set(h, in[1]);
@@ -373,6 +379,58 @@ public final class Body {
         if (speed != null) call(setSpeed, (float) speed.getValue());
 
         applyAirAssist(effectiveForward, sprinting);
+        applySwimming();
+    }
+
+    /** {@code LivingEntity.goDownInWater}, applied by the client while shift is held in water. */
+    private static final double GO_DOWN_IN_WATER = -0.04;
+
+    /** Vertical velocity added this tick by the swim pitch steering, so re-applying can replace it. */
+    private double swimAssist = 0;
+    private int swimAssistTick = -1;
+
+    /**
+     * {@code Player.travel} while swimming (sprinting in water): vertical
+     * speed is pulled toward the view's vertical component, so a swimmer
+     * dives by looking down and surfaces by looking up. And
+     * {@code Player.updatePlayerPose}: a swimmer is in the 0.6-tall
+     * swimming pose, and stays in it (crawling) where there's no room to
+     * stand. A Mannequin gets the swimming flag from vanilla but neither of
+     * these.
+     */
+    private void applySwimming() {
+        int tick = Bukkit.getCurrentTick();
+        Vector v = entity.getVelocity();
+        boolean replace = swimAssistTick == tick && swimAssist != 0;
+        if (replace) v.setY(v.getY() - swimAssist);
+        double assist = 0;
+        if (entity.isSwimming() && entity.getVehicle() == null) {
+            double lookY = -Math.sin(Math.toRadians(entity.getLocation().getPitch()));
+            double multiplier = lookY < -0.2 ? 0.085 : 0.06;
+            var loc = entity.getLocation();
+            boolean waterAboveHead = loc.getWorld().getBlockAt(
+                    loc.getBlockX(), (int) Math.floor(loc.getY() + 1.0 - 0.1), loc.getBlockZ()).isLiquid();
+            if (lookY <= 0 || jump || waterAboveHead) assist = (lookY - v.getY()) * multiplier;
+        }
+        // LocalPlayer.aiStep: holding shift in water swims down.
+        if (sneak && entity.isInWater()) assist += GO_DOWN_IN_WATER;
+        if (replace || assist != 0) entity.setVelocity(v.setY(v.getY() + assist));
+        swimAssist = assist;
+        swimAssistTick = tick;
+        updatePose();
+    }
+
+    private void updatePose() {
+        org.bukkit.entity.Pose pose = entity.getPose();
+        if (entity.isSwimming()) {
+            if (pose != org.bukkit.entity.Pose.SWIMMING) entity.setPose(org.bukkit.entity.Pose.SWIMMING, true);
+        } else if (pose == org.bukkit.entity.Pose.SWIMMING) {
+            // Stand up only where a standing body fits (else keep crawling).
+            var loc = entity.getLocation();
+            boolean room = !loc.getWorld().getBlockAt(loc.getBlockX(), (int) Math.floor(loc.getY() + 1.2), loc.getBlockZ())
+                    .getType().isSolid();
+            if (room) entity.setPose(org.bukkit.entity.Pose.STANDING, false);
+        }
     }
 
     /** Player.getFlyingSpeed gap: 0.026 - 0.02 of extra air control while sprinting. */

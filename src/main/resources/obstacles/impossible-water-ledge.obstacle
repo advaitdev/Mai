@@ -1,0 +1,11 @@
+name: impossible-water-ledge
+description: Banks a block above the water: no way out, refuse.
+blocks: w=water
+expect: no_path
+timeout_ticks: 120
+spawn_yaw: 270
+origin_y: 120
+---
+6 6 6 6 6 6 6 6 6 6
+S4 4 3*w 3*w 3*w 3*w 3*w 3*w 4 E4
+6 6 6 6 6 6 6 6 6 6

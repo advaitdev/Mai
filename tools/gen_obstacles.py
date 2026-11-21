@@ -22,7 +22,8 @@ written = []
 
 
 def write(stem, desc, grid, *, material=None, floor_material=None, bot_tool=None,
-          bot_blocks=None, ceiling=None, timeout=200, yaw=270, origin_y=None, expect=None):
+          bot_blocks=None, ceiling=None, timeout=200, yaw=270, origin_y=None, expect=None,
+          blocks=None, bot_items=None, place=None, knockback=None):
     global count
     assert stem not in SEEDS, f"would clobber seed: {stem}"
     assert "/" not in stem
@@ -31,6 +32,10 @@ def write(stem, desc, grid, *, material=None, floor_material=None, bot_tool=None
     if floor_material: header.append(f"floor_material: {floor_material}")
     if bot_tool:       header.append(f"bot_tool: {bot_tool}")
     if bot_blocks:     header.append(f"bot_blocks: {bot_blocks}")
+    if bot_items:      header.append(f"bot_items: {bot_items}")
+    if blocks:         header.append(f"blocks: {blocks}")
+    if place:          header.append(f"place: {place}")
+    if knockback:      header.append(f"knockback: {knockback}")
     if ceiling:        header.append(f"ceiling: {ceiling}")
     if expect:         header.append(f"expect: {expect}")
     header.append(f"timeout_ticks: {timeout}")
@@ -447,6 +452,182 @@ write("impossible-gap-5", "5-block gap: beyond any sprint-jump.",
       [["S", ".", ".", ".", "_", "_", "_", "_", "_", "E"]], timeout=120, expect="no_path")
 write("impossible-up-2", "Ledge 2 higher across a 1 gap: beyond jump height.",
       [["S", ".", ".", "_", "E2"]], timeout=120, expect="no_path")
+
+# =====================================================================
+# R. Angled parkour: landings off the X/Z axes, like scattered blocks or
+#    trees in real terrain. Pillars over void, so a missed jump fails.
+# =====================================================================
+def angled(dx, dz, runway=3, dy=0, h=1):
+    """Runway of `runway` cells at height h along row 0, then a lone landing
+    pillar at offset (dx, dz) from the runway's last cell, dy higher."""
+    cols = runway + dx
+    rows = dz + 1
+    grid = [["_"] * cols for _ in range(rows)]
+    for c in range(runway):
+        grid[0][c] = str(h)
+    grid[0][0] = f"S{h}"
+    grid[dz][runway - 1 + dx] = f"E{h + dy}"
+    return grid
+
+for dx, dz, run in ((2, 1, 3), (3, 1, 3), (2, 2, 3), (3, 2, 3), (4, 1, 4), (3, 3, 4)):
+    write(f"pk-angle-{dx}-{dz}", f"Sprint-jump to a lone pillar offset ({dx},{dz}).",
+          angled(dx, dz, run), timeout=200)
+write("pk-angle-up-2-1", "Jump to a pillar offset (2,1) and one block higher.",
+      angled(2, 1, 3, dy=1), timeout=200)
+write("pk-angle-up-3-1", "Jump to a pillar offset (3,1) and one block higher.",
+      angled(3, 1, 3, dy=1), timeout=200)
+write("pk-angle-down-4-1", "Jump to a pillar offset (4,1) and one block lower.",
+      angled(4, 1, 4, dy=-1, h=2), timeout=200)
+write("pk-angle-down2-3-2", "Jump to a pillar offset (3,2) and two blocks lower.",
+      angled(3, 2, 3, dy=-2, h=3), timeout=200)
+
+# Lone 1x1 pillars zig-zagging off-axis: no run-up anywhere.
+write("pk-zigzag", "Zig-zag across lone 1x1 pillars at (2,1)/(2,-1) offsets.",
+      [["S1", "_", "_", "_", "1", "_", "_", "_", "1", "_"],
+       ["_", "_", "1", "_", "_", "_", "1", "_", "_", "E1"]], timeout=300)
+# Rising scattered blocks, like hand-placed logs up to a ledge.
+write("pk-scatter-up", "Climb scattered lone blocks rising one at a time at odd angles.",
+      [["S", ".", ".", ".", ".", ".", "."],
+       [".", ".", ".", ".", ".", ".", "."],
+       [".", "1", ".", ".", ".", ".", "."],
+       [".", ".", ".", "2", ".", ".", "."],
+       [".", ".", ".", ".", ".", ".", "."],
+       [".", ".", "3", ".", ".", ".", "."],
+       [".", ".", ".", ".", "4", ".", "."],
+       [".", ".", ".", ".", ".", ".", "E5"]], timeout=400)
+
+# =====================================================================
+# S. Trees: climb a parkour line of logs up into an oak canopy.
+# =====================================================================
+leaf = "oak_leaves[persistent=true]"
+canopy = []
+for x in range(4, 7):
+    for z in range(4, 7):
+        if (x, z) not in ((5, 5), (4, 5)):
+            canopy.append(f"{x},5,{z}={leaf}")
+canopy.append(f"5,6,5={leaf}")
+write("tree-canopy", "Parkour up scattered oak logs onto the leaves of a tree.",
+      [["S", ".", ".", ".", ".", ".", ".", "."],
+       [".", ".", ".", "2*l", ".", ".", ".", "."],
+       [".", "l", ".", ".", ".", ".", ".", "."],
+       [".", ".", ".", "3*l", ".", ".", ".", "."],
+       [".", ".", ".", ".", ".", ".", ".", "."],
+       [".", ".", "4*l", ".", "E4f", "5*l", ".", "."],
+       [".", ".", ".", ".", ".", ".", ".", "."],
+       [".", ".", ".", ".", ".", ".", ".", "."]],
+      blocks=f"l=oak_log f={leaf}", place=" ".join(canopy), timeout=500)
+write("tree-leaf-hop", "Hop across the tops of three separate leaf canopies.",
+      [["S2", "_", "2f", "_", "_", "2f", "_", "E2f"]],
+      blocks=f"f={leaf}", timeout=300)
+
+# =====================================================================
+# T. Water: shallow wading, stepping out, swimming across and climbing out.
+# =====================================================================
+W = "w=water"
+write("water-shallow-walk", "Wade through a stretch of one-deep water.",
+      [["S", ".", "w", "w", "w", "w", ".", "E"]], blocks=W, timeout=240)
+write("water-step-out", "Start in one-deep water and step up onto a bank.",
+      [["Sw", "w", "w", "1", "E1"]], blocks=W, timeout=240)
+write("water-step-out-2", "Wade, then climb two one-block steps out of shallow water.",
+      [["S", "w", "w", "w", "1", "2", "E2"]], blocks=W, timeout=300)
+def pond(width, bank=3, depth=3):
+    # Side walls two above the banks, so swimming is the only way across.
+    edge = [str(bank + 2)] * (width + 4)
+    mid = [f"S{bank}", str(bank)] + [f"{depth}*w"] * width + [str(bank), f"E{bank}"]
+    return [edge, mid, edge]
+write("water-swim-6", "Swim across a three-deep pond and climb out.",
+      pond(6), blocks=W, timeout=400)
+write("water-swim-14", "Swim across a long three-deep pond and climb out.",
+      pond(14), blocks=W, timeout=700)
+# A bank a full block above the water surface is out of reach: the climb-out
+# boost peaks ~0.1 short (measured). The planner must not swim into the trap.
+write("impossible-water-ledge", "Banks a block above the water: no way out, refuse.",
+      [["6"] * 10,
+       ["S4", "4"] + ["3*w"] * 6 + ["4", "E4"],
+       ["6"] * 10], blocks=W, timeout=120, expect="no_path")
+write("water-dive-in", "Drop ten blocks into a deep pool, then swim out.",
+      [["_", "5", "5", "5", "5"],
+       ["S12", "3*w", "3*w", "3", "E3"],
+       ["_", "5", "5", "5", "5"]], blocks=W, timeout=400)
+write("water-dive-tall", "Drop thirty blocks into a one-deep puddle: water stops all fall damage.",
+      [["_", "_", "_", "_"],
+       ["S30", "w", ".", "E"],
+       ["_", "_", "_", "_"]], blocks=W, timeout=400)
+
+# =====================================================================
+# U. Water-bucket clutch: survive a lethal drop by placing water below.
+# =====================================================================
+write("clutch-mlg-25", "Drop 25 blocks and water-bucket clutch the landing.",
+      [["S25", ".", ".", "E"]], bot_items="water_bucket", timeout=300)
+write("clutch-mlg-40", "Drop 40 blocks and water-bucket clutch the landing.",
+      [["S40", ".", ".", "E"]], bot_items="water_bucket", timeout=400)
+write("impossible-clutch-no-bucket", "Lethal 25-block drop with no bucket: refuse.",
+      [["S25", ".", ".", "E"]], timeout=120, expect="no_path")
+
+# =====================================================================
+# V. Speedbridging: cross wide voids fast (timeouts demand > 3 b/s).
+# =====================================================================
+for n in (10, 20, 30):
+    write(f"speedbridge-{n}", f"Speedbridge across a {n}-block void.",
+          [["S", "."] + ["_"] * n + [".", "E"]],
+          bot_blocks="COBBLESTONE 128", timeout=60 + n * 7)
+write("speedbridge-turn", "Speedbridge east, then south across void.",
+      [["S", "."] + ["_"] * 10,
+       ["_"] * 11 + ["_"],
+       ["_"] * 11 + ["_"],
+       ["_"] * 11 + ["_"],
+       ["_"] * 11 + ["_"],
+       ["_"] * 11 + ["E"]],
+      bot_blocks="COBBLESTONE 128", timeout=260)
+
+# =====================================================================
+# W. Parkour gauntlet: classic course jumps back to back (MCPK-style
+#    1b/2b/3b/4b gaps, +1 ascents, -1 drops, angled 2+1 and 3+1).
+# =====================================================================
+def gauntlet(segments, start_run=3):
+    """segments: (gap, dy, run, dz): clear `gap` void cells along x, land
+    `dz` rows over and `dy` higher, then a platform `run` cells long."""
+    cells = {(c, 0): 1 for c in range(start_run)}
+    col, row, h = start_run - 1, 0, 1
+    for gap, dy, run, dz in segments:
+        col += gap + 1
+        row += dz
+        h += dy
+        for i in range(run):
+            cells[(col + i, row)] = h
+        col += run - 1
+    width = col + 1
+    rows = max(r for _, r in cells) + 1
+    grid = [["_"] * width for _ in range(rows)]
+    for (c, r), hh in cells.items():
+        grid[r][c] = str(hh)
+    grid[0][0] = "S" + grid[0][0]
+    grid[row][col] = "E" + grid[row][col]
+    return grid
+
+write("parkour-gauntlet", "Back-to-back course jumps: 1-4 block gaps, ascents, drops, angled.",
+      gauntlet([(1, 0, 2, 0), (2, 0, 2, 0), (3, 0, 3, 0), (2, 1, 2, 0), (1, 1, 2, 0),
+                (3, -1, 2, 0), (1, 0, 2, 1), (2, 0, 3, 1), (1, 0, 1, 0), (2, 0, 1, 0)]),
+      timeout=900)
+write("parkour-gauntlet-lone", "Course jumps between lone 1x1 blocks only (no run-up).",
+      gauntlet([(1, 0, 1, 0), (2, 0, 1, 0), (1, 1, 1, 0), (1, 0, 1, 1), (2, 0, 1, 1),
+                (2, -1, 1, 0), (1, 1, 1, 0), (3, 0, 1, 0)], start_run=1),
+      timeout=700)
+
+# =====================================================================
+# X. Reflexes: an unplanned shove off an edge mid-walk. The bot must save
+#    itself (block clutch over void, bucket clutch over a long drop).
+# =====================================================================
+write("reflex-block-clutch", "Knocked off a 1-wide walkway over void: clutch a block against it.",
+      [["_"] * 12,
+       ["S"] + ["."] * 10 + ["E"],
+       ["_"] * 12],
+      bot_blocks="COBBLESTONE 64", knockback="25 0 0.36 0.45", timeout=300)
+write("reflex-water-clutch", "Knocked off a walkway 24 up: bucket-clutch, then pillar back up.",
+      [["."] * 12] * 5 +
+      [["S24"] + ["24"] * 10 + ["E24"]] +
+      [["."] * 12] * 5,
+      bot_items="water_bucket", bot_blocks="COBBLESTONE 64", knockback="25 0 0.36 0.45", timeout=800)
 
 print(f"Generated {count} obstacle files.")
 print("Stems:", ", ".join(sorted(written)))

@@ -26,6 +26,12 @@ public final class ArenaBuilder {
     private static final int HEADROOM = 3;
     /** Extra vertical room captured above the arena to cover bot-placed pillars. */
     private static final int EDIT_MARGIN = 6;
+    /**
+     * Blocks captured around the grid on every side, so bot edits outside it
+     * (a clutch chain after a knockback, a bridge overshoot) are undone too
+     * instead of leaking into the next run.
+     */
+    private static final int SIDE_MARGIN = 8;
 
     private final ObstacleFile obs;
     private final World world;
@@ -60,17 +66,12 @@ public final class ArenaBuilder {
         // origin, so a handful of permanently-loaded chunks is harmless.
         pinChunks();
 
-        int maxHeight = 0;
-        for (int r = 0; r < obs.rows(); r++) {
-            for (int c = 0; c < obs.cols(); c++) {
-                ObstacleFile.Cell cl = obs.grid()[r][c];
-                maxHeight = Math.max(maxHeight, cl.height() + (cl.tallTop() ? 1 : 0));
-            }
-        }
+        int maxHeight = obs.maxHeight();
         int clearTop = originY + maxHeight + HEADROOM;
         int topY = Math.max(clearTop, obs.ceiling() > 0 ? originY + obs.ceiling() : clearTop) + EDIT_MARGIN;
 
         snapshotBox(topY);
+        clearMarginInVoidWorld();
 
         for (int r = 0; r < obs.rows(); r++) {
             for (int c = 0; c < obs.cols(); c++) {
@@ -87,9 +88,9 @@ public final class ArenaBuilder {
                     set(bx, y, bz, Material.AIR);
                 }
 
-                // Stacked blocks above the floor; the last one may be a legend block.
+                // Stacked blocks above the floor; the top one(s) may be legend blocks.
                 for (int h = 1; h <= cell.height(); h++) {
-                    if (h == cell.height() && cell.top() != null) {
+                    if (cell.isTop(h)) {
                         placeTop(bx, originY + h, bz, cell);
                     } else {
                         set(bx, originY + h, bz, obs.material());
@@ -102,6 +103,11 @@ public final class ArenaBuilder {
                     set(bx, originY + obs.ceiling(), bz, obs.floorMaterial());
                 }
             }
+        }
+        // Free-standing blocks (floating platforms, head-hitters, ladders).
+        for (ObstacleFile.Placed p : obs.placed()) {
+            world.getBlockAt(originX + p.col(), originY + p.height(), originZ + p.row())
+                    .setBlockData(p.data(), false);
         }
         // Pathetic caches chunk snapshots in a static, never-auto-refreshed map.
         // We just rewrote these chunks, so drop the stale snapshots or the next
@@ -117,8 +123,9 @@ public final class ArenaBuilder {
         for (int yi = snapshot[0].length - 1; yi >= 0; yi--) {
             for (int xi = 0; xi < snapshot.length; xi++) {
                 for (int zi = 0; zi < snapshot[0][0].length; zi++) {
-                    world.getBlockAt(boxMinX + xi, boxMinY + yi, boxMinZ + zi)
-                            .setBlockData(snapshot[xi][yi][zi], false);
+                    org.bukkit.block.Block b = world.getBlockAt(boxMinX + xi, boxMinY + yi, boxMinZ + zi);
+                    BlockData original = snapshot[xi][yi][zi];
+                    if (!b.getBlockData().equals(original)) b.setBlockData(original, false);
                 }
             }
         }
@@ -128,18 +135,42 @@ public final class ArenaBuilder {
     }
 
     private void snapshotBox(int topY) {
-        boxMinX = originX - 1;
+        boxMinX = originX - SIDE_MARGIN;
         boxMinY = originY - 1;
-        boxMinZ = originZ - 1;
-        int sizeX = obs.cols() + 2;
+        boxMinZ = originZ - SIDE_MARGIN;
+        int sizeX = obs.cols() + 2 * SIDE_MARGIN;
         int sizeY = topY - boxMinY + 1;
-        int sizeZ = obs.rows() + 2;
+        int sizeZ = obs.rows() + 2 * SIDE_MARGIN;
         snapshot = new BlockData[sizeX][sizeY][sizeZ];
         for (int xi = 0; xi < sizeX; xi++) {
             for (int yi = 0; yi < sizeY; yi++) {
                 for (int zi = 0; zi < sizeZ; zi++) {
                     snapshot[xi][yi][zi] = world.getBlockAt(
                             boxMinX + xi, boxMinY + yi, boxMinZ + zi).getBlockData();
+                }
+            }
+        }
+    }
+
+    /**
+     * In the dedicated void arena world everything outside the grid is meant
+     * to be air: clear the margin so stray blocks left by older runs (from
+     * before the margin was captured) can't prop the bot up. Never touches
+     * a world with real terrain.
+     */
+    private void clearMarginInVoidWorld() {
+        if (!(world.getGenerator() instanceof VoidGenerator)) return;
+        int maxX = originX + obs.cols(), maxZ = originZ + obs.rows();
+        for (int x = boxMinX; x < boxMinX + snapshot.length; x++) {
+            for (int z = boxMinZ; z < boxMinZ + snapshot[0][0].length; z++) {
+                boolean inGrid = x >= originX && x < maxX && z >= originZ && z < maxZ;
+                if (inGrid) continue;
+                for (int y = boxMinY; y < boxMinY + snapshot[0].length; y++) {
+                    org.bukkit.block.Block b = world.getBlockAt(x, y, z);
+                    if (!b.getType().isAir()) {
+                        b.setType(Material.AIR, false);
+                        snapshot[x - boxMinX][y - boxMinY][z - boxMinZ] = b.getBlockData();
+                    }
                 }
             }
         }
@@ -160,10 +191,10 @@ public final class ArenaBuilder {
     private interface ChunkOp { void apply(int cx, int cz); }
 
     private void forEachChunk(ChunkOp op) {
-        int minCX = (originX - 1) >> 4;
-        int maxCX = (originX + obs.cols()) >> 4;
-        int minCZ = (originZ - 1) >> 4;
-        int maxCZ = (originZ + obs.rows()) >> 4;
+        int minCX = (originX - SIDE_MARGIN) >> 4;
+        int maxCX = (originX + obs.cols() + SIDE_MARGIN) >> 4;
+        int minCZ = (originZ - SIDE_MARGIN) >> 4;
+        int maxCZ = (originZ + obs.rows() + SIDE_MARGIN) >> 4;
         for (int cx = minCX; cx <= maxCX; cx++) {
             for (int cz = minCZ; cz <= maxCZ; cz++) {
                 op.apply(cx, cz);

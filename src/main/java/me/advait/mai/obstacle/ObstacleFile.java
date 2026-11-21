@@ -45,8 +45,31 @@ public record ObstacleFile(
         boolean expectNoPath,
         Cell[][] grid,
         int startRow, int startCol,
-        int endRow, int endCol
+        int endRow, int endCol,
+        java.util.List<Item> botItems,
+        java.util.List<Placed> placed,
+        double[] knockback
 ) {
+
+    /** An extra inventory item from {@code bot_items:}. */
+    public record Item(Material material, int count) {}
+
+    /**
+     * A single block from {@code place:}: column, height above the floor
+     * (1 = the first block above it) and row, so it can float, overhang or
+     * sit on a wall (head-hitters, ladders, neo walls, lone parkour blocks).
+     */
+    public record Placed(int col, int height, int row, org.bukkit.block.data.BlockData data) {}
+
+    /** Tallest point of the arena above the floor, stacks and placed blocks included. */
+    public int maxHeight() {
+        int max = 0;
+        for (Cell[] row : grid) {
+            for (Cell cl : row) max = Math.max(max, cl.height() + (cl.tallTop() ? 1 : 0));
+        }
+        for (Placed p : placed) max = Math.max(max, p.height());
+        return max;
+    }
 
     public int rows() { return grid.length; }
 
@@ -61,14 +84,21 @@ public record ObstacleFile(
      *
      * @param hasFloor whether the safety floor block is present below the cell
      * @param height   blocks stacked above the floor, including {@code top}
-     * @param top      block data for the topmost stacked block (from the
+     * @param top      block data for the topmost stacked block(s) (from the
      *                 {@code blocks:} legend), or null to use {@code material}
+     * @param topCount how many of the top blocks are {@code top} ({@code 3*w}
+     *                 = three water blocks); 1 for a plain legend token
      */
-    public record Cell(boolean hasFloor, int height, org.bukkit.block.data.BlockData top) {
-        static final Cell VOID = new Cell(false, 0, null);
-        static final Cell FLOOR = new Cell(true, 0, null);
+    public record Cell(boolean hasFloor, int height, org.bukkit.block.data.BlockData top, int topCount) {
+        static final Cell VOID = new Cell(false, 0, null, 0);
+        static final Cell FLOOR = new Cell(true, 0, null, 0);
 
-        static Cell stack(int height) { return new Cell(true, height, null); }
+        static Cell stack(int height) { return new Cell(true, height, null, 0); }
+
+        /** Whether stacked block {@code h} (1-based from the floor) is a legend block. */
+        public boolean isTop(int h) {
+            return top != null && h > height - topCount;
+        }
 
         /** Whether the top block is the lower half of a two-tall block (door). */
         public boolean tallTop() {

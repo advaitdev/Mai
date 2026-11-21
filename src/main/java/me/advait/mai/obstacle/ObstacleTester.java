@@ -292,6 +292,14 @@ public final class ObstacleTester {
                 remaining -= stack;
             }
         }
+        for (ObstacleFile.Item item : obs.botItems()) {
+            int remaining = item.count();
+            while (remaining > 0) {
+                int stack = Math.min(remaining, item.material().getMaxStackSize());
+                humanoid.getInventory().addItem(new org.bukkit.inventory.ItemStack(item.material(), stack));
+                remaining -= stack;
+            }
+        }
     }
 
     private CompletableFuture<Void> delayTicks(long ticks) {
@@ -362,17 +370,31 @@ public final class ObstacleTester {
             Location target = arena.endLocation();
             log.header(obs, arena, startLoc, target);
 
+            // The body this run started with. Humanoid.getEntity() quietly
+            // respawns a dead body, so watch this one: a death (or any new
+            // body) ends the run as "died" instead of restarting it.
+            final java.util.UUID[] body = {null};
             BukkitTask watcher = Bukkit.getScheduler().runTaskTimer(Mai.getInstance(), () -> {
                 if (future.isDone()) return;
                 ticks[0]++;
-                LivingEntity ent = humanoid.getEntity();
+                LivingEntity ent = humanoid.peekEntity();
                 if (ent == null) return; // briefly null right after spawn
+                if (body[0] == null) body[0] = ent.getUniqueId();
+                if (ent.isDead() || !ent.isValid() || !ent.getUniqueId().equals(body[0])) {
+                    resolve.accept(Result.fail("died"));
+                    return;
+                }
                 Location loc = ent.getLocation();
+                double[] kb = obs.knockback();
+                if (kb != null && ticks[0] == (int) kb[0]) {
+                    // External shove (a hit, an explosion): tests the reflexes.
+                    ent.setVelocity(new org.bukkit.util.Vector(kb[1], kb[2], kb[3]));
+                    me.advait.mai.pathetic.debug.PathDebugLog.event("KNOCKBACK v=(%.2f,%.2f,%.2f)", kb[1], kb[2], kb[3]);
+                }
                 log.tick(ticks[0], loc, ent.getVelocity(), ent.isOnGround(),
                         humanoid.getActionAgent().getCurrentActionName(),
-                        me.advait.mai.body.Body.of(ent).lastTick());
+                        me.advait.mai.body.Body.of(ent).lastTick() + String.format(" hp=%.1f", ent.getHealth()));
 
-                if (ent.isDead() || !ent.isValid()) { resolve.accept(Result.fail("died")); return; }
                 if (loc.getY() < arena.floorY() - 2) { resolve.accept(Result.fail("fell")); return; }
                 if (overlapsEnd(loc, arena)) { resolve.accept(Result.pass()); return; }
                 if (ticks[0] >= obs.timeoutTicks()) { resolve.accept(Result.timeout()); }

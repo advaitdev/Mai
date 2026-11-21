@@ -92,7 +92,7 @@ public final class MovementConfig {
         this.costInf = mine.getDouble("cost_inf", 1_000_000.0);
 
         ConfigurationSection place = section(config, "movement.place");
-        this.placeBlockCost = place.getDouble("place_block_cost", 20.0);
+        this.placeBlockCost = place.getDouble("place_block_cost", 2.0);
         this.placeEquipCost = place.getDouble("equip_cost", 1.0);
         this.placeValueWeight = place.getDouble("value_weight", 1.0);
 

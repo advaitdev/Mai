@@ -50,6 +50,7 @@ public final class Mai extends JavaPlugin {
         registerCommands();
         registerListeners();
         me.advait.mai.assistant.Assistant.startTicker();
+        me.advait.mai.body.Reflexes.start(this);
 
         Bukkit.getScheduler().runTaskLater(this, () -> Catalog.getInstance().loadAll(), 20);
     }

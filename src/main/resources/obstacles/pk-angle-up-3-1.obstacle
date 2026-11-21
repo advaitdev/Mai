@@ -1,0 +1,8 @@
+name: pk-angle-up-3-1
+description: Jump to a pillar offset (3,1) and one block higher.
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S1 1 1 _ _ _
+_ _ _ _ _ E2

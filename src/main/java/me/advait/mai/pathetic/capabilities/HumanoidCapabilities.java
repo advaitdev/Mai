@@ -44,7 +44,8 @@ public record HumanoidCapabilities(
         ToolInfo pickaxe,
         ToolInfo axe,
         ToolInfo shovel,
-        double placementCost
+        double placementCost,
+        boolean hasWaterBucket
 ) {
 
     /**
@@ -69,6 +70,8 @@ public record HumanoidCapabilities(
         boolean canMine = pick != null || axe != null || shovel != null;
 
         double placementCost = cheapestPlacementCost(inv, eq, config);
+        boolean bucket = inv.contains(Material.WATER_BUCKET)
+                || (eq != null && eq.getItemInMainHand().getType() == Material.WATER_BUCKET);
 
         return new HumanoidCapabilities(
                 true,                           // canJump — always true in vanilla
@@ -78,7 +81,8 @@ public record HumanoidCapabilities(
                 placementCost < config.getCostInf(),
                 canMine,
                 config.getMaxFallHeight(),
-                pick, axe, shovel, placementCost
+                pick, axe, shovel, placementCost,
+                bucket                          // canClutch — a water bucket breaks any fall
         );
     }
 
@@ -92,7 +96,8 @@ public record HumanoidCapabilities(
                 true, true, true, true,
                 false, false,
                 config.getMaxFallHeight(),
-                null, null, null, config.getCostInf()
+                null, null, null, config.getCostInf(),
+                false
         );
     }
 

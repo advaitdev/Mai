@@ -75,21 +75,17 @@ public class HumanoidBuildAction extends HumanoidAction {
      * build against. Main thread only.
      */
     public static boolean placeBlock(LivingEntity entity, Location location, ItemStack held) {
+        // A player's click: against a solid neighbour whose face the eyes
+        // can see, in reach, not into a hitbox, respecting the click delay.
         Block target = location.getBlock();
-        if (!hasSolidNeighbour(target)) return false;
-
-        LocationUtil.faceLocation(entity, location);
-        entity.swingMainHand();
-        target.setType(held.getType());
-
-        held.setAmount(held.getAmount() - 1);
-        if (entity.getEquipment() != null) {
-            entity.getEquipment().setItemInMainHand(held);
+        for (BlockFace face : new BlockFace[]{
+                BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH,
+                BlockFace.EAST, BlockFace.WEST, BlockFace.UP}) {
+            Block against = target.getRelative(face);
+            if (!against.getType().isSolid()) continue;
+            if (me.advait.mai.body.Hands.placeBlock(entity, against, face.getOppositeFace())) return true;
         }
-
-        FailingNavigationPointProvider.invalidateChunk(
-                target.getWorld().getUID(), target.getX() >> 4, target.getZ() >> 4);
-        return true;
+        return false;
     }
 
     private static boolean hasSolidNeighbour(Block block) {

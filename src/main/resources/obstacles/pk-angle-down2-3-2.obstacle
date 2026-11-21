@@ -1,0 +1,9 @@
+name: pk-angle-down2-3-2
+description: Jump to a pillar offset (3,2) and two blocks lower.
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S3 3 3 _ _ _
+_ _ _ _ _ _
+_ _ _ _ _ E1

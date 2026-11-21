@@ -24,6 +24,9 @@ public record StepUp() implements MovementType {
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
 
+        // No +2 out of deep water: floating at the surface, vanilla's
+        // climb-out boost peaks about 0.1 short of a bank a block above the
+        // water (measured), so such a pool is a trap without blocks.
         if (dy != 1) return false;
         double horizDist = Math.sqrt(dx * dx + dz * dz);
         if (horizDist < 0.5 || horizDist > 1.5) return false;

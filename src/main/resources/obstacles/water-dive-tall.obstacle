@@ -1,0 +1,10 @@
+name: water-dive-tall
+description: Drop thirty blocks into a one-deep puddle: water stops all fall damage.
+blocks: w=water
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+_ _ _ _
+S30 w . E
+_ _ _ _

@@ -21,7 +21,7 @@ import java.util.Locale;
  */
 public final class ObstacleParser {
 
-    private static final int MAX_DIM = 32;
+    private static final int MAX_DIM = 64;
 
     public static final class ParseException extends Exception {
         public ParseException(String message) { super(message); }
@@ -57,6 +57,9 @@ public final class ObstacleParser {
         int botBlockCount = 0, ceiling = 0;
         boolean expectNoPath = false;
         java.util.Map<Character, org.bukkit.block.data.BlockData> legend = new java.util.HashMap<>();
+        java.util.List<ObstacleFile.Item> botItems = new java.util.ArrayList<>();
+        java.util.List<String> placeSpecs = new java.util.ArrayList<>();
+        double[] knockback = null;
         int timeoutTicks = 200, spawnYaw = 0, originY = 120;
 
         for (int i = 0; i < sep; i++) {
@@ -83,6 +86,19 @@ public final class ObstacleParser {
                 }
                 case "ceiling" -> ceiling = parseInt(value, "ceiling");
                 case "blocks" -> parseLegend(value, legend);
+                case "bot_items" -> parseItems(value, botItems);
+                case "place" -> placeSpecs.add(value);
+                case "knockback" -> {
+                    // "<tick> <vx> <vy> <vz>": shove the bot at that tick, like a hit
+                    String[] kb = value.trim().split("\\s+");
+                    if (kb.length != 4) throw new ParseException("knockback must be '<tick> <vx> <vy> <vz>': " + value);
+                    try {
+                        knockback = new double[]{Integer.parseInt(kb[0]), Double.parseDouble(kb[1]),
+                                Double.parseDouble(kb[2]), Double.parseDouble(kb[3])};
+                    } catch (NumberFormatException e) {
+                        throw new ParseException("knockback must be '<tick> <vx> <vy> <vz>': " + value);
+                    }
+                }
                 case "expect" -> {
                     switch (value.toLowerCase(Locale.ROOT)) {
                         case "pass" -> expectNoPath = false;
@@ -144,16 +160,22 @@ public final class ObstacleParser {
         if (startRow == -1) throw new ParseException("No start (S) marker found.");
         if (endRow == -1) throw new ParseException("No end (E) marker found.");
 
+        java.util.List<ObstacleFile.Placed> placed = new java.util.ArrayList<>();
+        for (String spec : placeSpecs) parsePlaced(spec, placed, rows, maxCols);
+
         return new ObstacleFile(stem, name, description, material, floorMaterial,
                 timeoutTicks, spawnYaw, originY, botTool, botBlock, botBlockCount,
-                ceiling, expectNoPath, grid, startRow, startCol, endRow, endCol);
+                ceiling, expectNoPath, grid, startRow, startCol, endRow, endCol,
+                java.util.List.copyOf(botItems), java.util.List.copyOf(placed), knockback);
     }
 
     /**
      * A stack token: optional digits (blocks of {@code material}) followed by
      * an optional lowercase legend letter (one more block of that type on
      * top). {@code 2} = two blocks, {@code a} = one 'a' block, {@code 2a} =
-     * two blocks then an 'a'. Empty = floor only.
+     * two blocks then an 'a'. {@code N*x} is N blocks of legend {@code x}
+     * (a pond: {@code 3*w}); {@code 2+3*w} is two blocks then three 'w'.
+     * Empty = floor only.
      */
     private static ObstacleFile.Cell stackCell(String tok, java.util.Map<Character, org.bukkit.block.data.BlockData> legend,
                                                String what) throws ParseException {
@@ -167,8 +189,54 @@ public final class ObstacleParser {
         org.bukkit.block.data.BlockData data = legend.get(last);
         if (data == null) throw new ParseException("Unknown block letter '" + last + "' in " + what + " (define it in 'blocks:')");
         String digits = tok.substring(0, tok.length() - 1);
+        int star = digits.indexOf('*');
+        if (star >= 0) {
+            // [base+]N*x
+            String head = digits.substring(0, star);
+            int plus = head.indexOf('+');
+            int base = plus >= 0 ? parseInt(head.substring(0, plus), what + " height") : 0;
+            int n = parseInt(plus >= 0 ? head.substring(plus + 1) : head, what + " repeat");
+            if (n < 1 || star != digits.length() - 1) throw new ParseException("Bad repeat token: " + tok);
+            return new ObstacleFile.Cell(true, base + n, data, n);
+        }
         int base = digits.isEmpty() ? 0 : parseInt(digits, what + " height");
-        return new ObstacleFile.Cell(true, base + 1, data);
+        return new ObstacleFile.Cell(true, base + 1, data, 1);
+    }
+
+    /** {@code bot_items: water_bucket cobblestone:64} */
+    private static void parseItems(String value, java.util.List<ObstacleFile.Item> items) throws ParseException {
+        for (String entry : value.trim().split("\\s+")) {
+            if (entry.isEmpty()) continue;
+            String[] parts = entry.split(":");
+            Material m = resolveItem(parts[0], "bot_items");
+            int count = parts.length > 1 ? parseInt(parts[1], "bot_items count") : 1;
+            items.add(new ObstacleFile.Item(m, count));
+        }
+    }
+
+    /**
+     * {@code place: 3,2,0=oak_log 4,3,1=ladder[facing=west]}: column, height
+     * above the floor (1 = first block above it), row.
+     */
+    private static void parsePlaced(String value, java.util.List<ObstacleFile.Placed> out,
+                                    int rows, int cols) throws ParseException {
+        for (String entry : value.trim().split("\\s+")) {
+            if (entry.isEmpty()) continue;
+            int eq = entry.indexOf('=');
+            if (eq < 0) throw new ParseException("place: entries must be 'col,height,row=block': " + entry);
+            String[] xyz = entry.substring(0, eq).split(",");
+            if (xyz.length != 3) throw new ParseException("place: coordinates must be col,height,row: " + entry);
+            int col = parseInt(xyz[0], "place col"), h = parseInt(xyz[1], "place height"), row = parseInt(xyz[2], "place row");
+            if (col < 0 || col >= cols || row < 0 || row >= rows || h < 0)
+                throw new ParseException("place: out of the grid: " + entry);
+            String spec = entry.substring(eq + 1);
+            String id = spec.contains(":") ? spec : "minecraft:" + spec.toLowerCase(Locale.ROOT);
+            try {
+                out.add(new ObstacleFile.Placed(col, h, row, org.bukkit.Bukkit.createBlockData(id)));
+            } catch (IllegalArgumentException e) {
+                throw new ParseException("Invalid block in place: " + spec);
+            }
+        }
     }
 
     /** {@code blocks: a=OAK_SLAB b=oak_stairs[facing=east] d=OAK_DOOR} */

@@ -45,6 +45,14 @@ public final class MovementExecutors {
      */
     public static void walk(TickContext ctx, boolean sprint) {
         double[] dir = direction2D(ctx.current, ctx.waypoint);
+        if (ctx.entity().isInWater()) {
+            // Wading or treading water: hold jump unless heading down. In
+            // water a jump is a slow rise, and pushing into a bank while
+            // rising is what triggers vanilla's 0.3 b/t climb-out boost.
+            ctx.body().face(dir[0], dir[1]).keys(1, 0).sprint(false);
+            if (ctx.waypoint.y() > ctx.current.getY() - 0.5) ctx.body().jump();
+            return;
+        }
         Vector v = ctx.velocity();
         // Sideways component of the momentum we carry into this tick.
         double perp = v.getX() * -dir[1] + v.getZ() * dir[0];

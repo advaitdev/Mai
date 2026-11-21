@@ -10,20 +10,23 @@ import me.advait.mai.pathetic.movement.*;
 import org.bukkit.util.Vector;
 
 /**
- * Sprint-jump across a gap of 1-4 blocks (horizontal distance 2-5).
- * Supports flat jumps (dy=0), ascending (+1), and descending (-1).
+ * Sprint-jump to any landing within jump range, in any direction: straight
+ * gaps of 1-4 blocks, angled jumps like 2+1 or 3+2, diagonals, ascending
+ * one block, and descending up to three.
  *
  * <p>Planning validates:
  * <ul>
- *   <li>Source has solid ground and 3-block headroom (room to jump)
- *   <li>Landing has solid ground and is standable
- *   <li>Intermediate columns are clear at feet+head+above-head level
- *   <li><b>There is a real gap</b>: at least one intermediate column has no
- *       floor at the source level. Without this A* happily "sprint-jumps"
- *       across flat walkable ground because the per-block cost is lower
- *       than walking — and a jump waypoint with no edge to take off from
- *       never completes (the bot oscillates around it, then stuck-replans
- *       from a standstill one block short of the real gap and walks off).
+ *   <li>Source is dry solid ground with room to jump, and not a slow block
+ *   <li>Landing is standable
+ *   <li>The 0.6-wide hitbox swept along the straight line from takeoff to
+ *       landing never clips a block (feet to head, at the heights the arc
+ *       passes through)
+ *   <li><b>There is a real gap</b>: some column under the line has no floor
+ *       at the source level. Without this A* "sprint-jumps" across flat
+ *       ground, and a jump waypoint with no edge to take off from never
+ *       completes.
+ *   <li>The run-up the terrain offers reaches the takeoff speed the jump
+ *       needs, under the same vanilla model the executor uses
  * </ul>
  *
  * <p>Execution is a small state machine on {@link TickContext#phase}:
@@ -49,6 +52,19 @@ public record SprintJump() implements MovementType {
     /** How far off the landing center a touchdown may be and still count. */
     private static final double LANDING_TOLERANCE = 1.2;
 
+    /** Farthest landing (center to center) considered, by height change. */
+    public static double maxReach(int dy) {
+        return switch (dy) {
+            case 1 -> 3.61;      // up to a 3+2
+            case 0 -> 4.5;       // 4+2, 3+3
+            case -1 -> 4.7;
+            default -> 5.0;      // drops of 2-3 buy more airtime
+        };
+    }
+
+    /** Lowest drop a jump may land on; deeper ones are falls (or clutches). */
+    public static final int MAX_DROP = 3;
+
     @Override
     public String key() { return "sprint_jump"; }
 
@@ -58,54 +74,49 @@ public record SprintJump() implements MovementType {
         int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
 
-        // dy must be -1, 0, or +1
-        if (Math.abs(dy) > 1) return false;
-
-        // Horizontal distance caps (vanilla 1.21 sprint-jump, verified
-        // against MCPK "Longest Jumps"):
-        //   dy= 0 → 4 blocks edge-to-edge (3-block gap) reliable
-        //   dy=+1 → 3 blocks edge-to-edge (2-block gap) reliable
-        //   dy=-1 → 4.5 blocks edge-to-edge (3-4 block gap) reliable
-        // Anything beyond requires frame-perfect timing humans can hit
-        // but an NPC can't guarantee — don't plan on it.
+        if (dy > 1 || dy < -MAX_DROP) return false;
         double horizDist = Math.sqrt(dx * dx + dz * dz);
-        if (horizDist < 1.5) return false;
-        if (dy == 1 && horizDist > 3.5) return false;
-        if (dy == 0 && horizDist > 4.5) return false;
-        if (dy == -1 && horizDist > 4.5) return false;
+        if (horizDist < 1.5 || horizDist > maxReach(dy)) return false;
 
         MaterialProvider materials = ctx.materials();
 
-        // Source must have 3-block headroom for jumping
-        int sx = previous.getFlooredX(), sy = previous.getFlooredY(), sz = previous.getFlooredZ();
-        if (!BlockClassifier.isTraversable(materials.getMaterial(sx, sy + 2, sz))) return false;
-
-        // Soul sand, honey and other slow blocks cap the run-up speed far
-        // below what the takeoff model assumes; never plan a jump off one.
-        if (BlockClassifier.speedMultiplier(materials.getMaterial(sx, sy - 1, sz)) < 1.0) return false;
-
-        // Landing must be standable
+        // Landing first: it rejects almost every candidate offset cheaply.
         if (!WalkFlat.isStandable(current, materials)) return false;
 
-        // Validate the jump arc: intermediate columns must be clear, and at
-        // least one of them must be a genuine gap.
-        if (!validateArc(previous, dx, dy, dz, materials)) return false;
+        // Takeoff: dry, solid, not slow, with room to jump. Soul sand and
+        // honey cap the run-up speed far below the takeoff model; in water a
+        // jump is only a slow rise.
+        int sx = previous.getFlooredX(), sy = previous.getFlooredY(), sz = previous.getFlooredZ();
+        if (!WalkFlat.isStandable(previous, materials)) return false;
+        if (BlockClassifier.isLiquid(materials.getMaterial(previous))) return false;
+        if (!BlockClassifier.isTraversable(materials.getMaterial(sx, sy + 2, sz))) return false;
+        if (BlockClassifier.speedMultiplier(materials.getMaterial(sx, sy - 1, sz)) < 1.0) return false;
 
-        // Physically achievable with the run-up the terrain provides?
+        if (!validateArc(previous, current, dx, dy, dz, materials)) return false;
+
         return runUpSuffices(previous, dx, dy, dz, horizDist, ctx);
     }
 
     /** Max blocks of run-up behind the takeoff block considered by the planner. */
     private static final int MAX_RUNUP_BLOCKS = 3;
 
+    /** Run-up directions up to this far off straight behind the jump still count (cos 50°). */
+    private static final double RUNUP_MIN_COS = 0.64;
+
+    private static final double[][] COMPASS = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+            {Math.sqrt(0.5), Math.sqrt(0.5)}, {Math.sqrt(0.5), -Math.sqrt(0.5)},
+            {-Math.sqrt(0.5), Math.sqrt(0.5)}, {-Math.sqrt(0.5), -Math.sqrt(0.5)}};
+
     /**
-     * Whether a bot could legitimately make this jump given the run-up
-     * behind the takeoff block. Counts standable blocks behind the source
-     * (opposite the jump direction, same level), simulates vanilla sprint
-     * acceleration from a standstill over that distance, and checks the
-     * resulting takeoff speed (ground speed + sprint-jump boost) against
-     * {@link AirControl#takeoffSpeeds}' minimum. Pure function of the world
-     * snapshot, so it is safe on the async pathfinding thread.
+     * Whether a bot could legitimately make this jump given the run-up the
+     * terrain offers. Tries run-ups straight behind the jump and along any
+     * compass line within 50° of that (a straight runway into an angled
+     * jump), counts standable blocks along each, simulates vanilla sprint
+     * acceleration from a standstill, and checks the takeoff speed (ground
+     * speed + sprint-jump boost) against {@link AirControl#takeoffSpeeds}'
+     * minimum. An angled run-up only counts its component along the jump.
+     * Pure function of the world snapshot, so safe on the async thread.
      *
      * <p>A standstill start is the conservative case: the bot may arrive
      * with momentum, but the planner can't know that, and a jump that only
@@ -115,35 +126,56 @@ public record SprintJump() implements MovementType {
     private static boolean runUpSuffices(PathPosition src, int dx, int dy, int dz,
                                          double horizDist, PathContext ctx) {
         var c = ctx.config();
-        int ux = Integer.signum(dx), uz = Integer.signum(dz);
-        int blocksBehind = 0;
-        for (int i = 1; i <= MAX_RUNUP_BLOCKS; i++) {
-            PathPosition back = PathPosition.of(src.getFlooredX() - ux * i, src.getFlooredY(),
-                    src.getFlooredZ() - uz * i);
-            if (!WalkFlat.isStandable(back, ctx.materials())) break;
-            blocksBehind++;
-        }
-        // Sprint from a standstill at the center of the farthest run-up block;
-        // the lip is 0.5 past the source center. Same takeoff trigger and
-        // ground model as the executor (SprintJump.predictTakeoff).
-        double lip = blocksBehind + 0.5;
-        double slip = me.advait.mai.pathetic.BlockClassifier.slipperiness(
-                ctx.materials().getMaterial(src.getFlooredX(), src.getFlooredY() - 1, src.getFlooredZ()));
+        MaterialProvider m = ctx.materials();
+        double ux = dx / horizDist, uz = dz / horizDist;
+        double slip = BlockClassifier.slipperiness(
+                m.getMaterial(src.getFlooredX(), src.getFlooredY() - 1, src.getFlooredZ()));
         double groundDrag = slip * c.getAirDrag();
-        double firstTick = me.advait.mai.body.Body.groundAccel(slip, true);
-        double[] takeoff = predictTakeoff(firstTick, lip, slip, groundDrag, true, c.getSprintJumpBoost());
+        double firstTick = Body.groundAccel(slip, true);
+        // Takeoff-block lip along the jump, from the source center.
+        double lip = floorRun(src, ux, uz, m);
 
-        double dist = blocksBehind + horizDist - takeoff[1];
-        double[] need = AirControl.takeoffSpeeds(dist, dy, slip, MovementExecutors.SPRINT_AIR_ACCEL, c);
-        return need != null && need[1] <= takeoff[0];
+        double[][] candidates = new double[COMPASS.length + 1][];
+        candidates[0] = new double[]{-ux, -uz};
+        System.arraycopy(COMPASS, 0, candidates, 1, COMPASS.length);
+        for (double[] a : candidates) {
+            double cos = -(a[0] * ux + a[1] * uz);
+            if (cos < RUNUP_MIN_COS) continue;
+            int blocks = 0;
+            for (int k = 1; k <= MAX_RUNUP_BLOCKS; k++) {
+                PathPosition back = PathPosition.of(
+                        (int) Math.floor(src.getFlooredX() + 0.5 + a[0] * k), src.getFlooredY(),
+                        (int) Math.floor(src.getFlooredZ() + 0.5 + a[1] * k));
+                if (!WalkFlat.isStandable(back, m)) break;
+                blocks++;
+            }
+            double run = blocks * cos;
+            double[] takeoff = predictTakeoff(firstTick, run + lip, slip, groundDrag, true, c.getSprintJumpBoost());
+            double dist = run + horizDist - takeoff[1];
+            double[] need = AirControl.takeoffSpeeds(dist, dy, slip, MovementExecutors.SPRINT_AIR_ACCEL, c);
+            if (need != null && need[1] <= takeoff[0]) return true;
+        }
+        return false;
+    }
+
+    /** Distance from the source center along (ux, uz) to the end of its floor. */
+    private static double floorRun(PathPosition src, double ux, double uz, MaterialProvider m) {
+        int fy = src.getFlooredY() - 1;
+        double ox = src.getFlooredX() + 0.5, oz = src.getFlooredZ() + 0.5;
+        for (double d = 0.0; d <= 2.0; d += 0.05) {
+            if (!BlockClassifier.isSolid(m.getMaterial(
+                    (int) Math.floor(ox + ux * d), fy, (int) Math.floor(oz + uz * d)))) return d;
+        }
+        return 2.0;
     }
 
     @Override
     public double computeCost(PathPosition current, PathPosition previous, PathContext ctx) {
         int dx = current.getFlooredX() - previous.getFlooredX();
+        int dy = current.getFlooredY() - previous.getFlooredY();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
         double horizDist = Math.sqrt(dx * dx + dz * dz);
-        int gap = Math.max(0, (int) Math.round(horizDist) - 1);
+        int gap = gapOf(horizDist);
 
         // Priced as "sprinting the same distance, plus a per-jump overhead,
         // plus a risk term that grows with the gap". It must never be cheaper
@@ -151,20 +183,25 @@ public record SprintJump() implements MovementType {
         // that fits (even across flat ground), and a max-range jump over a
         // 1-block gap has no margin for error. With this shape the planner
         // picks the shortest jump that clears the gap, like a human would.
+        // A drop past 3 blocks (counting the arc's 1.25 apex) also hurts.
+        int fall = (int) Math.ceil(1.25 - dy);
         return horizDist * ctx.config().getWalkFlat()
                 + ctx.config().getSprintJumpBase()
                 + gap * ctx.config().getSprintJumpPerGap()
                 + ctx.config().getJumpPenalty()
-                + horizDist * ctx.config().getHungerSprintCost();
+                + horizDist * ctx.config().getHungerSprintCost()
+                + me.advait.mai.pathetic.config.MovementConfig.fallDamage(fall) * ctx.config().getFallDamagePenalty();
+    }
+
+    private static int gapOf(double horizDist) {
+        return Math.max(0, (int) Math.round(horizDist) - 1);
     }
 
     @Override
     public ExecutionHint executionHint(PathPosition current, PathPosition previous) {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
-        double horizDist = Math.sqrt(dx * dx + dz * dz);
-        int gap = Math.max(0, (int) Math.round(horizDist) - 1);
-        return ExecutionHint.sprintJump(gap);
+        return ExecutionHint.sprintJump(gapOf(Math.sqrt(dx * dx + dz * dz)));
     }
 
     @Override
@@ -399,31 +436,48 @@ public record SprintJump() implements MovementType {
         return false;
     }
 
+    /** Player hitbox half-width, less a hair so touching a face isn't a clip. */
+    private static final double ARC_HALF_WIDTH = 0.29;
+
     /**
-     * Intermediate columns must be traversable at feet/head/above-head of
-     * the source level, and at least one must be floorless (a real gap).
+     * Sweeps the hitbox along the straight line from the source center to
+     * the landing center and requires every cell it overlaps (other than the
+     * source and landing columns) to be clear from the feet to above the
+     * head at the heights the arc is at there: the source level for the
+     * first half, one higher near the end of an ascending jump, down to the
+     * landing level near the end of a descending one. Also requires a real
+     * gap: some cell under the line with no floor at the source level.
      */
-    private boolean validateArc(PathPosition src, int dx, int dy, int dz, MaterialProvider materials) {
-        int steps = Math.max(Math.abs(dx), Math.abs(dz));
-        int srcY = src.getFlooredY();
+    private boolean validateArc(PathPosition src, PathPosition dst, int dx, int dy, int dz,
+                                MaterialProvider materials) {
+        int sx = src.getFlooredX(), sy = src.getFlooredY(), sz = src.getFlooredZ();
+        int ex = dst.getFlooredX(), ey = dst.getFlooredY(), ez = dst.getFlooredZ();
+        double ox = sx + 0.5, oz = sz + 0.5;
+        double len = Math.sqrt(dx * dx + dz * dz);
         boolean sawGap = false;
+        java.util.Set<Long> checked = new java.util.HashSet<>();
 
-        // Check each intermediate column (excluding source and destination)
-        for (int i = 1; i < steps; i++) {
-            double t = (double) i / steps;
-            int ix = src.getFlooredX() + (int) Math.round(dx * t);
-            int iz = src.getFlooredZ() + (int) Math.round(dz * t);
-
-            // The entity passes through at the source Y level during the jump.
-            // Check feet, head, and above-head at source level (conservative —
-            // the entity is airborne and may be higher).
-            for (int yOff = 0; yOff <= 2; yOff++) {
-                if (!BlockClassifier.isTraversable(materials.getMaterial(ix, srcY + yOff, iz))) {
-                    return false;
-                }
-            }
-            if (!BlockClassifier.isSolid(materials.getMaterial(ix, srcY - 1, iz))) {
+        for (double d = 0.0; d <= len + 1e-9; d += 0.1) {
+            double t = d / len;
+            double cx = ox + dx * t, cz = oz + dz * t;
+            int ccx = (int) Math.floor(cx), ccz = (int) Math.floor(cz);
+            boolean endColumn = (ccx == sx && ccz == sz) || (ccx == ex && ccz == ez);
+            if (!endColumn && !BlockClassifier.isSolid(materials.getMaterial(ccx, sy - 1, ccz))) {
                 sawGap = true;
+            }
+
+            int lo = sy, hi = sy + 2;
+            if (dy > 0 && t > 0.5) { lo = sy + 1; hi = sy + 3; }
+            if (dy < 0 && t > 0.4) lo = ey;
+            for (int corner = 0; corner < 4; corner++) {
+                int bx = (int) Math.floor(cx + ((corner & 1) == 0 ? -ARC_HALF_WIDTH : ARC_HALF_WIDTH));
+                int bz = (int) Math.floor(cz + ((corner & 2) == 0 ? -ARC_HALF_WIDTH : ARC_HALF_WIDTH));
+                if ((bx == sx && bz == sz) || (bx == ex && bz == ez)) continue;
+                long key = (((long) bx) << 40) ^ (((long) bz) << 16) ^ (lo << 8) ^ hi;
+                if (!checked.add(key)) continue;
+                for (int y = lo; y <= hi; y++) {
+                    if (!BlockClassifier.isTraversable(materials.getMaterial(bx, y, bz))) return false;
+                }
             }
         }
         return sawGap;

@@ -1,0 +1,8 @@
+name: water-step-out
+description: Start in one-deep water and step up onto a bank.
+blocks: w=water
+timeout_ticks: 240
+spawn_yaw: 270
+origin_y: 120
+---
+Sw w w 1 E1

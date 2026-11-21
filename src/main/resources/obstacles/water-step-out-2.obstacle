@@ -1,0 +1,8 @@
+name: water-step-out-2
+description: Wade, then climb two one-block steps out of shallow water.
+blocks: w=water
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S w w w 1 2 E2

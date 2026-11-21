@@ -3,6 +3,7 @@ package me.advait.mai.pathetic.strategy;
 import de.bsommerfeld.pathetic.api.pathing.INeighborStrategy;
 import de.bsommerfeld.pathetic.api.wrapper.PathVector;
 import me.advait.mai.pathetic.config.MovementConfig;
+import me.advait.mai.pathetic.movement.types.SprintJump;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,11 +16,14 @@ import java.util.List;
  * <p>Offset counts:
  * <ul>
  *   <li>Standard: 26 (3x3x3 cube minus center)</li>
- *   <li>Parkour: 4 cardinal dirs x distances 2-5 x dy {-1,0,+1} (~36-48)</li>
+ *   <li>Parkour: every (dx, dz) within jump reach outside the 3x3, dy +1 to -3 (~330)</li>
  *   <li>Falls: 9 horizontal combos x (dy -2 to -maxFall) (~171 at maxFall=20)</li>
  * </ul>
  */
 public final class HumanoidNeighborStrategy implements INeighborStrategy {
+
+    /** Deepest drop offered to the planner (water landings, bucket clutches). */
+    public static final int LONG_DROP = 64;
 
     private final List<PathVector> offsets;
 
@@ -37,18 +41,17 @@ public final class HumanoidNeighborStrategy implements INeighborStrategy {
             }
         }
 
-        // Parkour offsets: cardinal sprint-jumps across 1-4 block gaps
+        // Parkour offsets: every landing within sprint-jump reach in any
+        // direction (straight, diagonal, angled like 2+1 or 3+2), one block
+        // up to three down. SprintJump.matches decides which are possible.
         if (config.isParkourEnabled()) {
-            int maxReach = config.getMaxParkourReach();
-            int[][] cardinals = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-            for (int[] dir : cardinals) {
-                for (int dist = 2; dist <= maxReach + 1; dist++) {
-                    int dx = dir[0] * dist;
-                    int dz = dir[1] * dist;
-                    for (int dy = -1; dy <= 1; dy++) {
-                        // Skip if already covered by 3x3x3 cube
-                        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Math.abs(dz) <= 1) continue;
+            for (int dy = 1; dy >= -SprintJump.MAX_DROP; dy--) {
+                double reach = SprintJump.maxReach(dy);
+                int r = (int) Math.ceil(reach);
+                for (int dx = -r; dx <= r; dx++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) continue;   // cube and falls
+                        if (Math.sqrt(dx * dx + dz * dz) > reach) continue;
                         list.add(new PathVector(dx, dy, dz));
                     }
                 }
@@ -56,7 +59,10 @@ public final class HumanoidNeighborStrategy implements INeighborStrategy {
         }
 
         // Fall offsets: multi-block falls (dy -2 to -maxFall)
-        int maxFall = config.getMaxFallHeight();
+        // Down to LONG_DROP even past max_fall_height: a drop into water or
+        // a water-bucket clutch is harmless at any height. Each fall type
+        // enforces its own limit.
+        int maxFall = Math.max(config.getMaxFallHeight(), LONG_DROP);
         for (int dy = -2; dy >= -maxFall; dy--) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {

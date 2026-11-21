@@ -1,0 +1,8 @@
+name: tree-leaf-hop
+description: Hop across the tops of three separate leaf canopies.
+blocks: f=oak_leaves[persistent=true]
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S2 _ 2f _ _ 2f _ E2f

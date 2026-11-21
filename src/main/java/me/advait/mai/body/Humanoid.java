@@ -80,6 +80,15 @@ public class Humanoid {
         return getMannequin();
     }
 
+    /**
+     * The current body without the respawn {@link #getMannequin} does: may
+     * be dead or invalid. For code that must see a death (test harness,
+     * reflexes) rather than silently get a fresh body.
+     */
+    public Mannequin peekEntity() {
+        return mannequin;
+    }
+
     public Mannequin getMannequin() {
         if (mannequin != null && !mannequin.isValid() && lastKnownLocation != null) {
             Mai.getInstance().getLogger().warning("Mannequin for '" + name + "' was invalid, respawning...");

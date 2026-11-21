@@ -1,0 +1,8 @@
+name: clutch-mlg-25
+description: Drop 25 blocks and water-bucket clutch the landing.
+bot_items: water_bucket
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S25 . . E

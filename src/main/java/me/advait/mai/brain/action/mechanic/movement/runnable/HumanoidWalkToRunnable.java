@@ -86,6 +86,21 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
     }
 
+    /**
+     * Key of the movement {@code humanoid}'s live walk is executing (e.g.
+     * {@code water_clutch}), or null when it isn't walking a path.
+     */
+    public static String activeMovement(Humanoid humanoid) {
+        for (HumanoidWalkToRunnable r : ACTIVE) {
+            if (r.humanoid != humanoid) continue;
+            AnnotatedPath path = r.currentPath;
+            if (path == null || r.pathIndex >= path.size()) return null;
+            MovementType type = path.get(r.pathIndex).type();
+            return type == null ? null : type.key();
+        }
+        return null;
+    }
+
     private volatile boolean worldDirty = false;
     /** Set by {@link #retarget}; replans toward the new target once safe. */
     private volatile boolean retargeted = false;
@@ -293,6 +308,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
             MovementExecutors.jump(tickCtx);
         }
 
+        // A survival reflex has the controls this tick (an unplanned fall).
+        // Once it lets go, the bot is somewhere the path never went: replan.
+        if (me.advait.mai.body.Reflexes.isActive(humanoid)) return false;
+        if (me.advait.mai.body.Reflexes.takeRescued(humanoid)) {
+            PathDebugLog.event("REFLEX_RECOVERED bot=(%.2f,%.2f,%.2f) → replan",
+                    tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ());
+            resetPathState();
+            return false;
+        }
+
         MovementStatus status = type.tick(tickCtx);
 
         // Per-movement stuck detection: only trigger when it's safe to swap
@@ -314,6 +339,9 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 PathDebugLog.event("WAYPOINT_DONE type=%s index=%d/%d wp=(%.2f,%.2f,%.2f)",
                         type.key(), pathIndex, currentPath.size() - 1,
                         waypoint.x(), waypoint.y(), waypoint.z());
+                // The next movement starts this same tick from neutral keys:
+                // a finished walk's W must not leak into, say, a pillar jump.
+                tickCtx.body().release();
                 handleWaypointTransition();
                 pathIndex++;
                 tickCtx.subAction = null;

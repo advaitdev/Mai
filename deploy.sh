@@ -21,10 +21,16 @@ mvn -f "$PROJECT_DIR/pom.xml" clean package -q
 echo "Copying $JAR_NAME to plugins..."
 cp "$PROJECT_DIR/target/$JAR_NAME" "$PLUGINS_DIR/$JAR_NAME"
 
-# Stop server if running (only kill the server.jar process, not the Minecraft client)
-SERVER_PID=$(pgrep -f "server\.jar" 2>/dev/null || true)
+# Stop the server if running: only a server.jar process running from this
+# server's directory (not the Minecraft client, not the 26.3 test server).
+SERVER_PID=""
+for pid in $(pgrep -f "server\.jar" 2>/dev/null || true); do
+    if [ "$(readlink -f /proc/$pid/cwd 2>/dev/null)" = "$(readlink -f "$SERVER_DIR")" ]; then
+        SERVER_PID="$SERVER_PID $pid"
+    fi
+done
 if [ -n "$SERVER_PID" ]; then
-    echo "Stopping server (PID $SERVER_PID)..."
+    echo "Stopping server (PID$SERVER_PID)..."
     kill $SERVER_PID 2>/dev/null || true
     for pid in $SERVER_PID; do
         while kill -0 "$pid" 2>/dev/null; do sleep 1; done
@@ -32,12 +38,17 @@ if [ -n "$SERVER_PID" ]; then
     echo "Server stopped."
 fi
 
-# Start server in screen session
-SCREEN_NAME="mc"
-
-# Kill existing screen session if present
-screen -S "$SCREEN_NAME" -X quit 2>/dev/null || true
-
-echo "Starting server in screen session '$SCREEN_NAME'..."
-screen -dmS "$SCREEN_NAME" bash -c "cd '$SERVER_DIR' && $JAVA_BIN -Xmx2G -jar server.jar --nogui"
-echo "Server started. Attach with: screen -r $SCREEN_NAME"
+SESSION_NAME="mc"
+START_CMD="cd '$SERVER_DIR' && $JAVA_BIN -Xmx2G -jar server.jar --nogui"
+if command -v screen >/dev/null 2>&1; then
+    screen -S "$SESSION_NAME" -X quit 2>/dev/null || true
+    echo "Starting server in screen session '$SESSION_NAME'..."
+    screen -dmS "$SESSION_NAME" bash -c "$START_CMD"
+    echo "Server started. Attach with: screen -r $SESSION_NAME"
+else
+    # This WSL box has tmux but no screen.
+    tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
+    echo "Starting server in tmux session '$SESSION_NAME'..."
+    tmux new-session -d -s "$SESSION_NAME" "$START_CMD"
+    echo "Server started. Attach with: tmux attach -t $SESSION_NAME (detach: Ctrl-B D)"
+fi

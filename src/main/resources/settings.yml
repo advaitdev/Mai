@@ -29,7 +29,7 @@ movement:
   # makes plentiful cheap blocks (cobblestone) preferred over valuable/rare ones
   # (diamond): per-place cost = base + value_weight * value(block) / log2(count+2).
   place:
-    place_block_cost: 20.0      # base tick cost to place one block
+    place_block_cost: 2.0       # extra ticks per placed block on top of the move (speedbridging places one every ~4.6 ticks while walking backwards)
     equip_cost: 1.0             # tick cost to swap the block into hand
     value_weight: 1.0           # scales the material-value/scarcity penalty
 

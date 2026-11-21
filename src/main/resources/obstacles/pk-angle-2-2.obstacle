@@ -1,0 +1,9 @@
+name: pk-angle-2-2
+description: Sprint-jump to a lone pillar offset (2,2).
+timeout_ticks: 200
+spawn_yaw: 270
+origin_y: 120
+---
+S1 1 1 _ _
+_ _ _ _ _
+_ _ _ _ E1

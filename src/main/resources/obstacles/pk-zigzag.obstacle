@@ -1,0 +1,8 @@
+name: pk-zigzag
+description: Zig-zag across lone 1x1 pillars at (2,1)/(2,-1) offsets.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+S1 _ _ _ 1 _ _ _ 1 _
+_ _ 1 _ _ _ 1 _ _ E1

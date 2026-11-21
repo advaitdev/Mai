@@ -1,0 +1,16 @@
+name: tree-canopy
+description: Parkour up scattered oak logs onto the leaves of a tree.
+blocks: l=oak_log f=oak_leaves[persistent=true]
+place: 4,5,4=oak_leaves[persistent=true] 4,5,6=oak_leaves[persistent=true] 5,5,4=oak_leaves[persistent=true] 5,5,6=oak_leaves[persistent=true] 6,5,4=oak_leaves[persistent=true] 6,5,5=oak_leaves[persistent=true] 6,5,6=oak_leaves[persistent=true] 5,6,5=oak_leaves[persistent=true]
+timeout_ticks: 500
+spawn_yaw: 270
+origin_y: 120
+---
+S . . . . . . .
+. . . 2*l . . . .
+. l . . . . . .
+. . . 3*l . . . .
+. . . . . . . .
+. . 4*l . E4f 5*l . .
+. . . . . . . .
+. . . . . . . .

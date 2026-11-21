@@ -18,6 +18,11 @@ public record LadderClimb() implements MovementType {
 
     @Override
     public boolean matches(PathPosition current, PathPosition previous, PathContext ctx) {
+        // Climbing moves one block at a time; without this a 20-block fall or
+        // a 4-block jump that ends in a vine would classify as a climb.
+        if (Math.abs(current.getFlooredX() - previous.getFlooredX()) > 1
+                || Math.abs(current.getFlooredY() - previous.getFlooredY()) > 1
+                || Math.abs(current.getFlooredZ() - previous.getFlooredZ()) > 1) return false;
         MaterialProvider materials = ctx.materials();
         Material atFeet = materials.getMaterial(current);
         if (!BlockClassifier.isClimbable(atFeet)) return false;
