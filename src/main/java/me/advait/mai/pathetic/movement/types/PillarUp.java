@@ -81,9 +81,12 @@ public record PillarUp() implements MovementType {
             return MovementStatus.SUCCESS;
         }
 
-        // On the ground at the source: hop straight up (no horizontal drift).
+        // On the ground at the source: hop straight up with no keys held.
+        // Wait for leftover momentum to die on friction first, or the hop
+        // drifts off the pillar cell.
         if (!placed && ctx.onGround() && ctx.jumpCooldown == 0) {
-            MovementExecutors.jumpVerticalOnly(ctx);
+            if (MovementExecutors.horizontalSpeed(ctx.velocity()) > 0.03) return MovementStatus.RUNNING;
+            MovementExecutors.jump(ctx);
             return MovementStatus.RUNNING;
         }
 

@@ -46,7 +46,7 @@ public record StepDown() implements MovementType {
         // Walk off the edge — gravity handles the drop. Keep applying
         // horizontal acceleration until we've reached the landing column.
         boolean sprinting = ctx.speedFactor > 1.0;
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
         // Landing: on ground at roughly the target Y
         return (ctx.onGround() && MovementExecutors.reachedFully(ctx))
                 ? MovementStatus.SUCCESS : MovementStatus.RUNNING;

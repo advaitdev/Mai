@@ -1,67 +1,44 @@
 package me.advait.mai.assistant;
 
+import me.advait.mai.body.Body;
 import me.advait.mai.pathetic.config.MovementConfig;
-import me.advait.mai.pathetic.movement.MovementExecutors;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.util.Vector;
 
 /**
- * Direct, vanilla-legal body control for behaviors that steer without a
- * path (combat footwork, closing the last few blocks on a target). Inputs
- * are the same budget a player has: ground acceleration scaled by block
- * friction, the small air-control budget in the air, and a 0.42 jump. The
- * server applies drag and gravity on top, exactly as for the path executor.
+ * Direct body control for behaviors that steer without a path (combat
+ * footwork, closing the last few blocks on a target). Everything goes
+ * through {@link Body}: the bot faces a point and presses W/A/S/D, jump and
+ * sprint like a player, and vanilla physics turns that into motion.
  */
 public final class Motor {
 
     private Motor() {}
 
     /**
-     * Apply one tick of WASD-style input. {@code forward}/{@code strafe} are
-     * in [-1, 1] relative to the direction toward {@code facing}; the
-     * combined vector is normalized like a player's input.
+     * One tick of WASD input with the view toward {@code facing}.
+     * {@code forward}/{@code strafe} pick keys by sign ({@code forward > 0}
+     * = W, {@code strafe > 0} = D); a player's keys have no half-presses.
      */
     public static void drive(LivingEntity e, Location facing, double forward, double strafe,
                              boolean sprint, MovementConfig cfg) {
         Location cur = e.getLocation();
         double fx = facing.getX() - cur.getX(), fz = facing.getZ() - cur.getZ();
-        double len = Math.sqrt(fx * fx + fz * fz);
-        if (len < 1e-4) return;
-        fx /= len; fz /= len;
-        // Right-hand perpendicular of (fx, fz) in Minecraft's x/z plane.
-        double rx = -fz, rz = fx;
-        double ix = fx * forward + rx * strafe, iz = fz * forward + rz * strafe;
-        double ilen = Math.sqrt(ix * ix + iz * iz);
-        if (ilen < 1e-4) return;
-        if (ilen > 1) { ix /= ilen; iz /= ilen; }
-        // Vanilla: sprinting only applies while moving forward.
-        boolean sprinting = sprint && forward > 0.1;
-
-        Vector v = e.getVelocity();
-        double accel;
-        if (e.isOnGround()) {
-            double inertia = MovementExecutors.slipperinessBelow(cur) * 0.91;
-            accel = cfg.getWalkAcceleration() * (sprinting ? cfg.getSprintFactor() : 1.0)
-                    * (0.16277136 / (inertia * inertia * inertia));
-        } else {
-            accel = sprinting ? MovementExecutors.SPRINT_AIR_ACCEL : MovementExecutors.WALK_AIR_ACCEL;
-        }
-        e.setVelocity(new Vector(v.getX() + ix * accel, v.getY(), v.getZ() + iz * accel));
+        if (fx * fx + fz * fz < 1e-8) return;
+        Body.of(e).face(fx, fz)
+                .keys(key(forward), key(strafe))
+                .sprint(sprint);
     }
 
-    /** Jump if standing. A sprint-jump adds the vanilla forward boost. */
+    private static int key(double axis) {
+        return axis > 0.05 ? 1 : axis < -0.05 ? -1 : 0;
+    }
+
+    /** Press jump if standing. Sprinting adds the vanilla sprint-jump boost on its own. */
     public static boolean jump(LivingEntity e, boolean sprintBoost, MovementConfig cfg) {
         if (!e.isOnGround()) return false;
-        Vector v = e.getVelocity();
-        double vx = v.getX(), vz = v.getZ();
-        if (sprintBoost) {
-            double yaw = Math.toRadians(e.getLocation().getYaw());
-            vx += -Math.sin(yaw) * cfg.getSprintJumpBoost();
-            vz += Math.cos(yaw) * cfg.getSprintJumpBoost();
-        }
-        e.setVelocity(new Vector(vx, cfg.getJumpVelocity(), vz));
+        Body.of(e).jump();
         return true;
     }
 
@@ -70,9 +47,9 @@ public final class Motor {
         Location eye = e.getEyeLocation();
         double dx = at.getX() - eye.getX(), dy = at.getY() - eye.getY(), dz = at.getZ() - eye.getZ();
         double h = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float yaw = Body.yawOf(dx, dz);
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, h));
-        e.setRotation(yaw, pitch);
+        Body.of(e).look(yaw, pitch);
     }
 
     /** Look at the middle of another entity's body. */

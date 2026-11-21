@@ -107,7 +107,7 @@ public record MineThrough() implements MovementType {
 
         // Column is clear — walk into it.
         boolean sprinting = ctx.speedFactor > 1.0;
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 
@@ -151,8 +151,8 @@ public record MineThrough() implements MovementType {
 
         if (obstructor == null) return null;   // clear
 
-        // Stop drifting while we mine, then start a break.
-        ctx.entity().setVelocity(new org.bukkit.util.Vector(0, ctx.entity().getVelocity().getY(), 0));
+        // Keys stay released while mining, so the bot coasts to a stop
+        // against the block on friction, like a player letting go of W.
         if (!startBreak(ctx, obstructor)) return MovementStatus.FAILED;
         return MovementStatus.RUNNING;
     }

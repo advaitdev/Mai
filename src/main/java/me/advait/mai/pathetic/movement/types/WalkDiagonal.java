@@ -69,10 +69,10 @@ public record WalkDiagonal() implements MovementType {
                 && MovementExecutors.obstacleAheadNeedsJump(ctx.current, dir)) {
             PathDebugLog.event("AUTO_JUMP type=walk_diagonal bot=(%.2f,%.2f,%.2f) dir=(%.2f,%.2f)",
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(), dir[0], dir[1]);
-            MovementExecutors.jump(ctx, sprinting);
+            MovementExecutors.jump(ctx);
         }
 
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 }

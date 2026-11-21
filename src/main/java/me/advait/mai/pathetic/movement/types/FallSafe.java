@@ -76,13 +76,12 @@ public record FallSafe() implements MovementType {
             if (!ctx.onGround()) {
                 ctx.phase = 1;
             } else {
-                MovementExecutors.groundAccelerate(ctx, 1.0, false);
+                MovementExecutors.walk(ctx, false);
                 return MovementStatus.RUNNING;
             }
         }
 
-        AirControl.steer(ctx, ctx.waypoint.x(), ctx.waypoint.z(), ctx.waypoint.y(),
-                MovementExecutors.WALK_AIR_ACCEL);
+        AirControl.steer(ctx, ctx.waypoint.x(), ctx.waypoint.z(), ctx.waypoint.y());
 
         if (ctx.onGround() && ctx.entity().getVelocity().getY() <= 0) {
             // Touched down somewhere that isn't the landing (a ledge on the

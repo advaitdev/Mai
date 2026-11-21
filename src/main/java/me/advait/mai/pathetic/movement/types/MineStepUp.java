@@ -90,18 +90,13 @@ public record MineStepUp() implements MovementType {
 
         // Cleared — step up into it (mirrors StepUp).
         boolean sprinting = ctx.speedFactor > 1.0;
-        double horizDist = MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint);
         boolean needsJump = ctx.waypoint.y() > ctx.current.getY() + 0.3;
-        double jumpWindowMax = sprinting ? 2.3 : 1.6;
-        double takeoffSpeed = sprinting ? 0.24 : 0.18;
 
         if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump
-                && horizDist > 0.4 && horizDist < jumpWindowMax) {
-            double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
-            MovementExecutors.kickToward(ctx, dir, takeoffSpeed);
-            MovementExecutors.jump(ctx, sprinting);
+                && MovementExecutors.stepUpJumpNow(ctx, ctx.waypoint)) {
+            MovementExecutors.jump(ctx);
         }
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
 
         if (MovementExecutors.reachedHorizontally(ctx) && ctx.current.getY() >= ctx.waypoint.y() - 0.1) {
             return MovementStatus.SUCCESS;

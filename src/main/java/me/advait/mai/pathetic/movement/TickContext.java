@@ -1,5 +1,6 @@
 package me.advait.mai.pathetic.movement;
 
+import me.advait.mai.body.Body;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.path.AnnotatedWaypoint;
@@ -73,13 +74,6 @@ public final class TickContext {
      */
     public int ticksSinceProgress;
 
-    /**
-     * The {@link #totalTicks} value on which ground acceleration was last
-     * applied. Lets {@code MovementExecutors.groundAccelerate} be idempotent
-     * within a tick when the driver chains waypoints.
-     */
-    public int accelTick = -1;
-
     /** The final target location of the entire walk (not the current waypoint). */
     public Location finalTarget;
 
@@ -101,9 +95,9 @@ public final class TickContext {
         return entity().getVelocity();
     }
 
-    /** Convenience — apply a velocity to the entity. */
-    public void setVelocity(Vector v) {
-        entity().setVelocity(v);
+    /** The body's keyboard and mouse: the only way a movement type moves the bot. */
+    public Body body() {
+        return Body.of(entity());
     }
 
     /** Convenience — entity onGround flag. */

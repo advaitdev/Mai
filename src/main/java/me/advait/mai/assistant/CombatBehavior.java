@@ -1,5 +1,6 @@
 package me.advait.mai.assistant;
 
+import me.advait.mai.body.Body;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.pathetic.config.MovementConfig;
@@ -261,10 +262,12 @@ public final class CombatBehavior implements Behavior {
         } else if (sprintHit && strong) {
             sprintHits++;
             bot.getWorld().playSound(at, Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1f, 1f);
-            // Vanilla sprint-hit: extra 0.5 knockback, attacker slowed to 60%.
+            // Vanilla sprint-hit (Player.attack): extra 0.5 knockback, attacker
+            // slowed to 60% and its sprint ended.
             target.knockback(0.5, bot.getLocation().getX() - at.getX(), bot.getLocation().getZ() - at.getZ());
             Vector v = bot.getVelocity();
             bot.setVelocity(new Vector(v.getX() * 0.6, v.getY(), v.getZ() * 0.6));
+            Body.of(bot).endSprint();
             if (style == Style.SMART && AssistantConfig.wTap()) sprintBlock = 2;
         } else {
             bot.getWorld().playSound(at, strong ? Sound.ENTITY_PLAYER_ATTACK_STRONG : Sound.ENTITY_PLAYER_ATTACK_WEAK, 1f, 1f);

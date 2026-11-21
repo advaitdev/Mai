@@ -1,5 +1,6 @@
 package me.advait.mai.pathetic.movement;
 
+import me.advait.mai.body.Body;
 import me.advait.mai.pathetic.BlockClassifier;
 import me.advait.mai.pathetic.config.MovementConfig;
 import me.advait.mai.pathetic.path.AnnotatedWaypoint;
@@ -10,136 +11,92 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
 /**
- * Stateless tick-level math shared by movement type {@code tick()}
- * implementations. The runnable used to own all of this; pulling it out
- * here lets each {@link MovementType} compose its execution from a few
- * primitives without duplicating physics constants.
+ * Stateless tick-level helpers shared by movement type {@code tick()}
+ * implementations: key presses toward a waypoint, plus the geometry and
+ * block probes the executors decide with.
  *
- * <p>All methods read the entity from {@link TickContext} and either
- * compute pure values or apply velocity to the entity in place.
+ * <p>Nothing here writes velocity. Movement types press keys and turn the
+ * view through {@link me.advait.mai.body.Body}; vanilla physics does the rest.
  */
 public final class MovementExecutors {
 
-    /** Air acceleration when sprinting (matches vanilla sprint air drift). */
-    public static final double SPRINT_AIR_ACCEL = 0.026;
-    /** Air acceleration when walking. */
-    public static final double WALK_AIR_ACCEL = 0.02;
-    /** Cooldown ticks the runnable holds after a jump impulse. */
+    /** Vanilla air acceleration with W held while sprinting (0.026 x key scale). */
+    public static final double SPRINT_AIR_ACCEL = Body.airAccel(true);
+    /** Vanilla air acceleration with W held while walking (0.02 x key scale). */
+    public static final double WALK_AIR_ACCEL = Body.airAccel(false);
+    /** Cooldown ticks the runnable holds after a jump. */
     public static final int JUMP_COOLDOWN_TICKS = 4;
+
+    /** Sideways drift below this (blocks/tick) isn't worth steering against. */
+    private static final double DRIFT_EPSILON = 0.01;
 
     private MovementExecutors() {}
 
     // =========================================================================
-    // Locomotion impulses
+    // Key presses
     // =========================================================================
 
     /**
-     * Apply ground-or-air horizontal acceleration toward the current
-     * waypoint at the given speed factor. Honors slipperiness on the
-     * block under the entity. Vertical velocity is left untouched.
+     * Hold W toward the current waypoint, sprinting if asked. Steers like a
+     * player with a mouse: when last tick left sideways momentum (after a
+     * turn), the view is angled so this tick's acceleration cancels it and
+     * the bot's motion lines up with the waypoint again, instead of
+     * drifting wide off a narrow path.
      */
-    public static void groundAccelerate(TickContext ctx, double speedFactor, boolean sprinting) {
-        LivingEntity entity = ctx.entity();
-        Vector vel = ctx.velocity();
+    public static void walk(TickContext ctx, boolean sprint) {
         double[] dir = direction2D(ctx.current, ctx.waypoint);
-        boolean onGround = ctx.onGround();
-
-        // Idempotent per tick. When the driver chains into the next waypoint
-        // in the same tick (previous one just completed), the finished
-        // waypoint has already added this tick's input; a second call must
-        // only re-aim the existing horizontal velocity, not add to it, or the
-        // bot gets a one-tick speed spike right before e.g. a takeoff.
-        if (ctx.accelTick == ctx.totalTicks) {
-            double speed = horizontalSpeed(vel);
-            face(entity, dir);
-            entity.setVelocity(new Vector(dir[0] * speed, vel.getY(), dir[1] * speed));
-            return;
+        Vector v = ctx.velocity();
+        // Sideways component of the momentum we carry into this tick.
+        double perp = v.getX() * -dir[1] + v.getZ() * dir[0];
+        double ax = dir[0], az = dir[1];
+        if (ctx.onGround() && Math.abs(perp) > DRIFT_EPSILON) {
+            double accel = Body.groundAccel(slipperinessBelow(ctx.current), sprint);
+            double cancel = Math.max(-accel, Math.min(accel, -perp));
+            double along = Math.sqrt(Math.max(0, accel * accel - cancel * cancel));
+            ax = dir[0] * along + -dir[1] * cancel;
+            az = dir[1] * along + dir[0] * cancel;
         }
-        ctx.accelTick = ctx.totalTicks;
-
-        double vx, vz;
-        if (onGround) {
-            double slip = slipperinessBelow(ctx.current);
-            double inertia = slip * 0.91;
-            double accel = ctx.config.getWalkAcceleration() * speedFactor
-                    * (0.16277136 / (inertia * inertia * inertia));
-            vx = vel.getX() + dir[0] * accel;
-            vz = vel.getZ() + dir[1] * accel;
-        } else {
-            double airAccel = sprinting ? SPRINT_AIR_ACCEL : WALK_AIR_ACCEL;
-            vx = vel.getX() + dir[0] * airAccel;
-            vz = vel.getZ() + dir[1] * airAccel;
-        }
-
-        face(entity, dir);
-        entity.setVelocity(new Vector(vx, vel.getY(), vz));
+        ctx.body().face(ax, az).keys(1, 0).sprint(sprint);
     }
 
-    /**
-     * Apply mid-air horizontal acceleration toward the waypoint. Used by
-     * parkour and fall types after the bot has left the ground.
-     */
-    public static void airSteer(TickContext ctx, double accel) {
-        LivingEntity entity = ctx.entity();
-        Vector vel = ctx.velocity();
-        double[] dir = direction2D(ctx.current, ctx.waypoint);
-        double vx = vel.getX() + dir[0] * accel;
-        double vz = vel.getZ() + dir[1] * accel;
-        face(entity, dir);
-        entity.setVelocity(new Vector(vx, vel.getY(), vz));
-    }
-
-    /**
-     * Apply a jump impulse: vertical velocity to the configured jump
-     * velocity, optionally adding the sprint-jump horizontal boost in the
-     * facing direction. Sets the runnable's jump cooldown.
-     */
-    public static void jump(TickContext ctx, boolean sprintBoost) {
-        LivingEntity entity = ctx.entity();
-        Vector vel = ctx.velocity();
-        double vx = vel.getX();
-        double vz = vel.getZ();
-
-        if (sprintBoost) {
-            float yawRad = (float) Math.toRadians(entity.getLocation().getYaw());
-            vx += -Math.sin(yawRad) * ctx.config.getSprintJumpBoost();
-            vz += Math.cos(yawRad) * ctx.config.getSprintJumpBoost();
-        }
-
-        entity.setVelocity(new Vector(vx, ctx.config.getJumpVelocity(), vz));
+    /** Press jump. Vanilla takes off if on the ground; a sprinting bot gets the sprint-jump boost. */
+    public static void jump(TickContext ctx) {
+        ctx.body().jump();
         ctx.jumpCooldown = JUMP_COOLDOWN_TICKS;
     }
 
+    /** Ticks a vanilla jump keeps the feet at least one block above takeoff (ticks 3-8 of the arc). */
+    public static final int STEP_UP_CLEAR_TICK = 8;
+
     /**
-     * Pure-vertical jump: zeros horizontal velocity, then applies a jump
-     * impulse. Used for emergency unsticks where keeping current momentum
-     * could fling the bot off a narrow ledge (e.g. a 1-wide pillar).
+     * Horizontal distance along {@code dir} covered by the first {@code n}
+     * ticks of a jump pressed this tick with W held: this tick's ground
+     * acceleration plus the sprint-jump boost on takeoff, ground friction
+     * once, then air drag and air control.
      */
-    public static void jumpVerticalOnly(TickContext ctx) {
-        LivingEntity entity = ctx.entity();
-        entity.setVelocity(new Vector(0, ctx.config.getJumpVelocity(), 0));
-        ctx.jumpCooldown = JUMP_COOLDOWN_TICKS;
+    public static double jumpReach(TickContext ctx, double[] dir, int n) {
+        boolean sprinting = ctx.body().sprinting();
+        Vector v = ctx.velocity();
+        double along = Math.max(0, v.getX() * dir[0] + v.getZ() * dir[1]);
+        double slip = slipperinessBelow(ctx.current);
+        double drag = ctx.config.getAirDrag();
+        double takeoff = along + Body.groundAccel(slip, sprinting)
+                + (sprinting ? ctx.config.getSprintJumpBoost() : 0);
+        return takeoff + AirControl.travel(takeoff * slip * drag, Body.airAccel(sprinting), n - 1, drag);
     }
 
     /**
-     * Ensure horizontal velocity along {@code dir} is at least
-     * {@code targetSpeed}. Only adds velocity — never reduces. Used before
-     * firing a jump so the bot doesn't need to spend multiple ground-accel
-     * ticks building speed first. Needed for step-ups, where the airborne
-     * phase has too little horizontal accel (0.02/tick) to recover from a
-     * cold-start takeoff.
+     * Whether to jump now for a one-block rise at {@code wp}: close enough
+     * that the hitbox is over the step before the arc drops back below its
+     * top (tick {@link #STEP_UP_CLEAR_TICK}), with a little overlap to land on.
+     * Jumping earlier than that misses; jumping later only costs speed (the
+     * bot rides up the face), so this fires on the earliest safe tick.
      */
-    public static void kickToward(TickContext ctx, double[] dir, double targetSpeed) {
-        LivingEntity entity = ctx.entity();
-        Vector vel = entity.getVelocity();
-        double along = vel.getX() * dir[0] + vel.getZ() * dir[1];
-        if (along < targetSpeed) {
-            double delta = targetSpeed - along;
-            entity.setVelocity(new Vector(
-                    vel.getX() + dir[0] * delta,
-                    vel.getY(),
-                    vel.getZ() + dir[1] * delta));
-        }
+    public static boolean stepUpJumpNow(TickContext ctx, AnnotatedWaypoint wp) {
+        double dist = horizontalDistance(ctx.current, wp);
+        if (dist <= 0.4) return false;
+        if (dist < 0.9) return true;
+        return jumpReach(ctx, direction2D(ctx.current, wp), STEP_UP_CLEAR_TICK) >= dist - 0.5;
     }
 
     // =========================================================================
@@ -375,6 +332,23 @@ public final class MovementExecutors {
      * maximum horizontal range — jumping earlier wastes the block of
      * runway that was supposed to bring the bot to terminal sprint.
      */
+    /**
+     * A sprint-jump takes off on the last tick the hitbox still overlaps the
+     * takeoff block: when this tick's move would carry the center more than
+     * this far past the lip (half-width 0.3 less a 0.05 margin). That's the
+     * edge-of-the-block timing players use; jumping earlier wastes runway.
+     * The planner's run-up check uses the same trigger.
+     */
+    public static final double TAKEOFF_EDGE_LEAD = 0.25;
+
+    /** Distance ahead of the center along {@code dir} to the first point with no floor (up to 4 blocks). */
+    public static double edgeDistance(Location current, double[] dir) {
+        for (double d = 0.0; d <= 4.0; d += 0.025) {
+            if (atEdgeAhead(current, dir, d)) return d;
+        }
+        return Double.MAX_VALUE;
+    }
+
     public static boolean atEdgeAhead(Location current, double[] dir) {
         return atEdgeAhead(current, dir, 0.4);
     }
@@ -402,8 +376,6 @@ public final class MovementExecutors {
     // =========================================================================
 
     public static void face(LivingEntity entity, double[] dir2D) {
-        if (dir2D[0] == 0 && dir2D[1] == 0) return;
-        float yaw = (float) Math.toDegrees(Math.atan2(-dir2D[0], dir2D[1]));
-        entity.setRotation(yaw, 0);
+        Body.of(entity).face(dir2D[0], dir2D[1]);
     }
 }

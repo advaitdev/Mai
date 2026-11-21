@@ -83,13 +83,14 @@ public final class ObstacleLog {
         });
     }
 
-    public void tick(int tick, Location loc, Vector vel, boolean onGround, String movementKey) {
+    /** {@code input} is the body's input last tick ({@code keys=... yaw=... pitch=...}). */
+    public void tick(int tick, Location loc, Vector vel, boolean onGround, String movementKey, String input) {
         if (!ok) return;
         currentTick = tick;
         double hSpeed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
-        writer.printf("t=%d x=%.3f y=%.3f z=%.3f vx=%.3f vy=%.3f vz=%.3f hspeed=%.3f onGround=%b move=%s%n",
+        writer.printf("t=%d x=%.3f y=%.3f z=%.3f vx=%.3f vy=%.3f vz=%.3f hspeed=%.3f onGround=%b move=%s %s%n",
                 tick, loc.getX(), loc.getY(), loc.getZ(),
-                vel.getX(), vel.getY(), vel.getZ(), hSpeed, onGround, movementKey);
+                vel.getX(), vel.getY(), vel.getZ(), hSpeed, onGround, movementKey, input);
         writer.flush();
     }
 

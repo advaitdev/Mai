@@ -1,5 +1,6 @@
 package me.advait.mai.pathetic.movement;
 
+import me.advait.mai.body.Body;
 import me.advait.mai.pathetic.config.MovementConfig;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
@@ -11,17 +12,18 @@ import org.bukkit.util.Vector;
  * remaining airtime, then choose this tick's horizontal input so the
  * predicted touchdown point is the landing block's center.
  *
- * <p>The model matches what the obstacle logs measure on this server:
+ * <p>The model is vanilla's airborne {@code travel()}:
  * <ul>
- *   <li>The velocity read at the start of a tick, plus the input we add,
- *       is exactly the displacement the entity makes that tick.
+ *   <li>The velocity read at the start of a tick, plus this tick's key
+ *       acceleration, is exactly the displacement the entity makes.
  *   <li>Afterwards horizontal velocity is multiplied by {@code air_drag}
  *       (0.91) and vertical by {@code (vy - gravity) * vertical_drag}.
  * </ul>
- * Because horizontal travel is linear in both the starting velocity and a
- * constant per-tick input, the required input has a closed form; it is then
- * clamped to the vanilla air-acceleration budget so the result stays
- * physically legitimate.
+ * The controller only has a player's inputs: each tick it picks one of the
+ * nine W/A/S/D combinations (or none) with the view on the landing, the one
+ * whose predicted touchdown lands nearest the landing block's center.
+ * Early ticks move the touchdown a lot and late ticks a little, so picking
+ * greedily each tick converges like a player feathering the keys.
  */
 public final class AirControl {
 
@@ -57,41 +59,52 @@ public final class AirControl {
 
     /**
      * One tick of airborne control toward ({@code tx}, {@code tz}) landing at
-     * height {@code landY}, with at most {@code maxAccel} of input per tick.
-     * Controls both axes independently, so it also cancels sideways drift.
+     * height {@code landY}: faces the landing and presses the key combination
+     * that brings the predicted touchdown closest to it. Strafe keys correct
+     * sideways drift, S brakes an overshoot.
      */
-    public static void steer(TickContext ctx, double tx, double tz, double landY, double maxAccel) {
+    public static void steer(TickContext ctx, double tx, double tz, double landY) {
         LivingEntity entity = ctx.entity();
         MovementConfig c = ctx.config;
         Vector vel = entity.getVelocity();
         double drag = c.getAirDrag();
+        Body body = ctx.body();
 
-        int n = ticksToLand(ctx.current.getY(), vel.getY(), landY, c);
         double dx = tx - ctx.current.getX();
         double dz = tz - ctx.current.getZ();
+        float yaw = Math.hypot(dx, dz) > 0.05 ? Body.yawOf(dx, dz) : ctx.current.getYaw();
+        body.yaw(yaw);
 
-        double ax, az;
+        int n = ticksToLand(ctx.current.getY(), vel.getY(), landY, c);
         if (n < 0) {
             // Landing above the reachable apex; nothing smarter to do than
             // drive straight at it.
-            double len = Math.hypot(dx, dz);
-            ax = len > 1e-6 ? dx / len * maxAccel : 0;
-            az = len > 1e-6 ? dz / len * maxAccel : 0;
-        } else {
-            double unit = travel(0, 1, n, drag);
-            ax = (dx - travel(vel.getX(), 0, n, drag)) / unit;
-            az = (dz - travel(vel.getZ(), 0, n, drag)) / unit;
-            double mag = Math.hypot(ax, az);
-            if (mag > maxAccel) {
-                ax *= maxAccel / mag;
-                az *= maxAccel / mag;
-            }
+            body.keys(1, 0).sprint(true);
+            return;
         }
 
-        double fx = dx, fz = dz;
-        double flen = Math.hypot(fx, fz);
-        if (flen > 0.05) MovementExecutors.face(entity, new double[]{fx / flen, fz / flen});
-        entity.setVelocity(new Vector(vel.getX() + ax, vel.getY(), vel.getZ() + az));
+        // Touchdown error with no more input, and how far one tick of unit
+        // input now moves the touchdown (it keeps paying off, decayed by drag).
+        double rx = dx - travel(vel.getX(), 0, n, drag);
+        double rz = dz - travel(vel.getZ(), 0, n, drag);
+        double now = (1 - Math.pow(drag, n)) / (1 - drag);
+
+        int bestF = 0, bestR = 0;
+        double best = Double.MAX_VALUE;
+        for (int f = -1; f <= 1; f++) {
+            for (int r = -1; r <= 1; r++) {
+                // Sprint holds only while W is pressed.
+                double speed = f > 0 ? Body.SPRINT_AIR_SPEED : Body.LIVING_AIR_SPEED;
+                double[] a = Body.accel(f, r, false, yaw, speed);
+                double miss = Math.hypot(rx - a[0] * now, rz - a[1] * now);
+                if (miss < best - 1e-9) {
+                    best = miss;
+                    bestF = f;
+                    bestR = r;
+                }
+            }
+        }
+        body.keys(bestF, bestR).sprint(true);
     }
 
     /**
@@ -107,8 +120,9 @@ public final class AirControl {
      *
      * <ul>
      *   <li>{@code minimum}: full forward air input the whole way, and the
-     *       hitbox only just clears the landing block's near edge (center
-     *       0.8 short of the block center, minus a 0.2 safety margin).
+     *       hitbox overlaps the landing block's near edge by 0.2 (center 0.6
+     *       short of the block center) on the last tick the feet are still
+     *       above its top.
      *   <li>{@code preferred}: land on the block center while reserving half
      *       the air-control budget so the controller can correct either way.
      * </ul>
@@ -124,7 +138,14 @@ public final class AirControl {
         double perUnitV = 1.0 + travel(groundDrag, 0, n - 1, drag);
         double authority = maxAccel * travel(0, 1, n - 1, drag);
         double preferred = (dist - 0.5 * authority) / perUnitV;
-        double minimum = (dist - 0.6 - authority) / perUnitV;
+        // Vanilla resolves vertical movement before horizontal, so on the
+        // touchdown tick the feet drop past the landing block's top before
+        // the bot moves forward. The hitbox must already overlap the block
+        // one tick earlier, after n - 1 ticks.
+        int m = Math.max(1, n - 1);
+        double perUnitM = 1.0 + travel(groundDrag, 0, m - 1, drag);
+        double authorityM = maxAccel * travel(0, 1, m - 1, drag);
+        double minimum = (dist - 0.6 - authorityM) / perUnitM;
         return new double[]{Math.max(0.05, preferred), Math.max(0.0, minimum)};
     }
 }

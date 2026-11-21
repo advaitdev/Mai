@@ -36,6 +36,7 @@ public final class Mai extends JavaPlugin {
     @Override
     public void onEnable() {
         INSTANCE = this;
+        me.advait.mai.body.Body.init();
 
         this.settingsFile = new SettingsFile("settings.yml");
         this.humanoidsFile = new HumanoidsFile("humanoids.yml");
@@ -70,6 +71,7 @@ public final class Mai extends JavaPlugin {
     }
 
     private void registerListeners() {
+        getServer().getPluginManager().registerEvents(new me.advait.mai.body.BodyListener(), this);
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
         getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
         getServer().getPluginManager().registerEvents(new WorldChangeListener(), this);

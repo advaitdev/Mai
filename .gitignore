@@ -14,3 +14,6 @@ mc-server/*
 !mc-server/whitelist.json
 !mc-server/banned-ips.json
 !mc-server/banned-players.json
+
+# Separate Paper 26.3 test server (runtime state only)
+mc-server-26.3/

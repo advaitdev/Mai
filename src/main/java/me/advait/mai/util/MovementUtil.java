@@ -15,30 +15,10 @@ public class MovementUtil {
     private static final double VANILLA_MAX_SPEED = 0.4;
 
     public static void applyWASDMovement(LivingEntity entity, double w, double a, double baseSpeed) {
-        if (w == 0 && a == 0) return;
-
-        Location loc = entity.getLocation();
-        Vector forward = loc.getDirection().setY(0).normalize();
-        Vector right = forward.clone().rotateAroundY(Math.PI / 2);
-
-        Vector move = forward.multiply(w).add(right.multiply(-a));
-        if (move.lengthSquared() == 0) return;
-
-        move.normalize();
-
-        // Adjust for potion effects
-        double speedMultiplier = getPotionSpeedMultiplier(entity);
-
-        // Adjust for sneaking
-        if (entity.isSneaking()) {
-            speedMultiplier *= 0.45; // reduce speed when sneaking
-        }
-
-        // Final speed
-        double finalSpeed = Math.min(baseSpeed * speedMultiplier, VANILLA_MAX_SPEED);
-        move.multiply(finalSpeed);
-
-        entity.setVelocity(move);
+        // Keys only; vanilla physics applies speed, potions and sneaking.
+        int forward = w > 0.05 ? 1 : w < -0.05 ? -1 : 0;
+        int right = a > 0.05 ? -1 : a < -0.05 ? 1 : 0;   // a > 0 means A (left)
+        me.advait.mai.body.Body.of(entity).keys(forward, right);
     }
 
     /**

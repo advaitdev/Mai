@@ -29,8 +29,7 @@ public class HumanoidJumpAction extends HumanoidAction {
             return;
         }
 
-        Vector velocity = entity.getVelocity();
-        entity.setVelocity(new Vector(velocity.getX(), VANILLA_JUMP_VELOCITY, velocity.getZ()));
+        me.advait.mai.body.Body.of(entity).jump();
         resultFuture.complete(new HumanoidActionResult(true, "Jumped successfully."));
     }
 }

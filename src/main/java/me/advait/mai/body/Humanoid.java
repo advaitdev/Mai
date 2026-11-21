@@ -67,6 +67,9 @@ public class Humanoid {
         m.setRemoveWhenFarAway(false);
 
         m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
+        // A Mannequin's movement attributes default to a mob's (speed 0.7);
+        // give it a player's so its keys move it like one.
+        Body.prepare(m);
 
         this.mannequin = m;
         this.lastKnownLocation = location.clone();

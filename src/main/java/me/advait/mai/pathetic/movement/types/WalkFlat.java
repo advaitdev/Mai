@@ -64,16 +64,16 @@ public record WalkFlat() implements MovementType {
                 && MovementExecutors.obstacleAheadNeedsJump(ctx.current, dir)) {
             PathDebugLog.event("AUTO_JUMP type=walk_flat bot=(%.2f,%.2f,%.2f) dir=(%.2f,%.2f)",
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(), dir[0], dir[1]);
-            MovementExecutors.jump(ctx, sprinting);
+            MovementExecutors.jump(ctx);
         } else if (sprinting && MovementExecutors.flatRunJumpClear(ctx, dir)) {
             PathDebugLog.event("RUN_JUMP type=walk_flat bot=(%.2f,%.2f,%.2f) dist=%.2f",
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(),
                     MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint));
             MovementExecutors.face(ctx.entity(), dir);
-            MovementExecutors.jump(ctx, true);
+            MovementExecutors.jump(ctx);
         }
 
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 

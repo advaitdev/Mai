@@ -437,8 +437,12 @@ write("jump-then-turn", "Sprint a 2-gap, then turn south to the goal.",
 # =====================================================================
 # Q. Impossible under vanilla physics: the planner must refuse, not suicide.
 # =====================================================================
-write("impossible-pj-3g-standing", "3 gap from a lone 1x1 pillar (no run-up): impossible.",
-      [["S3", "_", "_", "_", "E3"]], timeout=120, expect="no_path")
+# A 3 gap from a lone 1x1 pillar is possible with vanilla inputs: four
+# sprint ticks on the pillar, then take off hanging over its edge.
+write("pj-3g-standing", "3 gap from a lone 1x1 pillar (no run-up): sprint to the edge and jump.",
+      [["S3", "_", "_", "_", "E3"]], timeout=120)
+write("impossible-pj-4g-standing", "4 gap from a lone 1x1 pillar (no run-up): impossible.",
+      [["S3", "_", "_", "_", "_", "E3"]], timeout=120, expect="no_path")
 write("impossible-gap-5", "5-block gap: beyond any sprint-jump.",
       [["S", ".", ".", ".", "_", "_", "_", "_", "_", "E"]], timeout=120, expect="no_path")
 write("impossible-up-2", "Ledge 2 higher across a 1 gap: beyond jump height.",

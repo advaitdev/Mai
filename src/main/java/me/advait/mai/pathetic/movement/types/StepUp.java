@@ -70,31 +70,18 @@ public record StepUp() implements MovementType {
         // jump when the real rise is taller than that.
         boolean needsJump = MovementExecutors.needsJumpUp(ctx.current, ctx.waypoint);
 
-        // Vanilla jump: peak y=1.2522 at tick ~5-6; bot is ≥1 block up for
-        // ticks 3-8 (5-tick clearance window). At terminal sprint 0.28 b/t
-        // that covers ~1.4 blocks; at walk 0.21 b/t, ~1.05 blocks. Use
-        // a wider window when sprinting because the bot carries more
-        // horizontal momentum into the arc.
-        double jumpWindowMax = sprinting ? 2.3 : 1.6;
-
-        // Takeoff clearance velocity. Rather than waiting for ground accel
-        // to bring us up to this speed (which takes 3+ ticks and makes
-        // step-ups feel sluggish), we inject it directly before jumping.
-        // 0.18 b/t is enough for air drift to cover the 1-block horizontal
-        // distance during the 5-tick clearance window.
-        double takeoffSpeed = sprinting ? 0.24 : 0.18;
-
+        // Vanilla jump: peak y=1.2522 at tick ~5-6; the feet are at least one
+        // block up for ticks 3-8. Jump on the earliest tick whose arc still
+        // carries the hitbox over the step by then, from the real speed.
         if (ctx.onGround() && ctx.jumpCooldown == 0 && needsJump
-                && horizDist > 0.4 && horizDist < jumpWindowMax) {
-            double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
-            MovementExecutors.kickToward(ctx, dir, takeoffSpeed);
+                && MovementExecutors.stepUpJumpNow(ctx, ctx.waypoint)) {
             PathDebugLog.event("STEP_UP_JUMP dist=%.2f speed=%.3f sprinting=%s bot=(%.2f,%.2f,%.2f)",
                     horizDist, currentSpeed, sprinting,
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ());
-            MovementExecutors.jump(ctx, sprinting);
+            MovementExecutors.jump(ctx);
         }
 
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor, sprinting);
+        MovementExecutors.walk(ctx, sprinting);
 
         // Success once we're standing on the step: feet at (or above) the
         // real top of its support, which is half a block short of the

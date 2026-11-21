@@ -290,7 +290,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                     type.key(), tickCtx.ticksSinceProgress,
                     tickCtx.current.getX(), tickCtx.current.getY(), tickCtx.current.getZ(),
                     waypoint.x(), waypoint.y(), waypoint.z(), distNow);
-            MovementExecutors.jumpVerticalOnly(tickCtx);
+            MovementExecutors.jump(tickCtx);
         }
 
         MovementStatus status = type.tick(tickCtx);
@@ -335,57 +335,33 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     /**
-     * Handle the transition between waypoints. Two things happen here,
-     * on the SUCCESS tick before the next waypoint starts executing:
+     * Handle the transition between waypoints, on the SUCCESS tick before
+     * the next waypoint starts executing.
      *
-     * <ol>
-     *   <li><b>Velocity projection</b>: project current horizontal velocity
-     *       onto the new leg's direction, keeping only the along-direction
-     *       component. Prevents residual momentum from carrying the bot
-     *       sideways off narrow ledges during the 1-tick gap between
-     *       waypoint SUCCESS and the next waypoint's first tick.
-     *   <li><b>Pre-jump for upward transitions</b>: if the next waypoint
-     *       is a step-up, fire its jump now while the bot is still safely
-     *       on the old support block. Otherwise physics moves the bot
-     *       during the transition tick; if the next block column has no
-     *       support underneath, the bot falls before the next waypoint's
-     *       tick (with its {@code onGround} check) ever fires a jump.
-     *       This is the staircase/pillar case where each step needs its
-     *       own jump and the gap between them is too narrow.
-     * </ol>
+     * <p><b>Pre-jump for upward transitions</b>: if the next waypoint is a
+     * step-up, fire its jump now while the bot is still safely on the old
+     * support block. Otherwise physics moves the bot during the transition
+     * tick; if the next block column has no support underneath, the bot
+     * falls before the next waypoint's tick (with its {@code onGround}
+     * check) ever fires a jump. This is the staircase/pillar case where each
+     * step needs its own jump and the gap between them is too narrow.
+     *
+     * <p>Sideways momentum left over from a turn is no longer cancelled
+     * here: {@link MovementExecutors#walk} steers against it with the view,
+     * the way a player does.
      */
     private void handleWaypointTransition() {
         if (pathIndex + 1 >= currentPath.size()) return;
         AnnotatedWaypoint nextWp = currentPath.get(pathIndex + 1);
 
-        // Velocity projection — keep along, drop perpendicular.
-        var vel = tickCtx.entity().getVelocity();
-        double speed = Math.sqrt(vel.getX() * vel.getX() + vel.getZ() * vel.getZ());
-        if (speed >= 0.05) {
-            double[] newDir = MovementExecutors.direction2D(tickCtx.current, nextWp);
-            double alongSpeed = vel.getX() * newDir[0] + vel.getZ() * newDir[1];
-            if (alongSpeed < 0) alongSpeed = 0;
-            double alongNorm = alongSpeed / speed;
-            if (alongNorm < 0.98) {
-                PathDebugLog.event("WAYPOINT_BRAKE speed=%.3f alongCos=%.2f alongSpeed=%.3f",
-                        speed, alongNorm, alongSpeed);
-                tickCtx.entity().setVelocity(new org.bukkit.util.Vector(
-                        newDir[0] * alongSpeed, vel.getY(), newDir[1] * alongSpeed));
-            }
-        }
-
-        // Pre-jump for staircase transitions. Inject clearance velocity
-        // toward the next waypoint so the bot doesn't need to re-build
-        // speed from whatever the brake above left it at.
         MovementType nextType = nextWp.type();
         if (nextType != null && "step_up".equals(nextType.key())
                 && tickCtx.onGround() && tickCtx.jumpCooldown == 0
-                && MovementExecutors.needsJumpUp(tickCtx.current, nextWp)) {
-            double[] dir = MovementExecutors.direction2D(tickCtx.current, nextWp);
-            MovementExecutors.kickToward(tickCtx, dir, 0.18);
+                && MovementExecutors.needsJumpUp(tickCtx.current, nextWp)
+                && MovementExecutors.stepUpJumpNow(tickCtx, nextWp)) {
             PathDebugLog.event("PREJUMP nextType=step_up nextWp=(%.2f,%.2f,%.2f)",
                     nextWp.x(), nextWp.y(), nextWp.z());
-            MovementExecutors.jump(tickCtx, false);
+            MovementExecutors.jump(tickCtx);
         }
     }
 

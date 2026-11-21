@@ -80,7 +80,7 @@ public record BridgePlace() implements MovementType {
         Material support = ctx.entity().getWorld().getBlockAt(bx, by - 1, bz).getType();
         if (!BlockClassifier.isSolid(support)) {
             // Approach the edge slowly, then place the support before stepping out.
-            MovementExecutors.groundAccelerate(ctx, 1.0, false);
+            MovementExecutors.walk(ctx, false);
             if (MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint) < 1.3) {
                 Location target = new Location(ctx.entity().getWorld(), bx + 0.5, by - 1, bz + 0.5);
                 if (!placeSupport(ctx.humanoid, target)) {
@@ -93,7 +93,7 @@ public record BridgePlace() implements MovementType {
         }
 
         // Support is down — walk onto it.
-        MovementExecutors.groundAccelerate(ctx, ctx.speedFactor > 1.0 ? ctx.speedFactor : 1.0, false);
+        MovementExecutors.walk(ctx, false);
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 

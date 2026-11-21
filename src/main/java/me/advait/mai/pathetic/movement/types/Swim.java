@@ -52,14 +52,13 @@ public record Swim() implements MovementType {
 
     @Override
     public MovementStatus tick(TickContext ctx) {
-        double[] dir3d = MovementExecutors.direction3D(ctx.current, ctx.waypoint);
-        org.bukkit.util.Vector vel = ctx.entity().getVelocity();
-        double swimAccel = 0.04;
-        ctx.entity().setVelocity(new org.bukkit.util.Vector(
-                vel.getX() + dir3d[0] * swimAccel,
-                vel.getY() + dir3d[1] * swimAccel,
-                vel.getZ() + dir3d[2] * swimAccel));
-        MovementExecutors.face(ctx.entity(), new double[]{dir3d[0], dir3d[2]});
+        // Vanilla water movement: W pushes along the view, holding jump rises
+        // (and keeps the bot afloat at the surface), letting go sinks.
+        double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
+        MovementExecutors.face(ctx.entity(), dir);
+        boolean centered = MovementExecutors.reachedHorizontally(ctx);
+        ctx.body().keys(centered ? 0 : 1, 0).sprint(false);
+        if (ctx.waypoint.y() > ctx.current.getY() - 0.3) ctx.body().jump();
 
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }

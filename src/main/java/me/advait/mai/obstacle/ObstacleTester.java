@@ -369,7 +369,8 @@ public final class ObstacleTester {
                 if (ent == null) return; // briefly null right after spawn
                 Location loc = ent.getLocation();
                 log.tick(ticks[0], loc, ent.getVelocity(), ent.isOnGround(),
-                        humanoid.getActionAgent().getCurrentActionName());
+                        humanoid.getActionAgent().getCurrentActionName(),
+                        me.advait.mai.body.Body.of(ent).lastTick());
 
                 if (ent.isDead() || !ent.isValid()) { resolve.accept(Result.fail("died")); return; }
                 if (loc.getY() < arena.floorY() - 2) { resolve.accept(Result.fail("fell")); return; }

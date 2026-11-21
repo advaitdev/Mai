@@ -65,16 +65,14 @@ public record LadderClimb() implements MovementType {
 
     @Override
     public MovementStatus tick(TickContext ctx) {
+        // Vanilla climbing: on a ladder or vine, holding jump (or pushing into
+        // a wall) climbs at 0.2 b/t; letting go slides down at most 0.15 b/t.
         double dy = ctx.waypoint.y() - ctx.current.getY();
-        double climbSpeed = dy >= 0 ? 0.12 : -0.15;
         double[] dir = MovementExecutors.direction2D(ctx.current, ctx.waypoint);
-
-        org.bukkit.util.Vector vel = ctx.entity().getVelocity();
-        ctx.entity().setVelocity(new org.bukkit.util.Vector(
-                vel.getX() + dir[0] * 0.02,
-                climbSpeed,
-                vel.getZ() + dir[1] * 0.02));
         MovementExecutors.face(ctx.entity(), dir);
+        boolean centered = MovementExecutors.reachedHorizontally(ctx);
+        ctx.body().keys(centered ? 0 : 1, 0).sprint(false);
+        if (dy >= 0) ctx.body().jump();
 
         return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
