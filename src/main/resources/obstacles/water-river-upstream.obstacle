@@ -1,0 +1,10 @@
+name: water-river-upstream
+description: Wade eight blocks up a shallow stream against its current, walled in on both sides.
+blocks: w=water a=water[level=1] b=water[level=2] c=water[level=3] d=water[level=4] f=water[level=5] g=water[level=6] h=water[level=7]
+timeout_ticks: 400
+spawn_yaw: 90
+origin_y: 120
+---
+3 3 3 3 3 3 3 3 3 3 3
+E w a b c d f g h . S
+3 3 3 3 3 3 3 3 3 3 3

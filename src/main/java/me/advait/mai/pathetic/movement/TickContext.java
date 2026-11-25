@@ -77,6 +77,9 @@ public final class TickContext {
     /** The final target location of the entire walk (not the current waypoint). */
     public Location finalTarget;
 
+    /** Tick on which the walk steered back toward the path line instead of at the waypoint. */
+    public int detourTick = -1;
+
     /**
      * In-progress sub-action future for mine/place movement types (a block
      * break spans many ticks). Set by the type when it kicks off a break,

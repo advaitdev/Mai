@@ -75,7 +75,17 @@ public record Swim() implements MovementType {
         boolean moreWater = ctx.nextWaypoint != null && ctx.nextWaypoint.type() != null
                 && "swim".equals(ctx.nextWaypoint.type().key());
 
-        if (moreWater && !centered) {
+        // Sprint-swimming needs the head under water, so it needs water two
+        // deep. In a shallow stream holding shift to duck under never gets
+        // the head wet: the bot crept at sneak speed and lost to the current.
+        var loc = ctx.current;
+        boolean deep = ctx.entity().isUnderWater() || loc.getWorld().getBlockAt(
+                loc.getBlockX(), (int) Math.floor(loc.getY()) + 1, loc.getBlockZ()).getType() == Material.WATER;
+
+        if (moreWater && !centered && !deep) {
+            // Wading: walk with jump held, like walking through any water.
+            MovementExecutors.walk(ctx, false);
+        } else if (moreWater && !centered) {
             // Open water: sprint-swim just under the surface like a player
             // (about twice surface speed). A sprint can't start with the head
             // above water, so first hold shift to duck under; once swimming,

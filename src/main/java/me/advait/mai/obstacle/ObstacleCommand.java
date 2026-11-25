@@ -40,6 +40,23 @@ public class ObstacleCommand extends BaseCommand {
         ObstacleTester.getInstance().runAll(sender);
     }
 
+    @Subcommand("test chase")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@obstacles")
+    @Syntax("<obstacle> [lead_ticks]")
+    @Description("A hunter chases a runner through the course")
+    public void onChase(CommandSender sender, String obstacle, @co.aikar.commands.annotation.Optional Integer lead) {
+        ObstacleTester.getInstance().chase(sender, obstacle, lead == null ? 20 : lead);
+    }
+
+    @Subcommand("test chaseall")
+    @CommandPermission("mai.obstacle.run")
+    @Syntax("[lead_ticks]")
+    @Description("Chase through every finishable course")
+    public void onChaseAll(CommandSender sender, @co.aikar.commands.annotation.Optional Integer lead) {
+        ObstacleTester.getInstance().chaseAll(sender, lead == null ? 20 : lead);
+    }
+
     @Subcommand("test list")
     @CommandPermission("mai.obstacle.run")
     @Description("List available obstacles")
@@ -90,10 +107,10 @@ public class ObstacleCommand extends BaseCommand {
         int n = 0;
         for (var e : me.advait.mai.pathetic.config.MovementTuning.snapshot().entrySet()) {
             if (prefix != null && !e.getKey().startsWith(prefix)) continue;
-            Messages.sendMessage(sender, "&e" + e.getKey() + " &7= &f" + e.getValue());
+            Messages.sendMessage(sender, "&e" + e.getKey() + " &f= &f" + e.getValue());
             n++;
         }
-        Messages.sendMessage(sender, "&7" + n + " parameter(s). Profiles: &f"
+        Messages.sendMessage(sender, "&f" + n + " parameter(s). Profiles: &f"
                 + me.advait.mai.pathetic.config.MovementTuning.profiles());
     }
 
@@ -102,7 +119,7 @@ public class ObstacleCommand extends BaseCommand {
     @Syntax("<key>")
     public void onTuneGet(CommandSender sender, String key) {
         Object v = me.advait.mai.pathetic.config.MovementTuning.get(key);
-        Messages.sendMessage(sender, v == null ? "&cUnknown key: " + key : "&e" + key + " &7= &f" + v);
+        Messages.sendMessage(sender, v == null ? "&cUnknown key: " + key : "&e" + key + " &f= &f" + v);
     }
 
     @Subcommand("tune set")
@@ -111,7 +128,7 @@ public class ObstacleCommand extends BaseCommand {
     @Description("Set a movement parameter (applies to new walks immediately)")
     public void onTuneSet(CommandSender sender, String key, String value) {
         String err = me.advait.mai.pathetic.config.MovementTuning.set(key, value);
-        Messages.sendMessage(sender, err != null ? "&c" + err : "&a" + key + " &7= &f"
+        Messages.sendMessage(sender, err != null ? "&c" + err : "&a" + key + " &f= &f"
                 + me.advait.mai.pathetic.config.MovementTuning.get(key));
     }
 
@@ -141,23 +158,26 @@ public class ObstacleCommand extends BaseCommand {
         if (state == null) enable = !HumanoidWalkToRunnable.isDebugMode();
         else enable = state.equalsIgnoreCase("on") || state.equalsIgnoreCase("true");
         HumanoidWalkToRunnable.setDebugMode(enable);
-        Messages.sendMessage(sender, "&7Path debug: " + (enable ? "&aEnabled" : "&cDisabled"));
+        Messages.sendMessage(sender, "&fPath debug: " + (enable ? "&aEnabled" : "&cDisabled"));
     }
 
     @HelpCommand
     @Default
     @Subcommand("test")
     public void onHelp(CommandSender sender) {
-        Messages.sendMessage(sender, "&6=== Mai Obstacle Tests ===");
-        Messages.sendMessage(sender, "&e/mai test run <obstacle> &7- Run one test");
-        Messages.sendMessage(sender, "&e/mai test all &7- Run all tests");
-        Messages.sendMessage(sender, "&e/mai test list &7- List obstacles");
-        Messages.sendMessage(sender, "&e/mai test cancel &7- Cancel running test");
-        Messages.sendMessage(sender, "&e/mai test reload &7- Reload files from disk");
-        Messages.sendMessage(sender, "&e/mai test tp <obstacle> &7- Build + teleport (in-game)");
-        Messages.sendMessage(sender, "&e/mai debug [on|off] &7- Toggle PathDebug console log");
-        Messages.sendMessage(sender, "&e/mai reload &7- Hot-reload settings.yml movement config");
-        Messages.sendMessage(sender, "&e/mai tune list|get|set|profile|save &7- Runtime movement tuning");
+        Messages.header(sender, "Obstacle Tests");
+        Messages.help(sender, "/mai test run <obstacle>", "Run one test");
+        Messages.help(sender, "/mai test all", "Run every test");
+        Messages.help(sender, "/mai test list", "List obstacles (click one to run it)");
+        Messages.help(sender, "/mai test tp <obstacle>", "Build it and teleport to the start");
+        Messages.help(sender, "/mai test chase <obstacle> [lead_ticks]", "A hunter chases a runner through it");
+        Messages.help(sender, "/mai test chaseall [lead_ticks]", "Chase through every course");
+        Messages.help(sender, "/mai test cancel", "Stop the run, remove the arena");
+        Messages.help(sender, "/mai test reload", "Reload files from disk");
+        Messages.help(sender, "/mai debug [on|off]", "Toggle the PathDebug console log");
+        Messages.help(sender, "/mai reload", "Hot-reload settings.yml");
+        Messages.help(sender, "/mai tune list|get|set|profile|save", "Runtime movement tuning");
+        Messages.help(sender, "/mai duel [rounds] [styleA] [styleB] [weapon]", "PvP benchmark");
     }
 
     @Subcommand("do")
@@ -269,7 +289,7 @@ public class ObstacleCommand extends BaseCommand {
     @Description("Toggle per-tick combat decision logging")
     public void onDuelTrace(CommandSender sender) {
         me.advait.mai.assistant.CombatBehavior.trace = !me.advait.mai.assistant.CombatBehavior.trace;
-        Messages.sendMessage(sender, "&7Combat trace: " + me.advait.mai.assistant.CombatBehavior.trace);
+        Messages.sendMessage(sender, "&fCombat trace: " + me.advait.mai.assistant.CombatBehavior.trace);
     }
 
     @Subcommand("duel")

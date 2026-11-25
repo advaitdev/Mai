@@ -73,6 +73,29 @@ public record WalkDiagonal() implements MovementType {
         }
 
         MovementExecutors.walk(ctx, sprinting);
-        return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
+        return MovementExecutors.walkArrived(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
+    }
+
+    /**
+     * A diagonal step up or down one level sweeps the hitbox across both
+     * cardinal neighbors. Each must be open for the body at the upper level
+     * and floored at the upper or the lower level: a blocked corner wedges
+     * the bot (jungle bushes, tree trunks), and a corner with no floor at
+     * either level drops it into the hole it cuts across (a hillside ledge
+     * it then fails to climb back up, forever).
+     */
+    public static boolean levelChangeCornersOk(PathPosition from, PathPosition to, MaterialProvider m) {
+        int dx = to.getFlooredX() - from.getFlooredX(), dz = to.getFlooredZ() - from.getFlooredZ();
+        if (dx == 0 || dz == 0) return true;
+        int lo = Math.min(from.getFlooredY(), to.getFlooredY()), hi = Math.max(from.getFlooredY(), to.getFlooredY());
+        int px = from.getFlooredX(), pz = from.getFlooredZ();
+        return cornerOk(m, px + dx, pz, lo, hi) && cornerOk(m, px, pz + dz, lo, hi);
+    }
+
+    private static boolean cornerOk(MaterialProvider m, int x, int z, int lo, int hi) {
+        if (!BlockClassifier.isTraversable(m.getMaterial(x, hi, z))
+                || !BlockClassifier.isTraversable(m.getMaterial(x, hi + 1, z))) return false;
+        if (BlockClassifier.isSolid(m.getMaterial(x, hi - 1, z))) return true;
+        return BlockClassifier.isTraversable(m.getMaterial(x, lo, z)) && BlockClassifier.isSolid(m.getMaterial(x, lo - 1, z));
     }
 }

@@ -93,6 +93,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     public static String activeMovement(Humanoid humanoid) {
         for (HumanoidWalkToRunnable r : ACTIVE) {
             if (r.humanoid != humanoid) continue;
+            LivingEntity body = humanoid.peekEntity();
+            if (r.runJump != null && body != null && r.runJumpOnArc(body)) return "run_jump";
             AnnotatedPath path = r.currentPath;
             if (path == null || r.pathIndex >= path.size()) return null;
             MovementType type = path.get(r.pathIndex).type();
@@ -117,6 +119,11 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     private final TickContext tickCtx = new TickContext();
 
     private AnnotatedPath currentPath;
+    /**
+     * A replan's result, waiting for the current movement to reach a point
+     * where it is safe to cancel (never mid-jump).
+     */
+    private volatile AnnotatedPath pendingPath;
     private int pathIndex = 0;
     private boolean hasEverHadPath = false;
     private int ticksSinceReplan = 0;
@@ -218,13 +225,24 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         //      few waypoints caught a world change that broke the path.
         //   3. Periodic refresh as a safety net for changes the lookahead
         //      window didn't cover.
+        // A path planned or adopted mid-jump starts from a cell in the air (a
+        // run-jump retargeted at its apex planned a "step down" back to the
+        // floor it was already past, and stuck there). Plans wait for footing.
+        boolean footing = entity.isOnGround() || entity.isInWater() || entity.isClimbing();
+        AnnotatedPath pending = pendingPath;
+        if (pending != null && (currentPath == null || (footing && isSafeToSwapPath()))) {
+            pendingPath = null;
+            adoptPath(pending, current);
+        }
+
         boolean pathNull = currentPath == null;
         boolean lookaheadBroken = !pathNull && !isUpcomingPathValid();
         boolean dirty = !pathNull && !lookaheadBroken && (worldDirty || retargeted);
         boolean periodic = !pathNull && !lookaheadBroken && !dirty && ticksSinceReplan >= config.getPeriodicReplanTicks();
         boolean needsReplan = pathNull || lookaheadBroken || dirty || periodic;
 
-        if (needsReplan && !pathfindingInProgress.get() && isSafeToSwapPath()) {
+        if (needsReplan && !pathfindingInProgress.get() && pendingPath == null
+                && (footing || pathNull) && isSafeToSwapPath()) {
             String reason = pathNull ? "no_path" : lookaheadBroken ? "lookahead_invalid"
                     : retargeted ? "retarget" : dirty ? "world_change" : "periodic";
             worldDirty = false;
@@ -243,6 +261,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         if (currentPath != null && pathIndex < currentPath.size()) {
             MovementExecutors.openDoorsAhead(entity, current,
                     MovementExecutors.direction2D(current, currentPath.get(pathIndex)));
+        }
+
+        skipStraightWaypoints(entity, current);
+
+        if (driveRunJump(entity, current)) {
+            if (debugMode) showDebugParticles(current);
+            return;
         }
 
         for (int chain = 0; chain < MAX_WAYPOINT_CHAIN; chain++) {
@@ -300,6 +325,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         if (tickCtx.ticksSinceProgress >= config.getEmergencyJumpTicks()
                 && tickCtx.onGround()
                 && tickCtx.jumpCooldown == 0
+                && tickCtx.detourTick < tickCtx.totalTicks - 1
                 && type.allowsAutoUnstick()) {
             PathDebugLog.event("EMERGENCY_JUMP type=%s stuck=%dt bot=(%.2f,%.2f,%.2f) wp=(%.2f,%.2f,%.2f) dist=%.2f",
                     type.key(), tickCtx.ticksSinceProgress,
@@ -363,6 +389,196 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
     }
 
     /**
+     * Any-angle walking. The planner's path is a chain of 8-way grid steps;
+     * while the hitbox has a clear straight line from the bot to the
+     * waypoint after the current one (both plain walks on one level), the
+     * current one is dropped, so the bot runs straight across open ground
+     * and tight round pillars like a player instead of along 45-degree legs.
+     * The approach to a jump or step keeps its line: skipping into it is
+     * only allowed when it changes the heading by less than 25 degrees.
+     */
+    private void skipStraightWaypoints(LivingEntity entity, Location current) {
+        if (!entity.isOnGround() || entity.isInWater()) return;
+        for (int n = 0; n < MAX_SKIPS && currentPath != null && pathIndex + 1 < currentPath.size(); n++) {
+            AnnotatedWaypoint wp = currentPath.get(pathIndex), next = currentPath.get(pathIndex + 1);
+            if (!MovementExecutors.isLevelWalk(wp) || !MovementExecutors.isLevelWalk(next)) return;
+            if (Math.abs(next.y() - wp.y()) > 0.01 || Math.abs(current.getY() - wp.y()) > 0.6) return;
+            AnnotatedWaypoint after = pathIndex + 2 < currentPath.size() ? currentPath.get(pathIndex + 2) : null;
+            if (after != null && !MovementExecutors.isLevelWalk(after)) {
+                double[] planned = MovementExecutors.direction2D(new Location(current.getWorld(), wp.x(), wp.y(), wp.z()), next);
+                double[] direct = MovementExecutors.direction2D(current, next);
+                if (planned[0] * direct[0] + planned[1] * direct[1] < COS_25) return;
+            }
+            if (!MovementExecutors.hitboxLineClear(current, next.x(), next.z(), MovementExecutors.SKIP_CLEARANCE)) return;
+            PathDebugLog.event("WAYPOINT_SKIP index=%d wp=(%.2f,%.2f,%.2f) to=(%.2f,%.2f,%.2f)",
+                    pathIndex, wp.x(), wp.y(), wp.z(), next.x(), next.y(), next.z());
+            pathIndex++;
+            tickCtx.subAction = null;
+            tickCtx.phase = 0;
+            tickCtx.ticksOnMovement = 0;
+            tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+            tickCtx.ticksSinceProgress = 0;
+        }
+    }
+
+    /** Ground moves a run-jump may fly over: the route it must land back on is made of these. */
+    private static final Set<String> RUN_JUMP_MOVES = Set.of("walk_flat", "walk_diagonal", "step_up", "step_down");
+    /** How far ahead along the route a run-jump looks for its landing. */
+    private static final double RUN_JUMP_ROUTE = 8.0;
+
+    private me.advait.mai.pathetic.movement.RunJump.Plan runJump;
+    private int runJumpStart;
+    private Location runJumpFrom;
+    /** Velocity at the previous airborne tick of the run-jump (null on its first). */
+    private org.bukkit.util.Vector runJumpLastVelocity;
+
+    /** Air physics change horizontal velocity by under 0.06 a tick; more is a hit or a wall. */
+    private static final double RUN_JUMP_IMPULSE = 0.15;
+    /** How far off the takeoff-landing line the arc may drift. */
+    private static final double RUN_JUMP_OFF_LINE = 0.75;
+
+    /**
+     * Whether a run-jump in flight is still the jump that was planned: no
+     * sudden change of velocity since the last tick and still near its line.
+     * While it is, the fall is a planned one (the reflexes leave it alone,
+     * even over a void the arc crosses).
+     */
+    private boolean runJumpOnArc(LivingEntity entity) {
+        me.advait.mai.pathetic.movement.RunJump.Plan plan = runJump;
+        Location from = runJumpFrom;
+        if (plan == null || from == null) return false;
+        org.bukkit.util.Vector v = entity.getVelocity(), last = runJumpLastVelocity;
+        if (last != null) {
+            if (Math.hypot(v.getX() - last.getX(), v.getZ() - last.getZ()) > RUN_JUMP_IMPULSE) return false;
+            if (v.getY() > last.getY() + 0.05) return false;
+        }
+        double lx = plan.landX() - from.getX(), lz = plan.landZ() - from.getZ(), len = Math.hypot(lx, lz);
+        if (len < 1e-6) return true;
+        Location at = entity.getLocation();
+        double off = Math.abs((at.getX() - from.getX()) * lz - (at.getZ() - from.getZ()) * lx) / len;
+        return off <= RUN_JUMP_OFF_LINE;
+    }
+
+    /**
+     * Sprint-jumps along the route like a player holding space (see
+     * {@link me.advait.mai.pathetic.movement.RunJump}): on the ground at
+     * sprint speed on a plain ground move, take any jump that lands back on
+     * the route further along; in the air hold W, sprint and the planned
+     * heading; on landing pick up the waypoint the bot is now at. Returns
+     * true while it has the controls this tick.
+     */
+    private boolean driveRunJump(LivingEntity entity, Location current) {
+        if (currentPath == null || pathIndex >= currentPath.size()) {
+            runJump = null;
+            return false;
+        }
+        boolean footing = entity.isOnGround() || entity.isInWater() || entity.isClimbing();
+        if (runJump != null) {
+            // Knocked off the arc (a hit, a wall): the jump is over, and the
+            // survival reflexes may take the controls (holding W along the old
+            // heading carried the bot away from its clutch).
+            if (!footing && (!runJumpOnArc(entity) || me.advait.mai.body.Reflexes.isActive(humanoid))) {
+                PathDebugLog.event("RUN_JUMP_ABORT bot=(%.2f,%.2f,%.2f)", current.getX(), current.getY(), current.getZ());
+                runJump = null;
+                return false;
+            }
+            if (!footing && tickCtx.totalTicks - runJumpStart < 40) {
+                runJumpLastVelocity = entity.getVelocity();
+                tickCtx.body().look(runJump.yaw(), 0f).keys(1, 0).sprint(true);
+                return true;
+            }
+            landRunJump(current);
+            runJump = null;
+        }
+        if (!config.isSprintJumpFlat() || me.advait.mai.body.Reflexes.isActive(humanoid)) return false;
+        if (!entity.isOnGround() || entity.isInWater() || tickCtx.jumpCooldown > 0) return false;
+        if (!tickCtx.body().sprintingAtTickStart()) return false;
+        AnnotatedWaypoint wp = currentPath.get(pathIndex);
+        if (wp.type() == null || !RUN_JUMP_MOVES.contains(wp.type().key())) return false;
+        java.util.List<double[]> route = new java.util.ArrayList<>();
+        route.add(new double[]{current.getX(), current.getY(), current.getZ()});
+        double len = 0;
+        // The route runs to the end of the path and the walk stops there
+        // (no arrival radius): the jump has to leave room to stop.
+        boolean stopAtEnd = arrivalRadius == 0;
+        for (int i = pathIndex; i < currentPath.size(); i++) {
+            if (len >= RUN_JUMP_ROUTE) { stopAtEnd = false; break; }
+            AnnotatedWaypoint w = currentPath.get(i);
+            // A waypoint the bot is already past (a landing overshot it) isn't a place to aim for.
+            if (i == pathIndex && i + 1 < currentPath.size()) {
+                AnnotatedWaypoint n = currentPath.get(i + 1);
+                if ((w.x() - current.getX()) * (n.x() - w.x()) + (w.z() - current.getZ()) * (n.z() - w.z()) < 0
+                        && Math.abs(w.y() - current.getY()) < 0.6) continue;
+            }
+            if (w.type() == null || !RUN_JUMP_MOVES.contains(w.type().key())) { stopAtEnd = false; break; }
+            double[] last = route.getLast();
+            len += Math.hypot(w.x() - last[0], w.z() - last[2]);
+            route.add(new double[]{w.x(), w.y(), w.z()});
+        }
+        // Moving along the route already (toward its point two blocks on, not
+        // the current waypoint, which a landing can leave just behind).
+        double[] ahead = null;
+        double run = 0;
+        for (int i = 1; i < route.size() && ahead == null; i++) {
+            double[] a = route.get(i - 1), b = route.get(i);
+            double seg = Math.hypot(b[0] - a[0], b[2] - a[2]);
+            if (run + seg >= 2.0 || i == route.size() - 1) ahead = b;
+            run += seg;
+        }
+        if (ahead == null) return false;
+        double ax = ahead[0] - current.getX(), az = ahead[2] - current.getZ(), al = Math.hypot(ax, az);
+        org.bukkit.util.Vector v = entity.getVelocity();
+        if (al < 1e-3 || (v.getX() * ax + v.getZ() * az) / al < 0.12) return false;
+        me.advait.mai.pathetic.movement.RunJump.Plan plan = me.advait.mai.pathetic.movement.RunJump.plan(tickCtx, route, stopAtEnd);
+        if (plan == null) {
+            if (debugMode) PathDebugLog.event("RUN_JUMP_NO %s", me.advait.mai.pathetic.movement.RunJump.lastReject);
+            return false;
+        }
+        PathDebugLog.event("RUN_JUMP bot=(%.2f,%.2f,%.2f) land=(%.2f,%.2f,%.2f) ticks=%d along=%.2f",
+                current.getX(), current.getY(), current.getZ(), plan.landX(), plan.landY(), plan.landZ(),
+                plan.ticks(), plan.progress());
+        runJump = plan;
+        runJumpStart = tickCtx.totalTicks;
+        runJumpFrom = current.clone();
+        runJumpLastVelocity = null;
+        tickCtx.body().look(plan.yaw(), 0f).keys(1, 0).sprint(true);
+        MovementExecutors.jump(tickCtx);
+        return true;
+    }
+
+    /** After a run-jump: continue from the ground move whose segment the bot landed on. */
+    private void landRunJump(Location at) {
+        int index = pathIndex;
+        double best = 1.5;
+        for (int j = pathIndex; j < Math.min(currentPath.size(), pathIndex + 12); j++) {
+            AnnotatedWaypoint b = currentPath.get(j);
+            if (b.type() == null || !RUN_JUMP_MOVES.contains(b.type().key())) break;
+            AnnotatedWaypoint a = j > 0 ? currentPath.get(j - 1) : b;
+            double sx = b.x() - a.x(), sz = b.z() - a.z(), len2 = sx * sx + sz * sz;
+            double t = len2 < 1e-9 ? 1 : Math.max(0, Math.min(1, ((at.getX() - a.x()) * sx + (at.getZ() - a.z()) * sz) / len2));
+            double d = Math.hypot(at.getX() - (a.x() + sx * t), at.getZ() - (a.z() + sz * t))
+                    + Math.abs(at.getY() - (a.y() + (b.y() - a.y()) * t)) * 2;
+            if (d <= best + 1e-6) {
+                best = d;
+                index = j;
+            }
+        }
+        PathDebugLog.event("RUN_JUMP_LANDED bot=(%.2f,%.2f,%.2f) index=%d->%d",
+                at.getX(), at.getY(), at.getZ(), pathIndex, index);
+        if (index != pathIndex) {
+            pathIndex = index;
+            tickCtx.subAction = null;
+            tickCtx.phase = 0;
+            tickCtx.ticksOnMovement = 0;
+        }
+        tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+        tickCtx.ticksSinceProgress = 0;
+    }
+
+    private static final int MAX_SKIPS = 6;
+    private static final double COS_25 = Math.cos(Math.toRadians(25));
+
+    /**
      * Handle the transition between waypoints, on the SUCCESS tick before
      * the next waypoint starts executing.
      *
@@ -393,8 +609,62 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
     }
 
+    /**
+     * Switches to {@code path}, starting at the first waypoint the bot hasn't
+     * reached yet. The path starts where the bot stood when it was requested;
+     * by the time it arrives the bot has moved on, and starting at index 1
+     * would send it back to that spot (a visible stutter on every replan of a
+     * chase). The bot is matched to the nearest of the first few segments;
+     * ties go to the later one, so standing on a jump's takeoff picks the jump.
+     */
+    private void adoptPath(AnnotatedPath path, Location at) {
+        int index = Math.min(1, path.size() - 1);
+        double best = SPLICE_MAX_DIST;
+        for (int j = 1; j < Math.min(path.size(), SPLICE_SEGMENTS + 1); j++) {
+            AnnotatedWaypoint a = path.get(j - 1), b = path.get(j);
+            double sx = b.x() - a.x(), sz = b.z() - a.z();
+            double len2 = sx * sx + sz * sz;
+            double t = len2 < 1e-9 ? 1 : Math.max(0, Math.min(1,
+                    ((at.getX() - a.x()) * sx + (at.getZ() - a.z()) * sz) / len2));
+            double px = a.x() + sx * t, pz = a.z() + sz * t, py = a.y() + (b.y() - a.y()) * t;
+            double d = Math.hypot(at.getX() - px, at.getZ() - pz) + Math.abs(at.getY() - py) * 2;
+            if (d <= best + 1e-6) { best = d; index = j; }
+            // Never skip a block edit (a pillar, a bridge block, a mined
+            // block): being near its cell doesn't mean it was done.
+            MovementType t2 = b.type();
+            if (t2 != null && EDIT_MOVES.contains(t2.key())) break;
+        }
+        if (index > 1) PathDebugLog.event("PATH_SPLICE start=%d dist=%.2f", index, best);
+        // A chase replans every few blocks, and the new path usually goes on
+        // with the very movement in progress (the run-up to the same jump).
+        // Keep its state then: resetting it restarts the run-up or the jump
+        // timing, which cost a few ticks per jump.
+        boolean sameMove = false;
+        if (currentPath != null && pathIndex < currentPath.size()) {
+            AnnotatedWaypoint now = currentPath.get(pathIndex), next = path.get(index);
+            sameMove = now.type() != null && next.type() != null && now.type().key().equals(next.type().key())
+                    && Math.floor(now.x()) == Math.floor(next.x())
+                    && Math.floor(now.y()) == Math.floor(next.y())
+                    && Math.floor(now.z()) == Math.floor(next.z());
+        }
+        currentPath = path;
+        pathIndex = index;
+        if (sameMove) return;
+        tickCtx.subAction = null;
+        tickCtx.phase = 0;
+        tickCtx.ticksOnMovement = 0;
+        tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
+        tickCtx.ticksSinceProgress = 0;
+    }
+
+    private static final java.util.Set<String> EDIT_MOVES = java.util.Set.of(
+            "pillar_up", "bridge_place", "mine_through", "mine_step_up", "water_clutch");
+    private static final int SPLICE_SEGMENTS = 8;
+    private static final double SPLICE_MAX_DIST = 1.5;
+
     /** Clear the current path so the next tick triggers a replan. */
     private void resetPathState() {
+        pendingPath = null;
         currentPath = null;
         pathIndex = 0;
         tickCtx.subAction = null;
@@ -411,14 +681,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
      * (parkour, climb, swim) set their own speed.
      */
     private double computeSpeedFactor(AnnotatedWaypoint wp) {
-        double distToTarget = Math.sqrt(tickCtx.current.distanceSquared(target));
-        boolean nearDestination = distToTarget < 3.0;
+        // Slow down to stop on an exact block; a chase (arrival radius) runs in.
+        // Horizontal distance: on the last step of a descent the bot is still
+        // a block or two above the target when it has to start slowing.
+        double distToTarget = Math.hypot(tickCtx.current.getX() - target.getX(), tickCtx.current.getZ() - target.getZ());
+        boolean nearDestination = arrivalRadius == 0 && distToTarget < 1.2
+                && Math.abs(tickCtx.current.getY() - target.getY()) < 2.5;
 
-        double horizDist = MovementExecutors.horizontalDistance(tickCtx.current, wp);
-        boolean needsJump = MovementExecutors.needsJumpUp(tickCtx.current, wp);
-
+        // Step-ups are sprint-jumped like a player does: slowing to a walk
+        // before every rise is what made hills crawl.
         if (nearDestination) return 1.0;
-        if (needsJump && horizDist < 2.5) return 1.0;
         if (isUpcomingTurn(wp)) return 1.0;
         return config.getSprintFactor();
     }
@@ -436,7 +708,16 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
         // dot < 0.5 means > 60 degree turn
         double dot = (dx1 * dx2 + dz1 * dz2) / (len1 * len2);
-        return dot < 0.5;
+        if (dot >= 0.5) return false;
+        // Players sprint round corners; the overshoot only matters when the
+        // ground past the corner (straight on) is missing.
+        World world = tickCtx.current.getWorld();
+        int bx = (int) Math.floor(current.x() + Math.signum(dx1) * (Math.abs(dx1) >= 0.5 ? 1 : 0));
+        int bz = (int) Math.floor(current.z() + Math.signum(dz1) * (Math.abs(dz1) >= 0.5 ? 1 : 0));
+        int by = (int) Math.floor(current.y());
+        org.bukkit.block.Block beyond = world.getBlockAt(bx, by, bz);
+        if (beyond.getType().isSolid()) return false;   // a wall stops the overshoot
+        return !world.getBlockAt(bx, by - 1, bz).getType().isSolid();
     }
 
     /**
@@ -506,7 +787,9 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         }
         return current.getBlockX() == target.getBlockX()
                 && current.getBlockZ() == target.getBlockZ()
-                && Math.abs(current.getY() - target.getY()) < 2.0;
+                // Standing on it: a ledge a block up whose edge overhangs the
+                // target column is not there (it ended walks a block too high).
+                && Math.abs(current.getY() - target.getY()) < 0.9;
     }
 
     private boolean sameBlock(Location a, Location b) {
@@ -535,16 +818,13 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                                 newPath.size(),
                                 newPath.size() > 1 && newPath.get(1).type() != null ? newPath.get(1).type().key() : "?",
                                 newPath.size() > 0 && newPath.get(newPath.size() - 1).type() != null ? newPath.get(newPath.size() - 1).type().key() : "?");
-                        // Start from index 1 (skip the start node which is our
-                        // current position). Avoids closest-waypoint oscillation.
-                        currentPath = newPath;
-                        pathIndex = Math.min(1, newPath.size() - 1);
                         hasEverHadPath = true;
-                        tickCtx.subAction = null;
-                        tickCtx.phase = 0;
-                        tickCtx.ticksOnMovement = 0;
-                        tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;
-                        tickCtx.ticksSinceProgress = 0;
+                        // The bot kept moving while this was computed. With no
+                        // path it adopts it now; otherwise the swap waits for
+                        // a tick where the running movement is safe to cancel.
+                        LivingEntity e = humanoid.getRawMannequin();
+                        if (currentPath == null && e != null) adoptPath(newPath, e.getLocation());
+                        else pendingPath = newPath;
                     } else if (!hasEverHadPath) {
                         PathDebugLog.event("PATH_REJECTED no valid path to target");
                         complete(false, "No valid path found to target.");

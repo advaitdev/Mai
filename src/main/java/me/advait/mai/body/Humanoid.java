@@ -1,6 +1,7 @@
 package me.advait.mai.body;
 
 import me.advait.mai.Mai;
+import me.advait.mai.body.fake.FakePlayers;
 import me.advait.mai.brain.action.HumanoidActionAgent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -8,17 +9,25 @@ import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 
+/**
+ * A named bot and the body it inhabits. The body is a server-side fake
+ * player ({@link FakePlayers}: real player physics, hunger, attacks,
+ * advancements) or, with {@code humanoid.body: mannequin}, a Mannequin mob
+ * whose gaps from a player {@link Body} patches. Everything that drives it
+ * goes through {@link Body} either way.
+ */
 public class Humanoid {
 
     private final UUID uuid;
     private String name;
-    private Mannequin mannequin;
+    private LivingEntity body;
     private Location lastKnownLocation;
     private final Inventory inventory;
     private final HumanoidActionAgent actionAgent;
@@ -44,20 +53,52 @@ public class Humanoid {
 
     public void setName(String name) {
         this.name = name;
-        if (mannequin != null) {
-            mannequin.setCustomName(name);
+        if (body instanceof Player p) {
+            p.setDisplayName(name);
+            p.setPlayerListName(name);
+        } else if (body != null) {
+            body.setCustomName(name);
         }
     }
 
-    public Mannequin spawn(Location location) {
-        if (location.getWorld() == null) throw new IllegalArgumentException("Location must have a world");
-        if (this.mannequin != null) this.mannequin.remove();
+    /** Whether new bodies are fake players (the default) rather than Mannequins. */
+    public static boolean playerBodies() {
+        return !"mannequin".equalsIgnoreCase(
+                Mai.getInstance().getSettingsFile().getConfiguration().getString("humanoid.body", "player"));
+    }
 
+    /**
+     * A fresh UUID for each fake player body, version 2 so no Mojang account
+     * (version 4) can share it. Fresh per spawn: the test harness tells a
+     * respawned body from the one that died by its UUID.
+     */
+    private static UUID playerId() {
+        UUID r = UUID.randomUUID();
+        return new UUID((r.getMostSignificantBits() & ~0xF000L) | 0x2000L, r.getLeastSignificantBits());
+    }
+
+    public LivingEntity spawn(Location location) {
+        if (location.getWorld() == null) throw new IllegalArgumentException("Location must have a world");
+        despawn();
+        LivingEntity e = playerBodies() ? spawnPlayer(location) : spawnMannequin(location);
+        // Give it a player's movement attributes (a Mannequin's speed is a mob's 0.7).
+        Body.prepare(e);
+        this.body = e;
+        this.lastKnownLocation = location.clone();
+        return e;
+    }
+
+    private Player spawnPlayer(Location location) {
+        Player p = FakePlayers.spawn(name, playerId(), location);
+        p.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        return p;
+    }
+
+    private Mannequin spawnMannequin(Location location) {
         Mannequin m = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
         m.setCustomName(this.name);
         m.setCustomNameVisible(true);
         m.setDescription(null);
-
         // Disable mob AI so it doesn't fight our manual movement,
         // but keep gravity and physics enabled for natural falling/collision.
         m.setAI(false);
@@ -65,15 +106,18 @@ public class Humanoid {
         m.setInvulnerable(false);
         m.setImmovable(false);
         m.setRemoveWhenFarAway(false);
-
         m.setProfile(ResolvableProfile.resolvableProfile().name(this.name).build());
-        // A Mannequin's movement attributes default to a mob's (speed 0.7);
-        // give it a player's so its keys move it like one.
-        Body.prepare(m);
-
-        this.mannequin = m;
-        this.lastKnownLocation = location.clone();
         return m;
+    }
+
+    /** Removes the body from the world (a fake player disconnects). */
+    public void despawn() {
+        LivingEntity e = body;
+        body = null;
+        if (e == null) return;
+        Body.forget(e);
+        if (e instanceof Player p && FakePlayers.isFake(p)) FakePlayers.remove(p);
+        else if (e.isValid()) e.remove();
     }
 
     public LivingEntity getEntity() {
@@ -85,31 +129,32 @@ public class Humanoid {
      * be dead or invalid. For code that must see a death (test harness,
      * reflexes) rather than silently get a fresh body.
      */
-    public Mannequin peekEntity() {
-        return mannequin;
+    public LivingEntity peekEntity() {
+        return body;
     }
 
-    public Mannequin getMannequin() {
-        if (mannequin != null && !mannequin.isValid() && lastKnownLocation != null) {
-            Mai.getInstance().getLogger().warning("Mannequin for '" + name + "' was invalid, respawning...");
+    /** The body, respawned at its last position if it died or was removed. */
+    public LivingEntity getMannequin() {
+        if (body != null && (!body.isValid() || body.isDead()) && lastKnownLocation != null) {
+            Mai.getInstance().getLogger().warning("Body of '" + name + "' was gone, respawning...");
             spawn(lastKnownLocation);
         }
-        return mannequin;
+        return body;
     }
 
     public Location getLastKnownLocation() {
-        if (mannequin != null && mannequin.isValid()) {
-            lastKnownLocation = mannequin.getLocation();
+        if (body != null && body.isValid()) {
+            lastKnownLocation = body.getLocation();
         }
         return lastKnownLocation;
     }
 
     /**
-     * Returns the raw Mannequin reference without triggering auto-respawn.
+     * Returns the raw body reference without triggering auto-respawn.
      * Used by cleanup logic to check entity UUIDs.
      */
-    public Mannequin getRawMannequin() {
-        return mannequin;
+    public LivingEntity getRawMannequin() {
+        return body;
     }
 
     public HumanoidActionAgent getActionAgent() {
@@ -121,14 +166,14 @@ public class Humanoid {
     }
 
     public EntityEquipment getEquipment() {
-        return mannequin != null ? mannequin.getEquipment() : null;
+        return body != null ? body.getEquipment() : null;
     }
 
     public void setItemInMainHand(int itemSlot) {
-        if (mannequin == null) return;
+        if (body == null) return;
         ItemStack fromSlot = inventory.getItem(itemSlot);
-        ItemStack currentMain = mannequin.getEquipment().getItemInMainHand();
-        mannequin.getEquipment().setItemInMainHand(fromSlot);
+        ItemStack currentMain = body.getEquipment().getItemInMainHand();
+        body.getEquipment().setItemInMainHand(fromSlot);
         inventory.setItem(itemSlot, currentMain);
     }
 }

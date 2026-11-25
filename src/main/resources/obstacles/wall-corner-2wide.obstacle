@@ -1,0 +1,13 @@
+name: wall-corner-2wide
+description: Two-wide corridor between 3-high walls; the inside corner invites cutting.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+3 3 3 3 3 3 3 3 3 3
+S . . . . . . . . 3
+. . . . . . . . . 3
+3 3 3 3 3 3 3 . . 3
+_ _ _ _ _ _ 3 . . 3
+_ _ _ _ _ _ 3 . . 3
+_ _ _ _ _ _ 3 . E 3

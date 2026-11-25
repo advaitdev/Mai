@@ -1,0 +1,12 @@
+name: wall-slalom
+description: Open floor with 2-high pillars to weave between on the way across.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+. . . . . . . . . . . .
+. . 2 . . . 2 . . . 2 .
+S . . . 2 . . . 2 . . .
+. . 2 . . . 2 . . . 2 E
+. . . . 2 . . . 2 . . .
+. . . . . . . . . . . .

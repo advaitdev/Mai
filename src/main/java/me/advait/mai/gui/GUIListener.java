@@ -132,7 +132,7 @@ public class GUIListener implements Listener {
                 } else {
                     // First click - ask for confirmation
                     pendingDeletes.put(player.getUniqueId(), humanoid.getUuid());
-                    Messages.sendMessage(player, "&c&lClick delete again to confirm deletion of '&e" + humanoid.getName() + "&c&l'");
+                    Messages.sendMessage(player, "&cClick delete again to confirm deletion of '&e" + humanoid.getName() + "&c'");
                 }
             }
 
@@ -183,7 +183,7 @@ public class GUIListener implements Listener {
             if (input.equalsIgnoreCase("cancel")) {
                 // Run on main thread
                 Mai.getInstance().getServer().getScheduler().runTask(Mai.getInstance(), () -> {
-                    Messages.sendMessage(player, "&7Rename cancelled.");
+                    Messages.sendMessage(player, "&fRename cancelled.");
                 });
                 return;
             }

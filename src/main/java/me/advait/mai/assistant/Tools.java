@@ -352,7 +352,7 @@ public final class Tools {
             String n = str(key);
             if (n != null && !n.isBlank() && !n.equalsIgnoreCase("me")) {
                 Player p = Bukkit.getPlayerExact(n);
-                if (p == null) throw new ToolException("No online player named '" + n + "'.");
+                if (p == null || p.equals(humanoid.getRawMannequin())) throw new ToolException("No online player named '" + n + "'.");
                 return p;
             }
             if (requester instanceof Player p) return p;
@@ -374,7 +374,8 @@ public final class Tools {
             }
             if (spec.equalsIgnoreCase("me") && requester instanceof Player p) return p;
             Player p = Bukkit.getPlayerExact(spec);
-            if (p != null) return p;
+            // Its own fake player body answers to its name too.
+            if (p != null && !p.equals(bot)) return p;
             try {
                 if (Bukkit.getEntity(UUID.fromString(spec)) instanceof LivingEntity le) return le;
             } catch (IllegalArgumentException ignored) {

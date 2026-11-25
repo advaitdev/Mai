@@ -70,6 +70,12 @@ public final class Body {
     private static MethodHandle setJumping, setSprinting, isSprinting, setSpeed;
 
     private final LivingEntity entity;
+    /**
+     * A fake player: vanilla already gives it the player's air control,
+     * swim steering and swim pose (Player.travel, Player.updatePlayerPose),
+     * so only the client-side rules are applied here.
+     */
+    private final boolean player;
 
     private int forward;     // +1 W, -1 S
     private int right;       // +1 D, -1 A
@@ -84,6 +90,15 @@ public final class Body {
      * out the same whatever order a controller presses them in.
      */
     private boolean sprintingAtTickStart;
+    /**
+     * {@code LocalPlayer.isHorizontalCollisionMinor} for last tick's move: the
+     * bot still moved within 8 degrees of where its keys pushed, so a wall it
+     * grazed doesn't end the sprint. A Mannequin inherits LivingEntity's
+     * version, which calls every collision hard, so every brush with a
+     * corner cost it the sprint.
+     */
+    private boolean minorCollision;
+    private double lastX = Double.NaN, lastZ;
     /** Tick on which the game ended the sprint; it can't restart until the next one. */
     private int sprintBlockedTick = -1;
 
@@ -93,6 +108,7 @@ public final class Body {
 
     private Body(LivingEntity entity) {
         this.entity = entity;
+        this.player = entity instanceof org.bukkit.entity.Player;
         this.sprintingAtTickStart = (boolean) call(isSprinting);
     }
 
@@ -156,6 +172,7 @@ public final class Body {
             activatedTick.set(b.handle(), now + 1);
             b.lastTick = b.describe();
             b.sprintingAtTickStart = b.sprinting();
+            b.updateMinorCollision();
             b.forward = 0;
             b.right = 0;
             b.jump = false;
@@ -273,9 +290,20 @@ public final class Body {
         return String.format("keys=%s yaw=%.2f pitch=%.2f", k, loc.getYaw(), loc.getPitch());
     }
 
+    /** Whether the last move ran into a wall (vanilla {@code horizontalCollision}; {@code minor} = a glancing one that keeps a sprint). */
+    public String collision() {
+        if (!entity.isValid()) return "-";
+        Object h = handle();
+        if (!(boolean) horizontalCollision.get(h)) return "-";
+        return minorCollision ? "minor" : "hard";
+    }
+
     public int forward() { return forward; }
     public int right() { return right; }
     public boolean sprinting() { return (boolean) call(isSprinting); }
+
+    /** Whether it was sprinting when this tick began (keys are released at tick start, which reads as not sprinting until W is pressed again). */
+    public boolean sprintingAtTickStart() { return sprintingAtTickStart; }
 
     // =========================================================================
     // Physics queries (for controllers that predict; nothing here moves the body)
@@ -356,12 +384,14 @@ public final class Body {
         // from the tick-start state and the current keys.
         boolean was = sprintingAtTickStart;
         boolean shallow = entity.isInWater() && !entity.isUnderWater();
-        boolean hardCollision = (boolean) horizontalCollision.get(h) && !(boolean) minorHorizontalCollision.get(h);
+        boolean hardCollision = (boolean) horizontalCollision.get(h) && !minorCollision;
         int effectiveForward = forward;
         if (was && !sprint && forward > 0) effectiveForward = 0;   // w-tap to stop
         boolean sprinting = was;
         boolean blocked = sprintBlockedTick == Bukkit.getCurrentTick();
-        if (!was && sprint && effectiveForward > 0 && !sneak && !shallow && !blocked) sprinting = true;
+        // LocalPlayer.hasEnoughFoodToStartSprinting: a hungry player can't start.
+        boolean fed = !(entity instanceof org.bukkit.entity.Player p) || p.getFoodLevel() > 6 || p.getAllowFlight();
+        if (!was && sprint && effectiveForward > 0 && !sneak && !shallow && !blocked && fed) sprinting = true;
         else if (was && entity.isSwimming()) {
             // shouldStopSwimSprinting: a swimmer keeps the sprint at the
             // surface; it ends out of the water or letting go of W mid-water.
@@ -378,7 +408,7 @@ public final class Body {
         AttributeInstance speed = entity.getAttribute(Attribute.MOVEMENT_SPEED);
         if (speed != null) call(setSpeed, (float) speed.getValue());
 
-        applyAirAssist(effectiveForward, sprinting);
+        if (!player) applyAirAssist(effectiveForward, sprinting);
         applySwimming();
     }
 
@@ -404,7 +434,7 @@ public final class Body {
         boolean replace = swimAssistTick == tick && swimAssist != 0;
         if (replace) v.setY(v.getY() - swimAssist);
         double assist = 0;
-        if (entity.isSwimming() && entity.getVehicle() == null) {
+        if (!player && entity.isSwimming() && entity.getVehicle() == null) {
             double lookY = -Math.sin(Math.toRadians(entity.getLocation().getPitch()));
             double multiplier = lookY < -0.2 ? 0.085 : 0.06;
             var loc = entity.getLocation();
@@ -417,7 +447,24 @@ public final class Body {
         if (replace || assist != 0) entity.setVelocity(v.setY(v.getY() + assist));
         swimAssist = assist;
         swimAssistTick = tick;
-        updatePose();
+        if (!player) updatePose();
+    }
+
+    private static final double MINOR_COLLISION_ANGLE = 0.13962634f;
+
+    private void updateMinorCollision() {
+        org.bukkit.Location loc = entity.getLocation();
+        double mx = loc.getX() - lastX, mz = loc.getZ() - lastZ;
+        lastX = loc.getX();
+        lastZ = loc.getZ();
+        Object h = handle();
+        double f = Math.toRadians(loc.getYaw());
+        double sin = Math.sin(f), cos = Math.cos(f);
+        double x = (float) xxa.get(h), z = (float) zza.get(h);
+        double g = x * cos - z * sin, k = z * cos + x * sin;
+        double i = g * g + k * k, j = mx * mx + mz * mz;
+        minorCollision = !Double.isNaN(mx) && i >= 1.0E-5f && j >= 1.0E-5f
+                && Math.acos(Math.max(-1, Math.min(1, (g * mx + k * mz) / Math.sqrt(i * j)))) < MINOR_COLLISION_ANGLE;
     }
 
     private void updatePose() {

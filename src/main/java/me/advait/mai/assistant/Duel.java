@@ -4,6 +4,8 @@ import me.advait.mai.Catalog;
 import me.advait.mai.Mai;
 import me.advait.mai.body.Humanoid;
 import me.advait.mai.util.Messages;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -57,7 +59,7 @@ public final class Duel {
         if (round > rounds) {
             String line = String.format("[Duel] SERIES rounds=%d A(%s)=%d B(%s)=%d draws=%d",
                     rounds, lc(a), wins[0], lc(b), wins[1], wins[2]);
-            report(sender, line);
+            report(sender, line, seriesSummary(rounds, a, b, wins));
             clearPlatform(world);
             running = false;
             return;
@@ -69,11 +71,11 @@ public final class Duel {
         // first also swings first, so alternate who spawns first as well.
         Humanoid ha, hb;
         if ((round / 2) % 2 == 0) {
-            ha = Catalog.getInstance().register("DuelA", swap ? east : west);
-            hb = Catalog.getInstance().register("DuelB", swap ? west : east);
+            ha = Catalog.getInstance().registerTemporary("DuelA", swap ? east : west);
+            hb = Catalog.getInstance().registerTemporary("DuelB", swap ? west : east);
         } else {
-            hb = Catalog.getInstance().register("DuelB", swap ? west : east);
-            ha = Catalog.getInstance().register("DuelA", swap ? east : west);
+            hb = Catalog.getInstance().registerTemporary("DuelB", swap ? west : east);
+            ha = Catalog.getInstance().registerTemporary("DuelA", swap ? east : west);
         }
         for (Humanoid h : new Humanoid[]{ha, hb}) {
             h.getRawMannequin().getEquipment().setItemInMainHand(new ItemStack(weapon));
@@ -99,8 +101,9 @@ public final class Duel {
             if (aDown && !bDown) { winner = "B(" + lc(b) + ")"; wins[1]++; }
             else if (bDown && !aDown) { winner = "A(" + lc(a) + ")"; wins[0]++; }
             else { winner = "draw"; wins[2]++; }
-            report(sender, String.format("[Duel] RESULT round=%d winner=%s ticks=%d A=%s B=%s",
-                    round, winner, ticks[0], stats(ca, ea), stats(cb, eb)));
+            String result = String.format("[Duel] RESULT round=%d winner=%s ticks=%d A=%s B=%s",
+                    round, winner, ticks[0], stats(ca, ea), stats(cb, eb));
+            report(sender, result, roundRow(round, rounds, winner, ticks[0], wins, result));
 
             Assistant.of(ha).stopAll();
             Assistant.of(hb).stopAll();
@@ -119,9 +122,29 @@ public final class Duel {
                 c.hits(), c.crits(), c.sprintHits(), c.swings(), c.damageDealt(), hp);
     }
 
-    private static void report(CommandSender sender, String line) {
+    /** Logs the parseable line; a player sees the readable version instead. */
+    private static void report(CommandSender sender, String line, Component pretty) {
         Mai.getInstance().getLogger().info(line);
-        if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Messages.sendMessage(sender, "&7" + line);
+        if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) sender.sendMessage(pretty);
+    }
+
+    private static Component roundRow(int round, int rounds, String winner, int ticks, int[] wins, String raw) {
+        Component who = winner.equals("draw")
+                ? Component.text("Draw", Messages.HEADER)
+                : Component.text(winner.replace("(", " (") + " wins", Messages.HIGHLIGHT);
+        return Component.text("Round " + round + "/" + rounds + ": ", Messages.HEADER)
+                .append(who)
+                .append(Component.text(" in " + String.format("%.1fs", ticks / 20.0)
+                        + " (" + wins[0] + "-" + wins[1] + ")", Messages.TEXT))
+                .hoverEvent(HoverEvent.showText(Component.text(raw, Messages.TEXT)));
+    }
+
+    private static Component seriesSummary(int rounds, CombatBehavior.Style a, CombatBehavior.Style b, int[] wins) {
+        Component line = Component.text("Duel over: ", Messages.HEADER)
+                .append(Component.text("A (" + lc(a) + ") " + wins[0] + " - " + wins[1] + " B (" + lc(b) + ")",
+                        Messages.HIGHLIGHT));
+        if (wins[2] > 0) line = line.append(Component.text(", " + wins[2] + " draws", Messages.TEXT));
+        return line.append(Component.text(" over " + rounds + " rounds", Messages.TEXT));
     }
 
     private static String lc(CombatBehavior.Style s) {

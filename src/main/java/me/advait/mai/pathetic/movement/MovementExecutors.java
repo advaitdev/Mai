@@ -45,11 +45,20 @@ public final class MovementExecutors {
      */
     public static void walk(TickContext ctx, boolean sprint) {
         double[] dir = direction2D(ctx.current, ctx.waypoint);
+        if (!ctx.entity().isInWater() && isLevelWalk(ctx.waypoint)) {
+            dir = visibleAim(ctx, dir);
+            // Stepping back onto the line is a short, careful move.
+            if (ctx.detourTick == ctx.totalTicks) sprint = false;
+        }
         if (ctx.entity().isInWater()) {
             // Wading or treading water: hold jump unless heading down. In
             // water a jump is a slow rise, and pushing into a bank while
             // rising is what triggers vanilla's 0.3 b/t climb-out boost.
             ctx.body().face(dir[0], dir[1]).keys(1, 0).sprint(false);
+            // On a film of water (vanilla jumps from the ground below 0.4
+            // deep) that is a full jump, and hopping is how a player gets up
+            // a stream: each hop leaves the water's drag and current, about
+            // three times faster than wading against them.
             if (ctx.waypoint.y() > ctx.current.getY() - 0.5) ctx.body().jump();
             return;
         }
@@ -57,7 +66,10 @@ public final class MovementExecutors {
         // Sideways component of the momentum we carry into this tick.
         double perp = v.getX() * -dir[1] + v.getZ() * dir[0];
         double ax = dir[0], az = dir[1];
-        if (ctx.onGround() && Math.abs(perp) > DRIFT_EPSILON) {
+        // Sliding along a wall isn't drift: steering against it pins the
+        // bot to the wall instead of letting it slide round the corner.
+        boolean againstWall = !"-".equals(ctx.body().collision());
+        if (ctx.onGround() && !againstWall && Math.abs(perp) > DRIFT_EPSILON) {
             double accel = Body.groundAccel(slipperinessBelow(ctx.current), sprint);
             double cancel = Math.max(-accel, Math.min(accel, -perp));
             double along = Math.sqrt(Math.max(0, accel * accel - cancel * cancel));
@@ -65,6 +77,36 @@ public final class MovementExecutors {
             az = dir[1] * along + dir[0] * cancel;
         }
         ctx.body().face(ax, az).keys(1, 0).sprint(sprint);
+    }
+
+    /**
+     * Heading toward the furthest point of the path segment leading to the
+     * waypoint that the hitbox can reach in a straight line. Knocked or
+     * drifted off the path (or turned too early), the waypoint can sit
+     * behind a wall corner; steering straight at it pins the bot to that
+     * wall, while a player steps back onto the line first.
+     */
+    private static double[] visibleAim(TickContext ctx, double[] dir) {
+        AnnotatedWaypoint wp = ctx.waypoint, prev = ctx.previousWaypoint;
+        if (prev == null || Math.abs(ctx.current.getY() - wp.y()) > 0.6) return dir;
+        if (hitboxLineClear(ctx.current, wp.x(), wp.z(), AIM_CLEARANCE, false)) return dir;
+        double sx = wp.x() - prev.x(), sz = wp.z() - prev.z();
+        double len = Math.sqrt(sx * sx + sz * sz);
+        for (double back = 0.5; back < len; back += 0.5) {
+            double px = wp.x() - sx / len * back, pz = wp.z() - sz / len * back;
+            if (hitboxLineClear(ctx.current, px, pz, AIM_CLEARANCE, false)) {
+                ctx.detourTick = ctx.totalTicks;
+                return unit(px - ctx.current.getX(), pz - ctx.current.getZ(), dir);
+            }
+        }
+        // Nothing on the line is in plain view (terrain the check can't
+        // read, like a step): head for the waypoint as before.
+        return dir;
+    }
+
+    private static double[] unit(double dx, double dz, double[] fallback) {
+        double len = Math.sqrt(dx * dx + dz * dz);
+        return len < 0.05 ? fallback : new double[]{dx / len, dz / len};
     }
 
     /** Press jump. Vanilla takes off if on the ground; a sprinting bot gets the sprint-jump boost. */
@@ -105,6 +147,102 @@ public final class MovementExecutors {
         if (dist <= 0.4) return false;
         if (dist < 0.9) return true;
         return jumpReach(ctx, direction2D(ctx.current, wp), STEP_UP_CLEAR_TICK) >= dist - 0.5;
+    }
+
+    /**
+     * Half-width of the hitbox plus the clearance kept from walls: taking a
+     * shortcut keeps the most (there is drift to come), turning a corner
+     * less, steering back onto the path just the hitbox.
+     */
+    public static final double SKIP_CLEARANCE = 0.4, TURN_CLEARANCE = 0.35, AIM_CLEARANCE = 0.31;
+
+    /** Movements that are plain walking on one level (straight lines between them are free to take). */
+    public static boolean isLevelWalk(AnnotatedWaypoint wp) {
+        if (wp == null || wp.type() == null) return false;
+        String k = wp.type().key();
+        return k.equals("walk_flat") || k.equals("walk_diagonal");
+    }
+
+    /**
+     * Whether the hitbox can walk a straight line from {@code from} to the
+     * point (tx, tz) on the level it stands on: floor under the center the
+     * whole way at the same height (within a carpet's or path's lip), never a
+     * dangerous one, and no block or liquid anywhere the hitbox (plus
+     * {@code clearance}, the half-width the hitbox is treated as) passes, feet to head. This is what lets the bot
+     * take the straight line a player would instead of the grid's zigzag,
+     * and turn only once its hitbox clears the corner.
+     */
+    public static boolean hitboxLineClear(Location from, double tx, double tz, double clearance) {
+        return hitboxLineClear(from, tx, tz, clearance, true);
+    }
+
+    /**
+     * As above; with {@code level} false the line may also step over
+     * partial blocks within the vanilla step height (carpet, slabs, paths),
+     * which walking takes in stride: for steering and turning, not for
+     * dropping waypoints.
+     */
+    public static boolean hitboxLineClear(Location from, double tx, double tz, double clearance, boolean level) {
+        World world = from.getWorld();
+        if (world == null) return false;
+        double fx = from.getX(), fz = from.getZ(), y = from.getY();
+        double dx = tx - fx, dz = tz - fz;
+        double len = Math.sqrt(dx * dx + dz * dz);
+        int steps = Math.max(1, (int) Math.ceil(len / 0.2));
+        int feet = (int) Math.floor(y + 0.01), head = (int) Math.floor(y + 1.79);
+        long lastFloor = Long.MIN_VALUE;
+        for (int i = 0; i <= steps; i++) {
+            double px = fx + dx * i / steps, pz = fz + dz * i / steps;
+            int bx = (int) Math.floor(px), bz = (int) Math.floor(pz);
+            long cell = ((long) bx << 32) ^ (bz & 0xffffffffL);
+            if (cell != lastFloor) {
+                lastFloor = cell;
+                if (!levelFloor(world, bx, bz, y, level ? 0.1 : STEP_HEIGHT)) return false;
+            }
+            // The start is where the hitbox already is (it may touch a wall).
+            double r = i == 0 ? 0.299 : clearance;
+            for (double ox : new double[]{-r, r}) {
+                for (double oz : new double[]{-r, r}) {
+                    int cx = (int) Math.floor(px + ox), cz = (int) Math.floor(pz + oz);
+                    for (int by = feet; by <= head; by++) {
+                        org.bukkit.block.Block b = world.getBlockAt(cx, by, cz);
+                        if (b.isLiquid() || !BlockClassifier.isTraversable(b.getType())) return false;
+                        if (b.isPassable()) continue;
+                        // A lip the hitbox steps onto (carpet, a path's edge) is floor, not wall.
+                        double rise = collisionTop(b) - y;
+                        if (by == feet && rise <= (level ? 0.1 : STEP_HEIGHT)) continue;
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Floor under (bx, bz) tops out within {@code tolerance} of {@code y} and is safe to stand on. */
+    private static boolean levelFloor(World world, int bx, int bz, double y, double tolerance) {
+        for (int by = (int) Math.floor(y + tolerance); by >= (int) Math.floor(y - tolerance - 0.01); by--) {
+            org.bukkit.block.Block b = world.getBlockAt(bx, by, bz);
+            if (b.isPassable()) continue;
+            double top = collisionTop(b);
+            return Math.abs(top - y) <= tolerance && !BlockClassifier.isDangerous(b.getType())
+                    && !BlockClassifier.isTall(b.getType());
+        }
+        return false;
+    }
+
+    /**
+     * Arrival for a level walk: reached, and when the path goes on walking,
+     * the hitbox has a clear line to the next waypoint. Turning as soon as
+     * the center is within the waypoint radius cut every inside corner and
+     * dragged the bot along the wall.
+     */
+    public static boolean walkArrived(TickContext ctx) {
+        if (!reachedFully(ctx)) return false;
+        AnnotatedWaypoint next = ctx.nextWaypoint;
+        if (!isLevelWalk(next) || Math.abs(next.y() - ctx.waypoint.y()) > 0.01) return true;
+        return horizontalDistance(ctx.current, ctx.waypoint) < 0.15
+                || hitboxLineClear(ctx.current, next.x(), next.z(), TURN_CLEARANCE, false);
     }
 
     // =========================================================================
@@ -240,7 +378,10 @@ public final class MovementExecutors {
     public static boolean flatRunJumpClear(TickContext ctx, double[] dir) {
         if (!ctx.config.isSprintJumpFlat() || !ctx.onGround() || ctx.jumpCooldown > 0) return false;
         // Velocity read at tick start is post-friction: full sprint reads ~0.156.
-        if (horizontalSpeed(ctx.velocity()) < 0.12) return false;
+        // Along the jump: right after a turn the speed is still sideways,
+        // and jumping then throws the bot into the corner it just rounded.
+        Vector v = ctx.velocity();
+        if (v.getX() * dir[0] + v.getZ() * dir[1] < 0.12) return false;
         double dist = horizontalDistance(ctx.current, ctx.waypoint);
         if (dist < ctx.config.getSprintJumpFlatMinDistance()) return false;
         if (Math.abs(ctx.waypoint.y() - ctx.current.getY()) > 0.5) return false;
@@ -249,6 +390,10 @@ public final class MovementExecutors {
         double y = ctx.current.getY();
         int feetY = (int) Math.floor(y + 0.01);
         double runway = Math.min(dist, 4.5);
+        // The whole hitbox has to clear the runway: a jump can't correct a
+        // drift into a pillar it brushes past.
+        if (!hitboxLineClear(ctx.current, ctx.current.getX() + dir[0] * runway,
+                ctx.current.getZ() + dir[1] * runway, SKIP_CLEARANCE)) return false;
         for (double d = 0.0; d <= runway; d += 0.5) {
             int bx = (int) Math.floor(ctx.current.getX() + dir[0] * d);
             int bz = (int) Math.floor(ctx.current.getZ() + dir[1] * d);

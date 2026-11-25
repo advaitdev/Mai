@@ -86,6 +86,8 @@ public final class Observation {
             j.add("position", pos(n.getLocation()));
             if (n instanceof LivingEntity le) j.addProperty("health", round(le.getHealth()));
             if (n instanceof Player) {
+                // Another humanoid (a fake player body), as opposed to a person.
+                if (me.advait.mai.body.fake.FakePlayers.isFake(n)) j.addProperty("humanoid", true);
                 players.add(j);
             } else if (others.size() < MAX_ENTITIES) {
                 j.addProperty("type", n.getType().getKey().getKey());

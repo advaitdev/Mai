@@ -99,13 +99,13 @@ public class HumanoidListGUI implements InventoryHolder {
             meta.setDisplayName(colorize("&e" + humanoid.getName()));
 
             List<String> lore = new ArrayList<>();
-            lore.add(colorize("&7UUID: &f" + humanoid.getUuid().toString().substring(0, 8) + "..."));
+            lore.add(colorize("&fUUID: &f" + humanoid.getUuid().toString().substring(0, 8) + "..."));
 
             if (humanoid.getMannequin() != null) {
-                lore.add(colorize("&7Location: &f" + LocationSerializer.toReadableString(humanoid.getMannequin().getLocation())));
-                lore.add(colorize("&7Status: &aSpawned"));
+                lore.add(colorize("&fLocation: &f" + LocationSerializer.toReadableString(humanoid.getMannequin().getLocation())));
+                lore.add(colorize("&fStatus: &aSpawned"));
             } else {
-                lore.add(colorize("&7Status: &cNot spawned"));
+                lore.add(colorize("&fStatus: &cNot spawned"));
             }
 
             lore.add("");
@@ -125,7 +125,7 @@ public class HumanoidListGUI implements InventoryHolder {
         if (meta != null) {
             meta.setDisplayName(colorize(name));
             List<String> lore = new ArrayList<>();
-            lore.add(colorize("&7" + description));
+            lore.add(colorize("&f" + description));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
@@ -140,10 +140,10 @@ public class HumanoidListGUI implements InventoryHolder {
         if (meta != null) {
             meta.setDisplayName(colorize("&6Humanoid Manager"));
             List<String> lore = new ArrayList<>();
-            lore.add(colorize("&7Total humanoids: &f" + Catalog.getInstance().getCount()));
+            lore.add(colorize("&fTotal humanoids: &f" + Catalog.getInstance().getCount()));
             lore.add("");
-            lore.add(colorize("&7Click a Humanoid head to"));
-            lore.add(colorize("&7view and manage it."));
+            lore.add(colorize("&fClick a Humanoid head to"));
+            lore.add(colorize("&fview and manage it."));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }

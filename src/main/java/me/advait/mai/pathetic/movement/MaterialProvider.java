@@ -24,13 +24,25 @@ public interface MaterialProvider {
         return getMaterial(pos.getFlooredX(), pos.getFlooredY(), pos.getFlooredZ());
     }
 
+    /**
+     * Plants that only grow under water (seagrass, kelp) and bubble columns
+     * are water to a mover: they are passable, so they read as air, and the
+     * planner walked and sprint-jumped along river beds until the bot drowned.
+     */
+    static Material water(Material m) {
+        return switch (m) {
+            case SEAGRASS, TALL_SEAGRASS, KELP, KELP_PLANT, BUBBLE_COLUMN -> Material.WATER;
+            default -> m;
+        };
+    }
+
     /** Creates a provider backed by Pathetic's async-safe navigation point system. */
     static MaterialProvider fromNavigationProvider(NavigationPointProvider provider, EnvironmentContext env) {
         return (x, y, z) -> {
             PathPosition pos = PathPosition.of(x, y, z);
             NavigationPoint point = provider.getNavigationPoint(pos, env);
             if (point instanceof BukkitNavigationPoint bukkit) {
-                return bukkit.getMaterial();
+                return water(bukkit.getMaterial());
             }
             return Material.AIR;
         };
@@ -38,6 +50,6 @@ public interface MaterialProvider {
 
     /** Creates a provider backed by direct World block access (main thread only). */
     static MaterialProvider fromWorld(World world) {
-        return (x, y, z) -> world.getBlockAt(x, y, z).getType();
+        return (x, y, z) -> water(world.getBlockAt(x, y, z).getType());
     }
 }

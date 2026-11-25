@@ -13,6 +13,7 @@ public final class Monitor {
         Mai.log().info(ChatColor.GOLD + "\uD83D\uDD27 " + message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (me.advait.mai.body.fake.FakePlayers.isFake(player)) continue;
             if (player.getEquipment().getItemInMainHand().getType() == Material.KNOWLEDGE_BOOK
                 || player.getEquipment().getItemInOffHand().getType() == Material.KNOWLEDGE_BOOK) {
                 Messages.sendMessage(player, "&6\uD83D\uDD27 " + message);
@@ -24,6 +25,7 @@ public final class Monitor {
         Mai.log().severe(ChatColor.GOLD + "\uD83D\uDD27 " + message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (me.advait.mai.body.fake.FakePlayers.isFake(player)) continue;
             if (player.getEquipment().getItemInMainHand().getType() == Material.KNOWLEDGE_BOOK
                     || player.getEquipment().getItemInOffHand().getType() == Material.KNOWLEDGE_BOOK) {
                 Messages.sendMessage(player, "&c\uD83D\uDD27 " + message);

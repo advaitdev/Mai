@@ -58,6 +58,8 @@ public final class CombatBehavior implements Behavior {
     private int lostTicks = 0;
     private double prevReach = Double.NaN;
     private Location prevTargetLoc = null;
+    private ItemStack lastHeld = null;
+    private final GroundTracker ground = new GroundTracker();
     /** A 0.42 jump starts falling after ~6 ticks. */
     private static final int TICKS_TO_FALL = 6;
 
@@ -71,6 +73,9 @@ public final class CombatBehavior implements Behavior {
         this.target = target;
         this.style = style;
         this.nav = new Navigator(humanoid);
+        LivingEntity bot = humanoid.getRawMannequin();
+        ItemStack held = bot != null && bot.getEquipment() != null ? bot.getEquipment().getItemInMainHand() : null;
+        this.lastHeld = held == null || held.getType().isAir() ? null : held.clone();
     }
 
     public LivingEntity target() { return target; }
@@ -131,14 +136,24 @@ public final class CombatBehavior implements Behavior {
                     humanoid.getName(), ticks, hd, dy, Motor.reachDistance(bot, target), bot.isOnGround(),
                     bot.getVelocity().getY(), sight, ticksSinceAttack, critArmed, bot.getHealth()));
         }
-        if (hd > AssistantConfig.chaseDirectRange() || !sight || (Math.abs(dy) > 1.5 && hd > 2.5)) {
-            Location goal = FollowBehavior.landingSpot(there);
-            nav.moveTo(goal != null ? goal : there, 1.5);
+        // Direct steering only walks. A gap, a block to jump, or a drop
+        // between us (even one we can see across) is the pathfinder's job,
+        // unless the target is already in reach from here.
+        boolean inReachNow = Motor.reachDistance(bot, target) <= AssistantConfig.reach();
+        // Water is the swim executor's: direct steering would just sink.
+        boolean wet = bot.isInWater() || target.isInWater();
+        boolean blocked = !inReachNow && (wet || Math.abs(dy) > 1.5 || !Motor.walkableLine(bot, there));
+        if (hd > AssistantConfig.chaseDirectRange() || !sight || blocked) {
+            nav.moveTo(ground.resolve(there), 1.5);
+            trackHeldItem(bot);
             return true;
         }
         nav.stop();
         Motor.look(bot, target);
 
+        // Pathing may have left blocks or a pickaxe in hand.
+        equipBestWeapon();
+        trackHeldItem(bot);
         ItemStack weapon = bot.getEquipment() != null ? bot.getEquipment().getItemInMainHand() : null;
         double period = 20.0 / ItemUtil.getAttackSpeed(weapon);
         double charge = Math.min(1.0, (ticksSinceAttack + 0.5) / period);
@@ -239,6 +254,26 @@ public final class CombatBehavior implements Behavior {
         ticksSinceAttack = 0;
         bot.swingMainHand();
 
+        if (bot instanceof org.bukkit.entity.HumanEntity human && me.advait.mai.body.fake.FakePlayers.isFake(bot)) {
+            // A player body attacks with vanilla Player.attack itself: its own
+            // charge, crits, sprint knockback (which slows it and ends the
+            // sprint), sweeping and enchantments. Body just learns the sprint ended.
+            boolean wasSprinting = Body.of(bot).sprinting();
+            double before = target.getHealth();
+            human.attack(target);
+            if (target.getHealth() < before || target.isDead()) {
+                hits++;
+                damageDealt += before - Math.max(0, target.getHealth());
+                if (crit) crits++;
+            }
+            if (wasSprinting && !Body.of(bot).sprinting()) {
+                sprintHits++;
+                Body.of(bot).endSprint();
+                if (style == Style.SMART && AssistantConfig.wTap()) sprintBlock = 2;
+            }
+            return;
+        }
+
         double dmg = ItemUtil.getWeaponDamage(weapon) * (0.2 + charge * charge * 0.8);
         if (crit) dmg *= 1.5;
         dmg += ItemUtil.getEnchantDamage(weapon) * charge;
@@ -272,6 +307,41 @@ public final class CombatBehavior implements Behavior {
         } else {
             bot.getWorld().playSound(at, strong ? Sound.ENTITY_PLAYER_ATTACK_STRONG : Sound.ENTITY_PLAYER_ATTACK_WEAK, 1f, 1f);
         }
+    }
+
+    /**
+     * Vanilla resets the attack charge whenever the main-hand stack changes
+     * ({@code Player.tick}: switching items, or a placed block lowering the
+     * count), so a swap to the sword starts from zero charge.
+     */
+    private void trackHeldItem(LivingEntity bot) {
+        ItemStack held = bot.getEquipment() != null ? bot.getEquipment().getItemInMainHand() : null;
+        if (held != null && held.getType().isAir()) held = null;
+        boolean same = held == null ? lastHeld == null : held.equals(lastHeld);
+        if (!same) ticksSinceAttack = 0;
+        lastHeld = held == null ? null : held.clone();
+    }
+
+    /** Moves the hardest-hitting item (damage at full charge, then speed) into the main hand. */
+    private void equipBestWeapon() {
+        LivingEntity bot = humanoid.getRawMannequin();
+        if (bot == null || bot.getEquipment() == null) return;
+        ItemStack current = bot.getEquipment().getItemInMainHand();
+        double bestScore = weaponScore(current);
+        int bestSlot = -1;
+        ItemStack[] inv = humanoid.getInventory().getContents();
+        for (int i = 0; i < inv.length; i++) {
+            if (inv[i] == null || inv[i].getType().isAir()) continue;
+            double s = weaponScore(inv[i]);
+            if (s > bestScore + 1e-6) { bestScore = s; bestSlot = i; }
+        }
+        if (bestSlot >= 0) humanoid.setItemInMainHand(bestSlot);
+    }
+
+    private static double weaponScore(ItemStack item) {
+        if (item == null || item.getType().isAir()) return ItemUtil.getWeaponDamage(null) * 100;
+        return (ItemUtil.getWeaponDamage(item) + ItemUtil.getEnchantDamage(item)) * 100
+                + ItemUtil.getAttackSpeed(item);
     }
 
     private boolean end(String why) {

@@ -33,6 +33,7 @@ public record StepUp() implements MovementType {
 
         // Destination must be standable
         if (!WalkFlat.isStandable(current, ctx.materials())) return false;
+        if (!WalkDiagonal.levelChangeCornersOk(previous, current, ctx.materials())) return false;
 
         // Source must have 3 blocks of headroom for jumping (feet, head, above head)
         Material aboveHead = ctx.materials().getMaterial(

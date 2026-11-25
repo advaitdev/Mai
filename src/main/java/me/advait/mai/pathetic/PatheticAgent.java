@@ -146,7 +146,7 @@ public final class PatheticAgent {
         return rawFuture.thenCompose(result -> {
             final long searchMs = (System.nanoTime() - t0) / 1_000_000;
             if (!result.successful()) {
-                PathDebugLog.event("PATHFIND_FAILED search_ms=%d", searchMs);
+                PathDebugLog.event("PATHFIND_FAILED search_ms=%d state=%s", searchMs, result.getPathState());
                 return CompletableFuture.completedFuture(Optional.empty());
             }
 

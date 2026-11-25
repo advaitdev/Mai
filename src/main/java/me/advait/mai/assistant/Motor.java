@@ -26,9 +26,11 @@ public final class Motor {
         Location cur = e.getLocation();
         double fx = facing.getX() - cur.getX(), fz = facing.getZ() - cur.getZ();
         if (fx * fx + fz * fz < 1e-8) return;
-        Body.of(e).face(fx, fz)
+        Body body = Body.of(e).face(fx, fz)
                 .keys(key(forward), key(strafe))
                 .sprint(sprint);
+        // In water a player holds jump to stay up (and to climb out at a bank).
+        if (e.isInWater() && facing.getY() > cur.getY() - 0.5) body.jump();
     }
 
     private static int key(double axis) {
@@ -107,6 +109,50 @@ public final class Motor {
      * {@code dist} blocks of the entity along the horizontal direction
      * {@code (dx, dz)}. Used to keep fighters from being knocked off edges.
      */
+    /**
+     * Whether walking straight at {@code to} needs nothing but W: along the
+     * line every ground rise is a vanilla step (at most 0.6), every drop at
+     * most one block, and there is headroom. Anything else (a jump, a gap, a
+     * climb) is a job for the pathfinder.
+     */
+    public static boolean walkableLine(LivingEntity e, Location to) {
+        Location cur = e.getLocation();
+        double dx = to.getX() - cur.getX(), dz = to.getZ() - cur.getZ();
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 0.5) return true;
+        dx /= len; dz /= len;
+        var world = cur.getWorld();
+        double feet = cur.getY();
+        for (double d = 0.4; d < len - 0.3; d += 0.4) {
+            int bx = (int) Math.floor(cur.getX() + dx * d), bz = (int) Math.floor(cur.getZ() + dz * d);
+            // Highest collision top from one block above the feet down to one below.
+            double top = Double.NaN;
+            for (int y = (int) Math.floor(feet + 0.99); y >= (int) Math.floor(feet) - 2; y--) {
+                var b = world.getBlockAt(bx, y, bz);
+                if (b.isPassable()) continue;
+                top = me.advait.mai.pathetic.movement.MovementExecutors.collisionTop(b);
+                break;
+            }
+            if (Double.isNaN(top)) return false;                    // no ground: a gap
+            if (top - feet > me.advait.mai.pathetic.movement.MovementExecutors.STEP_HEIGHT + 1e-3) return false;
+            if (feet - top > 1.01) return false;
+            // Headroom for the whole hitbox, not just the center: the
+            // center line clearing a pillar while a shoulder clips it is the
+            // corner snag that stops a sprint.
+            double px = cur.getX() + dx * d, pz = cur.getZ() + dz * d;
+            for (double ox : new double[]{-0.29, 0.29}) {
+                for (double oz : new double[]{-0.29, 0.29}) {
+                    for (int h = 0; h < 2; h++) {
+                        if (!world.getBlockAt((int) Math.floor(px + ox), (int) Math.floor(top + 0.01) + h,
+                                (int) Math.floor(pz + oz)).isPassable()) return false;
+                    }
+                }
+            }
+            feet = top;
+        }
+        return true;
+    }
+
     public static boolean dropWithin(LivingEntity e, double dx, double dz, double dist) {
         double len = Math.sqrt(dx * dx + dz * dz);
         if (len < 1e-4) return false;

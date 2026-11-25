@@ -19,8 +19,6 @@ import me.advait.mai.gui.HumanoidListGUI;
 import me.advait.mai.pathetic.PatheticAgent;
 import me.advait.mai.util.Messages;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -249,17 +247,18 @@ public class HumanoidCommand extends BaseCommand {
         Humanoid h = resolve(sender, bot);
         if (h == null) return;
         LivingEntity e = h.getRawMannequin();
-        Messages.sendMessage(sender, "&6=== " + h.getName() + " ===");
-        Messages.sendMessage(sender, "&7Doing: &f" + Assistant.of(h).activity());
+        Messages.header(sender, h.getName());
+        Messages.field(sender, "Doing", Component.text(Assistant.of(h).activity(), Messages.TEXT));
         if (e != null && e.isValid()) {
             Location l = e.getLocation();
-            Messages.sendMessage(sender, String.format("&7Health: &f%.0f/20  &7At: &f%d %d %d &7(%s)",
-                    e.getHealth(), l.getBlockX(), l.getBlockY(), l.getBlockZ(), l.getWorld().getName()));
+            Messages.field(sender, "Health", Component.text(String.format("%.0f/20", e.getHealth()), Messages.TEXT));
+            Messages.field(sender, "At", Component.text(l.getBlockX() + " " + l.getBlockY() + " " + l.getBlockZ()
+                    + " in " + l.getWorld().getName(), Messages.TEXT));
         } else {
-            Messages.sendMessage(sender, "&cNot spawned.");
+            Messages.field(sender, "State", Component.text("not spawned", Messages.ERROR));
         }
         Tools.run("inventory", h, new JsonObject(), sender)
-                .thenAccept(s -> Messages.sendMessage(sender, "&7" + s));
+                .thenAccept(s -> Messages.field(sender, "Items", Component.text(s, Messages.TEXT)));
     }
 
     @Subcommand("select")
@@ -287,13 +286,13 @@ public class HumanoidCommand extends BaseCommand {
     @CommandPermission("mai.humanoid.command")
     @Description("List every tool (what chat, commands and an LLM can ask for)")
     public void onTools(CommandSender sender) {
-        Messages.sendMessage(sender, "&6=== Tools &7(/h do <tool> {json}) &6===");
+        Messages.header(sender, "Tools", "(/h do <tool> {json})");
         for (Tools.Tool t : Tools.all()) {
             StringBuilder params = new StringBuilder();
             for (Tools.Param p : t.params()) {
                 params.append(p.required() ? " <" : " [").append(p.name()).append(p.required() ? ">" : "]");
             }
-            Messages.sendMessage(sender, "&e" + t.name() + "&f" + params + " &7- " + t.description());
+            Messages.help(sender, "/h do " + t.name() + params, t.description());
         }
     }
 
@@ -434,9 +433,9 @@ public class HumanoidCommand extends BaseCommand {
     public void onDebugParticles(CommandSender sender) {
         boolean current = HumanoidWalkToRunnable.isDebugMode();
         HumanoidWalkToRunnable.setDebugMode(!current);
-        Messages.sendMessage(sender, "&7Path debug: " + (!current ? "&aEnabled" : "&cDisabled"));
+        Messages.sendMessage(sender, "&fPath debug: " + (!current ? "&aEnabled" : "&cDisabled"));
         if (!current) {
-            Messages.sendMessage(sender, "&7Events logged to console. Tail with: &ftail -f mc-server/logs/latest.log | grep PathDebug");
+            Messages.sendMessage(sender, "&fEvents logged to console. Tail with: &ftail -f mc-server/logs/latest.log | grep PathDebug");
         }
     }
 
@@ -453,9 +452,9 @@ public class HumanoidCommand extends BaseCommand {
                 .thenAccept(pathOpt -> {
                     long elapsed = System.currentTimeMillis() - startTime;
                     if (pathOpt.isPresent()) {
-                        Messages.sendMessage(player, "&aPath found! &7(" + pathOpt.get().size() + " waypoints, " + elapsed + "ms)");
+                        Messages.sendMessage(player, "&aPath found! &f(" + pathOpt.get().size() + " waypoints, " + elapsed + "ms)");
                     } else {
-                        Messages.sendMessage(player, "&cNo path found! &7(" + elapsed + "ms)");
+                        Messages.sendMessage(player, "&cNo path found! &f(" + elapsed + "ms)");
                     }
                 })
                 .exceptionally(ex -> {
@@ -475,11 +474,11 @@ public class HumanoidCommand extends BaseCommand {
         HumanoidActionAgent agent = humanoid.getActionAgent();
         String currentAction = agent.getCurrentActionName();
         List<String> queued = agent.getQueuedActionNames();
-        Messages.sendMessage(sender, "&6=== " + humanoid.getName() + " Action Queue ===");
-        Messages.sendMessage(sender, "&7Activity: &f" + Assistant.of(humanoid).activity());
-        Messages.sendMessage(sender, currentAction != null ? "&a> Running: &f" + currentAction : "&7> No action running");
+        Messages.header(sender, humanoid.getName() + " Action Queue");
+        Messages.field(sender, "Activity", Component.text(Assistant.of(humanoid).activity(), Messages.TEXT));
+        Messages.field(sender, "Running", Component.text(currentAction != null ? currentAction : "nothing", Messages.TEXT));
         for (int i = 0; i < queued.size(); i++) {
-            Messages.sendMessage(sender, "&e  " + (i + 1) + ". " + queued.get(i));
+            Messages.field(sender, String.valueOf(i + 1), Component.text(queued.get(i), Messages.TEXT));
         }
     }
 
@@ -492,7 +491,7 @@ public class HumanoidCommand extends BaseCommand {
         UUID playerId = player.getUniqueId();
         if (queueWatchers.containsKey(playerId)) {
             queueWatchers.remove(playerId).cancel();
-            Messages.sendMessage(player, "&7Watcher &cdisabled");
+            Messages.sendMessage(player, "&fWatcher &cdisabled");
             player.sendActionBar(Component.empty());
             return;
         }
@@ -506,38 +505,48 @@ public class HumanoidCommand extends BaseCommand {
                 if (t != null) t.cancel();
                 return;
             }
-            p.sendActionBar(Component.text(humanoid.getName() + " ", NamedTextColor.GOLD)
-                    .append(Component.text(Assistant.of(humanoid).activity(), NamedTextColor.GREEN, TextDecoration.BOLD)));
+            p.sendActionBar(Component.text(humanoid.getName() + ": ", Messages.HEADER)
+                    .append(Component.text(Assistant.of(humanoid).activity(), Messages.TEXT)));
         }, 0L, 5L);
         queueWatchers.put(playerId, task);
-        Messages.sendMessage(player, "&7Watcher &aenabled &7for '&e" + humanoid.getName() + "&7'");
+        Messages.sendMessage(player, "&fWatcher &aenabled &ffor '&e" + humanoid.getName() + "&f'");
     }
 
     @Subcommand("debug")
     @CommandPermission("mai.humanoid.debug")
     public void onDebugHelp(CommandSender sender) {
-        Messages.sendMessage(sender, "&6=== Debug ===");
-        Messages.sendMessage(sender, "&e/h debug particles &7- Toggle path particles + PathDebug log");
-        Messages.sendMessage(sender, "&e/h debug pathcheck [humanoid] &7- Can it path to you?");
-        Messages.sendMessage(sender, "&e/h debug queue [humanoid] &7- Show the action queue");
-        Messages.sendMessage(sender, "&e/h debug watch [humanoid] &7- Live activity in your action bar");
+        Messages.header(sender, "Debug");
+        Messages.help(sender, "/h debug particles", "Toggle path particles + PathDebug log");
+        Messages.help(sender, "/h debug pathcheck [humanoid]", "Can it path to you?");
+        Messages.help(sender, "/h debug queue [humanoid]", "Show the action queue");
+        Messages.help(sender, "/h debug watch [humanoid]", "Live activity in your action bar");
     }
 
     @HelpCommand
     @Default
     @CatchUnknown
     public void onHelp(CommandSender sender) {
-        Messages.sendMessage(sender, "&6=== Humanoids &7(or just say \"Mai, follow me\" in chat) &6===");
-        Messages.sendMessage(sender, "&e/h spawn [name] &7- Spawn one at you (default Mai)");
-        Messages.sendMessage(sender, "&e/h come &7| &e/h follow [player] &7| &e/h stop");
-        Messages.sendMessage(sender, "&e/h guard [player] &7- Follow and fight threats");
-        Messages.sendMessage(sender, "&e/h attack <player|nearest> [smart|basic] &7- Fight");
-        Messages.sendMessage(sender, "&e/h goto <x y z|player> &7| &e/h tphere");
-        Messages.sendMessage(sender, "&e/h mine &7| &e/h place [block] &7- Where you're looking");
-        Messages.sendMessage(sender, "&e/h give &7(your held stack) | &e/h take <item> [n] &7| &e/h hold <item> &7| &e/h inv");
-        Messages.sendMessage(sender, "&e/h status &7| &e/h select <name> &7- Default humanoid for your commands");
-        Messages.sendMessage(sender, "&e/h tools &7| &e/h do <tool> {json} &7- The LLM-facing tool set");
-        Messages.sendMessage(sender, "&e/h list &7| &e/h info &7| &e/h rename &7| &e/h delete &7| &e/h debug");
+        Messages.header(sender, "Humanoids", "(or just say \"Mai, follow me\" in chat)");
+        Messages.help(sender, "/h spawn [name]", "Spawn one at you (default Mai)");
+        Messages.help(sender, "/h come", "Walk to you");
+        Messages.help(sender, "/h follow [player]", "Keep up with you");
+        Messages.help(sender, "/h guard [player]", "Follow and fight threats");
+        Messages.help(sender, "/h attack <player|nearest> [smart|basic]", "Fight");
+        Messages.help(sender, "/h goto <x y z|player>", "Walk somewhere");
+        Messages.help(sender, "/h stop", "Drop whatever it's doing");
+        Messages.help(sender, "/h tphere", "Teleport it to you");
+        Messages.help(sender, "/h mine", "Break the block you're looking at");
+        Messages.help(sender, "/h place [block]", "Place where you're looking");
+        Messages.help(sender, "/h give", "Hand over your held stack");
+        Messages.help(sender, "/h take <item> [n]", "Take items back");
+        Messages.help(sender, "/h hold <item>", "Hold an item");
+        Messages.help(sender, "/h inv", "Show its inventory");
+        Messages.help(sender, "/h status [humanoid]", "Activity, health, position");
+        Messages.help(sender, "/h select <name>", "Default humanoid for your commands");
+        Messages.help(sender, "/h tools", "The LLM-facing tool set");
+        Messages.help(sender, "/h do <tool> {json}", "Run a tool directly");
+        Messages.help(sender, "/h list", "Manage humanoids (also info, rename, delete)");
+        Messages.help(sender, "/h debug", "Path particles, path checks, live activity");
     }
 
     // ===== HELPERS =====
@@ -557,7 +566,7 @@ public class HumanoidCommand extends BaseCommand {
         Humanoid h = resolve(sender, bot);
         if (h == null) return;
         CompletableFuture<String> f = Tools.run(toolName, h, args, sender);
-        if (!f.isDone()) Messages.sendMessage(sender, "&7" + h.getName() + " is on it...");
+        if (!f.isDone()) Messages.sendMessage(sender, "&f" + h.getName() + " is on it...");
         f.whenComplete((msg, ex) -> Bukkit.getScheduler().runTask(Mai.getInstance(), () -> {
             if (ex != null) {
                 String why = Tools.errorMessage(ex);

@@ -34,7 +34,7 @@ public class EntityCleanupListener implements Listener {
         Set<UUID> ids = new HashSet<>();
         for (Humanoid h : Catalog.getInstance().getAllHumanoids()) {
             // Use raw field access to avoid auto-respawn triggering
-            Mannequin m = h.getRawMannequin();
+            org.bukkit.entity.LivingEntity m = h.getRawMannequin();
             if (m != null) {
                 ids.add(m.getUniqueId());
             }

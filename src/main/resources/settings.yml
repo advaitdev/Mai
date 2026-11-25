@@ -131,6 +131,54 @@ obstacle:
     x: 0
     z: 0
 
+# What a humanoid's body is. `player`: a server-side fake player (real player
+# physics, hunger, attacks, advancements; it shows in the tab list).
+# `mannequin`: the Mannequin mob, with its gaps from a player patched by Body.
+humanoid:
+  body: player
+
+# Real-terrain courses (/mai course): human baselines and bot runs. Courses
+# are pasted into the obstacle world at `origin`; `generate` cuts them out of
+# a seeded vanilla world (`source`), created the first time it is needed.
+course:
+  origin:
+    x: 3000
+    z: 0
+  source:
+    world: mai-terrain
+    seed: 20261121
+  # The finish marker: a glowing shell around the finish block and a glowing
+  # beam above it, outlined through terrain so it shows from anywhere on the
+  # course. `block` is what both are made of, `color` the outline (hex RGB),
+  # `beam_height` the beam's length in blocks (0 for no beam).
+  goal:
+    glow: true
+    block: lime_stained_glass
+    color: "55FF55"
+    beam_height: 24
+  # The course menu (/mai course). `icons` picks each course's item: an entry
+  # for the exact course name wins, else the name without its trailing number
+  # (forest-1 uses `forest`), else `default_icon`. They are all blocks so the
+  # menu reads as one set; any item name works if you'd rather use another set.
+  menu:
+    default_icon: grass_block
+    icons:
+      forest: oak_log
+      birch: birch_log
+      dark-forest: dark_oak_log
+      taiga: spruce_log
+      jungle: jungle_log
+      cherry: cherry_leaves
+      savanna: acacia_log
+      plains: hay_block
+      meadow: flowering_azalea_leaves
+      hills: stone
+      descend: cobblestone_stairs
+      snowy: snow_block
+      badlands: red_sand
+      river: clay
+      lake: blue_ice
+
 # Assistant behaviors (/h follow, guard, attack; chat like "Mai, follow me").
 # Read live: /mai reload applies edits without a restart.
 assistant:

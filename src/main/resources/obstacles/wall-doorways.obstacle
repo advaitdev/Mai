@@ -1,0 +1,11 @@
+name: wall-doorways
+description: Three walls with one-wide openings offset from each other.
+timeout_ticks: 300
+spawn_yaw: 270
+origin_y: 120
+---
+. . . 3 . . . 3 . . . 3 . . .
+. . . 3 . . . . . . . 3 . . .
+S . . . . . . 3 . . . 3 . . E
+. . . 3 . . . 3 . . . . . . .
+. . . 3 . . . 3 . . . 3 . . .

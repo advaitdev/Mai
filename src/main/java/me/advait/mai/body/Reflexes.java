@@ -45,7 +45,7 @@ public final class Reflexes {
     /** Movements that leave the ground on purpose; a fall during one is planned. */
     private static final java.util.Set<String> PLANNED_AIRBORNE = java.util.Set.of(
             "sprint_jump", "fall_safe", "fall_unsafe", "fall_into_water", "water_clutch",
-            "pillar_up", "step_up", "step_down", "mine_step_up");
+            "pillar_up", "step_up", "step_down", "mine_step_up", "run_jump");
 
     /** Bodies a reflex is driving this tick; their walk controller stands down. */
     private static final java.util.Set<java.util.UUID> ACTIVE = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -96,11 +96,16 @@ public final class Reflexes {
                 }
             }
         }
+        if (breathe(e)) return;
         if (e.isOnGround() && !e.isInWater()) LAST_GROUND.put(e.getUniqueId(), e.getLocation());
         if (e.isOnGround() || e.isInWater()) return;
         String moving = HumanoidWalkToRunnable.activeMovement(h);
         if (moving != null && PLANNED_AIRBORNE.contains(moving)) return;
 
+        // Falling into water is harmless at any height (vanilla resets the
+        // fall distance on contact): nothing to save. Read as void, every hop
+        // over a stream steered the bot back to the bank.
+        if (waterBelow(e)) return;
         double feet = e.getLocation().getY();
         Block ground = groundBelow(e);
         // Still rising over solid ground: nothing to save yet. Over void, a
@@ -207,6 +212,33 @@ public final class Reflexes {
         Body.of(e).look(yaw, p).keys(far ? 1 : 0, 0).sprint(far);
     }
 
+    /** Air (of 300) below which a submerged humanoid drops everything and swims up. */
+    private static final int LOW_AIR = 120;
+    /** Bodies surfacing for air: they keep at it until breathing again. */
+    private static final java.util.Set<java.util.UUID> SURFACING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * Comes up for air like a player would, whatever the plan: with the
+     * head under water and air running low, swim straight up (look up,
+     * sprint-swim, hold jump) until the head is out. Before this a bot
+     * stuck on a river bed sat there until it drowned.
+     */
+    private static boolean breathe(LivingEntity e) {
+        java.util.UUID id = e.getUniqueId();
+        Material eyes = e.getEyeLocation().getBlock().getType();
+        boolean under = eyes == Material.WATER || me.advait.mai.pathetic.movement.MaterialProvider.water(eyes) == Material.WATER;
+        if (!under) {
+            SURFACING.remove(id);
+            return false;
+        }
+        if (e.getRemainingAir() >= LOW_AIR && !SURFACING.contains(id)) return false;
+        if (SURFACING.add(id)) PathDebugLog.event("REFLEX_SURFACE air=%d", e.getRemainingAir());
+        ACTIVE.add(id);
+        RESCUED.add(id);
+        Body.of(e).look(e.getLocation().getYaw(), -70f).keys(1, 0).sprint(true).jump();
+        return true;
+    }
+
     /** Top solid block under the hitbox center, or null (void) within the scan depth. */
     private static Block groundBelow(LivingEntity e) {
         Block b = e.getLocation().getBlock();
@@ -215,6 +247,16 @@ public final class Reflexes {
             if (b.getType().isSolid() || b.isLiquid()) return b.isLiquid() ? null : b;
         }
         return null;
+    }
+
+    /** The first non-air block under the hitbox center is water. */
+    private static boolean waterBelow(LivingEntity e) {
+        Block b = e.getLocation().getBlock();
+        for (int i = 0; i < SCAN_DEPTH && b.getY() > e.getWorld().getMinHeight(); i++) {
+            b = b.getRelative(BlockFace.DOWN);
+            if (b.getType().isSolid() || b.isLiquid()) return b.getType() == Material.WATER;
+        }
+        return false;
     }
 
     private static final BlockFace[] SIDES = {

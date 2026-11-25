@@ -83,7 +83,7 @@ public class Catalog {
             return;
         }
 
-        humanoidsFile.saveAllHumanoids(new ArrayList<>(humanoids.values()));
+        humanoidsFile.saveAllHumanoids(persistent());
         Mai.getInstance().getLogger().info("Saved " + humanoids.size() + " humanoid(s) to file");
     }
 
@@ -91,7 +91,7 @@ public class Catalog {
      * Saves a single humanoid to the persistence file.
      */
     public void save(Humanoid humanoid) {
-        if (humanoidsFile == null || humanoid == null) return;
+        if (humanoidsFile == null || humanoid == null || temporary.contains(humanoid.getUuid())) return;
         humanoidsFile.saveHumanoid(humanoid);
     }
 
@@ -108,6 +108,27 @@ public class Catalog {
         humanoids.put(humanoid.getUuid(), humanoid);
         save(humanoid);
         return humanoid;
+    }
+
+    /**
+     * Registers a humanoid that is never written to the humanoids file: a
+     * test, duel or course bot. A server stopped mid-run used to bring them
+     * back at the next start, standing on the arena's start block.
+     */
+    public Humanoid registerTemporary(String name, Location location) {
+        Humanoid humanoid = new Humanoid(name);
+        temporary.add(humanoid.getUuid());
+        humanoid.spawn(location);
+        humanoids.put(humanoid.getUuid(), humanoid);
+        return humanoid;
+    }
+
+    private final java.util.Set<UUID> temporary = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private List<Humanoid> persistent() {
+        List<Humanoid> out = new ArrayList<>();
+        for (Humanoid h : humanoids.values()) if (!temporary.contains(h.getUuid())) out.add(h);
+        return out;
     }
 
     /**
@@ -139,10 +160,8 @@ public class Catalog {
     public void unregister(UUID uuid) {
         Humanoid humanoid = humanoids.remove(uuid);
         if (humanoid != null) {
-            if (humanoid.getEntity() != null && humanoid.getEntity().isValid()) {
-                humanoid.getEntity().remove();
-            }
-            if (humanoidsFile != null) {
+            humanoid.despawn();
+            if (!temporary.remove(uuid) && humanoidsFile != null) {
                 humanoidsFile.removeHumanoid(uuid);
             }
         }
@@ -210,9 +229,7 @@ public class Catalog {
      */
     public void killAll() {
         for (Humanoid h : humanoids.values()) {
-            if (h.getEntity() != null && h.getEntity().isValid()) {
-                h.getEntity().remove();
-            }
+            h.despawn();
         }
         humanoids.clear();
     }

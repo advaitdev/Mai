@@ -1,0 +1,10 @@
+name: water-waterfall-up
+description: Swim up a seven-high waterfall against its downward push and step out at the top.
+blocks: f=water[level=8]
+timeout_ticks: 400
+spawn_yaw: 270
+origin_y: 120
+---
+9 9 9 9 9
+S . . 7*f E6
+9 9 9 9 9

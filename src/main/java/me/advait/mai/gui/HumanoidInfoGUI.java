@@ -70,15 +70,15 @@ public class HumanoidInfoGUI implements InventoryHolder {
             meta.setDisplayName(colorize("&6" + humanoid.getName()));
 
             List<String> lore = new ArrayList<>();
-            lore.add(colorize("&7UUID: &f" + humanoid.getUuid().toString()));
+            lore.add(colorize("&fUUID: &f" + humanoid.getUuid().toString()));
             lore.add("");
 
             if (humanoid.getMannequin() != null) {
-                lore.add(colorize("&7Location: &f" + LocationSerializer.toReadableString(humanoid.getMannequin().getLocation())));
-                lore.add(colorize("&7Health: &f" + String.format("%.1f", humanoid.getMannequin().getHealth())));
-                lore.add(colorize("&7Status: &aSpawned"));
+                lore.add(colorize("&fLocation: &f" + LocationSerializer.toReadableString(humanoid.getMannequin().getLocation())));
+                lore.add(colorize("&fHealth: &f" + String.format("%.1f", humanoid.getMannequin().getHealth())));
+                lore.add(colorize("&fStatus: &aSpawned"));
             } else {
-                lore.add(colorize("&7Status: &cNot spawned"));
+                lore.add(colorize("&fStatus: &cNot spawned"));
             }
 
             // Inventory info
@@ -89,7 +89,7 @@ public class HumanoidInfoGUI implements InventoryHolder {
                 }
             }
             lore.add("");
-            lore.add(colorize("&7Inventory items: &f" + itemCount + "/36"));
+            lore.add(colorize("&fInventory items: &f" + itemCount + "/36"));
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -100,8 +100,8 @@ public class HumanoidInfoGUI implements InventoryHolder {
 
     private ItemStack createTeleportButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to teleport to"));
-        lore.add(colorize("&7this Humanoid's location."));
+        lore.add(colorize("&fClick to teleport to"));
+        lore.add(colorize("&fthis Humanoid's location."));
 
         if (humanoid.getMannequin() == null) {
             lore.add("");
@@ -113,34 +113,34 @@ public class HumanoidInfoGUI implements InventoryHolder {
 
     private ItemStack createInventoryButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to view and edit"));
-        lore.add(colorize("&7this Humanoid's inventory."));
+        lore.add(colorize("&fClick to view and edit"));
+        lore.add(colorize("&fthis Humanoid's inventory."));
 
         return createItem(Material.CHEST, "&eView Inventory", lore);
     }
 
     private ItemStack createRenameButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to rename this Humanoid."));
-        lore.add(colorize("&7Type the new name in chat."));
+        lore.add(colorize("&fClick to rename this Humanoid."));
+        lore.add(colorize("&fType the new name in chat."));
 
         return createItem(Material.NAME_TAG, "&bRename", lore);
     }
 
     private ItemStack createDeleteButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Click to delete this Humanoid."));
+        lore.add(colorize("&fClick to delete this Humanoid."));
         lore.add("");
-        lore.add(colorize("&c&lThis action cannot be undone!"));
+        lore.add(colorize("&cThis action cannot be undone!"));
 
         return createItem(Material.BARRIER, "&cDelete", lore);
     }
 
     private ItemStack createBackButton() {
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Return to Humanoid list."));
+        lore.add(colorize("&fReturn to Humanoid list."));
 
-        return createItem(Material.ARROW, "&7Back", lore);
+        return createItem(Material.ARROW, "&fBack", lore);
     }
 
     private ItemStack createItem(Material material, String name, List<String> lore) {

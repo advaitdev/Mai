@@ -139,6 +139,7 @@ public final class Assistant {
         Component line = Component.text("<" + humanoid.getName() + "> ", NamedTextColor.AQUA)
                 .append(Component.text(message, NamedTextColor.WHITE));
         for (Player p : Bukkit.getOnlinePlayers()) {
+            if (me.advait.mai.body.fake.FakePlayers.isFake(p)) continue;
             if (e == null || !p.getWorld().equals(e.getWorld())
                     || p.getLocation().distanceSquared(e.getLocation()) <= 64 * 64) {
                 p.sendMessage(line);
@@ -152,6 +153,8 @@ public final class Assistant {
         double bestD = radius * radius;
         for (Player p : e.getWorld().getPlayers()) {
             if (p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
+            // Another humanoid's body is a player to the server, not a person.
+            if (me.advait.mai.body.fake.FakePlayers.isFake(p)) continue;
             double d = p.getLocation().distanceSquared(e.getLocation());
             if (d < bestD) { bestD = d; best = p; }
         }

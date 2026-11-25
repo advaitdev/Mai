@@ -43,10 +43,12 @@ public final class Mai extends JavaPlugin {
 
         Catalog.getInstance().setHumanoidsFile(humanoidsFile);
 
+        me.advait.mai.body.fake.FakePlayers.init(this);
         PatheticBukkit.initialize(this);
         MovementConfig movementConfig = new MovementConfig(settingsFile.getConfiguration());
         PatheticAgent.getInstance().initialize(movementConfig);
         ObstacleTester.getInstance().initialize();
+        me.advait.mai.course.CourseManager.getInstance().initialize();
         registerCommands();
         registerListeners();
         me.advait.mai.assistant.Assistant.startTicker();
@@ -68,22 +70,31 @@ public final class Mai extends JavaPlugin {
                 me.advait.mai.assistant.Tools.all().stream().map(me.advait.mai.assistant.Tools.Tool::name).toList()
         );
         commandManager.registerCommand(new HumanoidCommand());
+        commandManager.getCommandCompletions().registerCompletion("courses", c ->
+                me.advait.mai.course.CourseManager.getInstance().names()
+        );
         commandManager.registerCommand(new ObstacleCommand());
+        commandManager.registerCommand(new me.advait.mai.course.CourseCommand());
     }
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new me.advait.mai.body.BodyListener(), this);
         getServer().getPluginManager().registerEvents(new GUIListener(), this);
+        getServer().getPluginManager().registerEvents(new me.advait.mai.gui.menu.MenuListener(), this);
         getServer().getPluginManager().registerEvents(new EntityCleanupListener(), this);
         getServer().getPluginManager().registerEvents(new WorldChangeListener(), this);
+        getServer().getPluginManager().registerEvents(new me.advait.mai.course.CourseListener(), this);
         getServer().getPluginManager().registerEvents(new me.advait.mai.assistant.AssistantChatListener(), this);
         getServer().getPluginManager().registerEvents(new me.advait.mai.assistant.GuardBehavior.DamageListener(), this);
     }
 
     @Override
     public void onDisable() {
+        me.advait.mai.gui.menu.GUIManager.getInstance().closeAll();
+        me.advait.mai.course.CourseManager.getInstance().shutdown();
         Catalog.getInstance().saveAll();
         Catalog.getInstance().killAll();
+        me.advait.mai.body.fake.FakePlayers.removeAll();
         INSTANCE = null;
     }
 

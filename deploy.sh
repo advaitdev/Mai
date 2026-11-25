@@ -33,7 +33,8 @@ if [ -n "$SERVER_PID" ]; then
     echo "Stopping server (PID$SERVER_PID)..."
     kill $SERVER_PID 2>/dev/null || true
     for pid in $SERVER_PID; do
-        while kill -0 "$pid" 2>/dev/null; do sleep 1; done
+        # A zombie (exited, not yet reaped by tmux) still answers kill -0.
+        while kill -0 "$pid" 2>/dev/null && [ "$(ps -o stat= -p "$pid" | cut -c1)" != "Z" ]; do sleep 1; done
     done
     echo "Server stopped."
 fi

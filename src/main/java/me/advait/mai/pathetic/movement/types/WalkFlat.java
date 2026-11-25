@@ -65,16 +65,11 @@ public record WalkFlat() implements MovementType {
             PathDebugLog.event("AUTO_JUMP type=walk_flat bot=(%.2f,%.2f,%.2f) dir=(%.2f,%.2f)",
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(), dir[0], dir[1]);
             MovementExecutors.jump(ctx);
-        } else if (sprinting && MovementExecutors.flatRunJumpClear(ctx, dir)) {
-            PathDebugLog.event("RUN_JUMP type=walk_flat bot=(%.2f,%.2f,%.2f) dist=%.2f",
-                    ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(),
-                    MovementExecutors.horizontalDistance(ctx.current, ctx.waypoint));
-            MovementExecutors.face(ctx.entity(), dir);
-            MovementExecutors.jump(ctx);
         }
+        // Run-jumps are the driver's (RunJump): it sees the route past this waypoint.
 
         MovementExecutors.walk(ctx, sprinting);
-        return MovementExecutors.reachedFully(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
+        return MovementExecutors.walkArrived(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;
     }
 
     public static boolean isStandable(PathPosition pos, MaterialProvider materials) {

@@ -28,6 +28,8 @@ public final class FollowBehavior implements Behavior {
         this.nav = new Navigator(humanoid);
     }
 
+    private final GroundTracker ground = new GroundTracker();
+
     public Entity leader() { return leader; }
 
     @Override
@@ -63,8 +65,7 @@ public final class FollowBehavior implements Behavior {
 
         lastDist = here.distance(there);
         if (lastDist > distance + 1.0) {
-            Location goal = landingSpot(there);
-            nav.moveTo(goal != null ? goal : there, distance);
+            nav.moveTo(ground.resolve(there), distance);
         } else if (!nav.isMoving()) {
             Motor.look(bot, leader);
         }
@@ -78,13 +79,15 @@ public final class FollowBehavior implements Behavior {
 
     /**
      * Where a target that is jumping, flying or falling will stand: the first
-     * standable cell at or below it (up to 6 blocks). Pathing toward the air
-     * cell itself would fail every time the leader jumps.
+     * standable cell at or below it (up to 6 blocks), or the water it is
+     * swimming in or falling into (water is a path endpoint). Pathing toward
+     * the air cell itself would fail every time the leader jumps.
      */
     static Location landingSpot(Location at) {
         Location probe = PatheticAgent.feetCell(at);
         for (int dy = 0; dy <= 6; dy++) {
             Location c = probe.clone().add(0, -dy, 0);
+            if (c.getBlock().getType() == org.bukkit.Material.WATER) return c;
             if (PatheticAgent.getInstance().isStandable(c)) return c;
         }
         return null;
