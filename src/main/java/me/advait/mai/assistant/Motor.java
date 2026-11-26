@@ -51,7 +51,7 @@ public final class Motor {
         double h = Math.sqrt(dx * dx + dz * dz);
         float yaw = Body.yawOf(dx, dz);
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, h));
-        Body.of(e).look(yaw, pitch);
+        Body.of(e).gaze(yaw, pitch);
     }
 
     /** Look at the middle of another entity's body. */

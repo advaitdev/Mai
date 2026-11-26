@@ -577,7 +577,7 @@ public final class ObstacleTester {
                 }
                 log.tick(ticks[0], loc, ent.getVelocity(), ent.isOnGround(),
                         humanoid.getActionAgent().getCurrentActionName(),
-                        me.advait.mai.body.Body.of(ent).lastTick() + String.format(" hp=%.1f hc=%s", ent.getHealth(),
+                        me.advait.mai.body.Body.of(ent).lastTick() + " " + me.advait.mai.body.Body.surface(ent) + String.format(" hp=%.1f hc=%s", ent.getHealth(),
                                 me.advait.mai.body.Body.of(ent).collision()));
 
                 if (loc.getY() < arena.floorY() - 2) { resolve.accept(Result.fail("fell")); return; }

@@ -122,7 +122,7 @@ public record BridgePlace() implements MovementType {
             }
         }
         if (!placed) {
-            ctx.body().look(backYaw, BRIDGE_PITCH);
+            ctx.body().aim(backYaw, BRIDGE_PITCH);
         }
 
         // Keys. Facing back, S moves along the bridge and W brakes.

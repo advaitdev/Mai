@@ -77,7 +77,9 @@ public final class FakePlayers implements Listener {
         FakePlayer fp = new FakePlayer(server, level, profile, info);
         fp.snapTo(at.getX(), at.getY(), at.getZ(), at.getYaw(), at.getPitch());
         FAKES.add(id);
-        server.getPlayerList().placeNewPlayer(new FakeConnection(plugin), fp, CommonListenerCookie.createInitial(profile, false));
+        FakeConnection connection = new FakeConnection(plugin);
+        connection.player = fp;
+        server.getPlayerList().placeNewPlayer(connection, fp, CommonListenerCookie.createInitial(profile, false));
         // A joining player is invulnerable until its client says it has
         // loaded the world; this one never will.
         fp.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());

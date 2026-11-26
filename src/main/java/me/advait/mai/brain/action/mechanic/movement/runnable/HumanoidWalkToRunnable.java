@@ -423,6 +423,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
 
     /** Ground moves the runner covers: the route it runs along is made of these. */
     private static final Set<String> RUN_MOVES = Set.of("walk_flat", "walk_diagonal", "step_up", "step_down", "fall_safe");
+    /** How far past the path's end the runner's route follows a target that has moved on. */
+    private static final double CHASE_EXTEND = 16.0;
     /** Moves that take the route into water: the runner runs or jumps in where one follows its ground moves. */
     private static final Set<String> WATER_MOVES = Set.of("swim", "fall_into_water");
     /** How far ahead along the path the runner's route reaches. */
@@ -511,6 +513,19 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
                 }
                 points.add(new double[]{w.x(), w.y(), w.z()});
             }
+            // Chasing something that moves, the path ends where the target was when it was planned, a
+            // second or so of running behind it. The route goes on to where the target is now: with the
+            // stale end as the route's end, every jump that would carry past it was thrown out, and the
+            // hunter crept up to it and bumped into steps (a 12-block gap grew to 18 on plains).
+            if (arrivalRadius > 0 && target != null && points.size() >= 2) {
+                AnnotatedWaypoint end = currentPath.get(currentPath.size() - 1);
+                double[] last = points.getLast();
+                if (last[0] == end.x() && last[2] == end.z() && last[1] == end.y()) {
+                    double tx = target.getBlockX() + 0.5, tz = target.getBlockZ() + 0.5, ty = target.getBlockY();
+                    double d = Math.hypot(tx - last[0], tz - last[2]);
+                    if (d > 1.0 && d < CHASE_EXTEND && Math.abs(ty - last[1]) <= 4) points.add(new double[]{tx, ty, tz});
+                }
+            }
             if (points.size() < 2) return false;
             runRoute = new me.advait.mai.pathetic.movement.Runner.Route(points);
             runRoute.waterFrom = waterFrom;
@@ -526,6 +541,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         state.vx = v.getX();
         state.vy = v.getY();
         state.vz = v.getZ();
+        state.yaw = current.getYaw();
+        state.turned = tickCtx.body().lastTurn();
         state.onGround = entity.isOnGround();
         state.fall = entity.getFallDistance();
         state.sprinting = tickCtx.body().sprintingAtTickStart();
@@ -539,7 +556,8 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         if (stalled) me.advait.mai.pathetic.movement.Runner.trace = new StringBuilder();
         long began = System.nanoTime();
         me.advait.mai.pathetic.movement.Runner.Step step =
-                me.advait.mai.pathetic.movement.Runner.plan(state, terrain, config, runRoute, runRouteStops);
+                me.advait.mai.pathetic.movement.Runner.plan(state, terrain, config, runRoute, runRouteStops,
+                        tickCtx.body().previewTurn(current.getYaw()) - current.getYaw());
         long micros = (System.nanoTime() - began) / 1000;
         if (stalled) {
             PathDebugLog.event("RUN_STALLED bot=(%.2f,%.2f,%.2f) chose=%s candidates: %s", current.getX(), current.getY(), current.getZ(),
@@ -556,7 +574,7 @@ public class HumanoidWalkToRunnable extends BukkitRunnable {
         } else if (debugMode && !was) {
             PathDebugLog.event("RUN_ON bot=(%.2f,%.2f,%.2f) %s", current.getX(), current.getY(), current.getZ(), step.label());
         }
-        tickCtx.body().look(step.yaw(), 0f).keys(1, 0).sprint(true);
+        tickCtx.body().aimYaw(step.yaw()).keys(1, 0).sprint(true);
         if (step.jump()) MovementExecutors.jump(tickCtx);
         runnerNext = step.next();
         tickCtx.bestHorizDistToWaypoint = Double.MAX_VALUE;

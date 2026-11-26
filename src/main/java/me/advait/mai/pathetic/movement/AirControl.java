@@ -73,7 +73,8 @@ public final class AirControl {
         double dx = tx - ctx.current.getX();
         double dz = tz - ctx.current.getZ();
         float yaw = Math.hypot(dx, dz) > 0.05 ? Body.yawOf(dx, dz) : ctx.current.getYaw();
-        body.yaw(yaw);
+        // The keys below are chosen for where the view really points this tick.
+        yaw = body.turn(yaw);
 
         int n = ticksToLand(ctx.current.getY(), vel.getY(), landY, c);
         if (n < 0) {

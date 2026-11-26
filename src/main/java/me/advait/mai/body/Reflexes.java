@@ -122,7 +122,7 @@ public final class Reflexes {
             double above = feet - (ground.getY() + 1);
             if (above > 0.05 && above <= Hands.REACH - EYE - 0.05 && Hands.ready(e)) {
                 hold(h, Material.WATER_BUCKET);
-                Body.of(e).look(e.getLocation().getYaw(), 90f);
+                Body.of(e).aim(e.getLocation().getYaw(), 90f);
                 Block water = Hands.emptyBucket(e);
                 PathDebugLog.event("REFLEX_WATER_CLUTCH above=%.2f fall=%.1f ok=%s", above, fall, water != null);
                 if (water != null) PUDDLES.put(e.getUniqueId(), water);
@@ -203,13 +203,13 @@ public final class Reflexes {
         org.bukkit.Location loc = e.getLocation();
         float p = Float.isNaN(pitch) ? loc.getPitch() : pitch;
         if (home == null || !home.getWorld().equals(loc.getWorld())) {
-            Body.of(e).look(loc.getYaw(), p);
+            Body.of(e).aim(loc.getYaw(), p);
             return;
         }
         double dx = home.getX() - loc.getX(), dz = home.getZ() - loc.getZ();
         boolean far = dx * dx + dz * dz > 0.04;
         float yaw = far ? Body.yawOf(dx, dz) : loc.getYaw();
-        Body.of(e).look(yaw, p).keys(far ? 1 : 0, 0).sprint(far);
+        Body.of(e).aim(yaw, p).keys(far ? 1 : 0, 0).sprint(far);
     }
 
     /** Air (of 300) below which a submerged humanoid drops everything and swims up. */
@@ -235,7 +235,7 @@ public final class Reflexes {
         if (SURFACING.add(id)) PathDebugLog.event("REFLEX_SURFACE air=%d", e.getRemainingAir());
         ACTIVE.add(id);
         RESCUED.add(id);
-        Body.of(e).look(e.getLocation().getYaw(), -70f).keys(1, 0).sprint(true).jump();
+        Body.of(e).aim(e.getLocation().getYaw(), -70f).keys(1, 0).sprint(true).jump();
         return true;
     }
 

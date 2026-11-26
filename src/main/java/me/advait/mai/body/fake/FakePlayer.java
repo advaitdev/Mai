@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * A server-side player with no client: a real {@code ServerPlayer} (player
@@ -49,10 +50,25 @@ final class FakePlayer extends ServerPlayer {
         super.jumpFromGround();
     }
 
+    /**
+     * The velocity the server last sent this player's client (a
+     * {@code ClientboundSetEntityMotionPacket} about itself), taken up on the
+     * next tick as a client does. It matters for a hit from a player:
+     * {@code Player.causeExtraKnockback} sends the hit player its knockback
+     * in that packet and then puts the server's copy of its velocity back to
+     * what it was, since a real player's client moves it. With the packet
+     * dropped, a fake player took no knockback at all from players.
+     */
+    Vec3 clientMotion;
+
     @Override
     public void tick() {
         super.tick();
         if (isRemoved()) return;
+        if (clientMotion != null) {
+            setDeltaMovement(clientMotion);
+            clientMotion = null;
+        }
         double x = getX(), y = getY(), z = getZ();
         doTick();
         if (isRemoved()) return;

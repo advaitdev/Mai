@@ -106,10 +106,52 @@ public final class Body {
     private Vector airAssist = new Vector();
     private int airAssistTick = -1;
 
+    /**
+     * How the head turns ({@code settings.yml -> movement.view}). A turn
+     * covers {@code gain} of what is left each tick, at least {@code minTurn}
+     * and at most {@code maxTurn} degrees, so the view sweeps round like a
+     * mouse instead of snapping. {@code maxTurn} 180 with {@code gain} 1
+     * and no noise is an instant, exact view.
+     */
+    public record View(float maxTurn, float gain, float minTurn, float noiseYaw, float noisePitch,
+                       boolean naturalPitch, double gazeDistance) {
+        public static final View EXACT = new View(180F, 1F, 180F, 0F, 0F, false, 4.0);
+    }
+
+    private static volatile View view = new View(45F, 0.5F, 4F, 0.5F, 1.5F, true, 4.0);
+
+    public static void view(View v) { view = v; }
+
+    public static View view() { return view; }
+
+    /** View at the start of this tick: what a turn this tick starts from, however often it is asked for. */
+    private float tickYaw, tickPitch;
+    /** How far the view turned last tick (degrees of yaw, signed). */
+    private float lastTurn;
+
+    public float lastTurn() { return lastTurn; }
+
+    /** Slow wander added to where the head is pointed (degrees), new each tick. */
+    private float noiseYaw, noisePitch;
+    /** Seeded the same for every body, so a run repeats exactly. */
+    private final java.util.Random wander = new java.util.Random(0x4D6169L);
+    /** The yaw this tick's keys are relative to, when the view is still turning toward it. */
+    private float keyYaw;
+    private boolean remap;
+    /** A controller chose the pitch this tick; a plain turn keeps it. */
+    private boolean pitchChosen;
+    private float naturalPitch;
+    private boolean naturalPitchKnown;
+    /** The keys the body really holds this tick (after {@link #remap}). */
+    private int heldForward, heldRight;
+
     private Body(LivingEntity entity) {
         this.entity = entity;
         this.player = entity instanceof org.bukkit.entity.Player;
         this.sprintingAtTickStart = (boolean) call(isSprinting);
+        var at = entity.getLocation();
+        this.tickYaw = at.getYaw();
+        this.tickPitch = at.getPitch();
     }
 
     public static Body of(LivingEntity entity) {
@@ -178,6 +220,7 @@ public final class Body {
             b.jump = false;
             b.sprint = false;
             b.sneak = false;
+            b.startView();
             b.apply();
             return false;
         });
@@ -245,16 +288,141 @@ public final class Body {
         return this;
     }
 
-    /** Turn the view. Any float yaw/pitch; movement keys are relative to the yaw. */
-    public Body look(float yaw, float pitch) {
+    private void startView() {
+        var at = entity.getLocation();
+        lastTurn = wrap(at.getYaw() - tickYaw);
+        tickYaw = at.getYaw();
+        tickPitch = at.getPitch();
+        View v = view;
+        // Ornstein-Uhlenbeck: wanders within about the configured amplitude, without jumping tick to tick.
+        noiseYaw = v.noiseYaw() <= 0 ? 0 : noiseYaw * 0.9F + (float) wander.nextGaussian() * v.noiseYaw() * 0.436F;
+        noisePitch = v.noisePitch() <= 0 ? 0 : noisePitch * 0.9F + (float) wander.nextGaussian() * v.noisePitch() * 0.436F;
+        remap = false;
+        pitchChosen = false;
+        naturalPitchKnown = false;
+    }
+
+    private static float wrap(float degrees) {
+        float d = degrees % 360F;
+        if (d >= 180F) d -= 360F;
+        if (d < -180F) d += 360F;
+        return d;
+    }
+
+    /** One tick of turning from {@code from} toward {@code goal} (see {@link View}). Pure: controllers that predict use it too. */
+    public static float turnStep(float from, float goal, View v) {
+        float e = wrap(goal - from), a = Math.abs(e);
+        if (a <= v.minTurn()) return from + e;
+        float step = Math.min(a, Math.min(v.maxTurn(), Math.max(v.minTurn(), v.gain() * a)));
+        return from + Math.signum(e) * step;
+    }
+
+    /** Where the view will point this tick if turned toward {@code yaw} (what {@link #turn} returns), without turning it. */
+    public float previewTurn(float yaw) {
+        return turnStep(tickYaw, yaw + noiseYaw, view);
+    }
+
+    /**
+     * The pitch of someone watching where they are going: at the ground
+     * {@code gazeDistance} ahead (lower when it drops away, level at a wall).
+     */
+    private float naturalPitch(float yaw) {
+        if (naturalPitchKnown) return naturalPitch;
+        naturalPitchKnown = true;
+        View v = view;
+        var at = entity.getLocation();
+        double rad = Math.toRadians(yaw), d = v.gazeDistance();
+        double px = at.getX() - Math.sin(rad) * d, pz = at.getZ() + Math.cos(rad) * d;
+        int bx = (int) Math.floor(px), bz = (int) Math.floor(pz), feet = (int) Math.floor(at.getY() + 0.01);
+        double top = at.getY() - 3;
+        var world = at.getWorld();
+        if (world.isChunkLoaded(bx >> 4, bz >> 4)) {
+            for (int by = feet + 1; by >= feet - 5; by--) {
+                if (by < world.getMinHeight() || by >= world.getMaxHeight()) continue;
+                if (!world.getBlockAt(bx, by, bz).isPassable()) {
+                    top = by + 1;
+                    break;
+                }
+            }
+        }
+        double eye = at.getY() + entity.getEyeHeight();
+        naturalPitch = (float) Math.max(-15, Math.min(60, Math.toDegrees(Math.atan2(eye - top, d))));
+        return naturalPitch;
+    }
+
+    /** This tick's pitch for a turn that doesn't choose one. */
+    private float restingPitch(float yaw) {
+        if (pitchChosen || !view.naturalPitch()) return entity.getLocation().getPitch();
+        return turnStep(tickPitch, naturalPitch(yaw) + noisePitch, view);
+    }
+
+    private void set(float yaw, float pitch) {
         entity.setRotation(yaw, Math.max(-90F, Math.min(90F, pitch)));
+    }
+
+    /**
+     * Turn the view toward {@code yaw} like a person does (see {@link View})
+     * and set the pitch. Movement keys pressed this tick are relative to
+     * {@code yaw}: while the head is still coming round they are swapped
+     * for the keys nearest that direction (see {@link #apply}).
+     */
+    public Body look(float yaw, float pitch) {
+        pitchChosen = true;
+        set(previewTurn(yaw), pitch);
+        keyYaw = yaw;
+        remap = true;
         apply();
         return this;
     }
 
-    /** Turn horizontally, keeping the current pitch. */
+    /** Like {@link #look}, with the pitch turning as gradually as the yaw (looking at something, not steering by it). */
+    public Body gaze(float yaw, float pitch) {
+        pitchChosen = true;
+        set(previewTurn(yaw), turnStep(tickPitch, pitch + noisePitch, view));
+        keyYaw = yaw;
+        remap = true;
+        apply();
+        return this;
+    }
+
+    /** Point the view exactly, at once: a click that has to land on a block face, a clutch. Keys are relative to it. */
+    public Body aim(float yaw, float pitch) {
+        pitchChosen = true;
+        set(yaw, pitch);
+        remap = false;
+        apply();
+        return this;
+    }
+
+    /** Exact yaw (one a controller already worked out with {@link #previewTurn}); the pitch is left to the body. */
+    public Body aimYaw(float yaw) {
+        set(yaw, restingPitch(yaw));
+        remap = false;
+        apply();
+        return this;
+    }
+
+    /**
+     * Turn toward {@code yaw} like {@link #yaw} and return where the view
+     * now points. Keys pressed after this are relative to the returned yaw
+     * (for controllers that choose keys by predicting from the real view).
+     */
+    public float turn(float yaw) {
+        float actual = previewTurn(yaw);
+        set(actual, restingPitch(actual));
+        remap = false;
+        apply();
+        return actual;
+    }
+
+    /** Turn horizontally toward {@code yaw}; the pitch settles on the ground ahead unless a controller chose one this tick. */
     public Body yaw(float yaw) {
-        return look(yaw, entity.getLocation().getPitch());
+        float actual = previewTurn(yaw);
+        set(actual, restingPitch(actual));
+        keyYaw = yaw;
+        remap = true;
+        apply();
+        return this;
     }
 
     /** Turn to face a horizontal direction {@code (dx, dz)}. */
@@ -278,16 +446,49 @@ public final class Body {
 
     private String describe() {
         StringBuilder k = new StringBuilder();
-        if (forward > 0) k.append('W');
-        if (forward < 0) k.append('S');
-        if (right < 0) k.append('A');
-        if (right > 0) k.append('D');
+        if (heldForward > 0) k.append('W');
+        if (heldForward < 0) k.append('S');
+        if (heldRight < 0) k.append('A');
+        if (heldRight > 0) k.append('D');
         if (k.isEmpty()) k.append('-');
         if (jump) k.append("+jump");
         if (sprinting()) k.append("+sprint");
         if (sneak) k.append("+sneak");
         var loc = entity.getLocation();
         return String.format("keys=%s yaw=%.2f pitch=%.2f", k, loc.getYaw(), loc.getPitch());
+    }
+
+    /**
+     * What an entity stands in, for the tick logs: {@code slip=0.60} is the
+     * slipperiness of the block that carries it (what its next tick's
+     * friction and ground acceleration come from), followed by
+     * {@code in=water} or {@code in=ladder} where movement isn't the plain
+     * walking and jumping {@code tools/physics_check.py} checks.
+     */
+    public static String surface(LivingEntity e) {
+        var at = e.getLocation();
+        var world = at.getWorld();
+        int y = (int) Math.floor(at.getY() - 0.5000001);
+        org.bukkit.block.Block under = world.getBlockAt(at.getBlockX(), y, at.getBlockZ());
+        if (under.isPassable()) {
+            // Center over air: the block that holds the body up (Entity.getOnPos).
+            double half = e.getWidth() / 2, best = Double.MAX_VALUE;
+            for (int bx = (int) Math.floor(at.getX() - half); bx <= (int) Math.floor(at.getX() + half); bx++) {
+                for (int bz = (int) Math.floor(at.getZ() - half); bz <= (int) Math.floor(at.getZ() + half); bz++) {
+                    org.bukkit.block.Block b = world.getBlockAt(bx, y, bz);
+                    if (b.isPassable()) continue;
+                    double d = Math.pow(bx + 0.5 - at.getX(), 2) + Math.pow(bz + 0.5 - at.getZ(), 2);
+                    if (d < best) {
+                        best = d;
+                        under = b;
+                    }
+                }
+            }
+        }
+        String s = String.format("slip=%.2f", under.getType().isBlock() ? under.getType().getSlipperiness() : 0.6F);
+        if (e.isInWater() || e.isInLava()) s += " in=water";
+        else if (e.isClimbing()) s += " in=ladder";
+        return s;
     }
 
     /** Whether the last move ran into a wall (vanilla {@code horizontalCollision}; {@code minor} = a glancing one that keeps a sprint). */
@@ -376,6 +577,9 @@ public final class Body {
     // Writing to the entity
     // =========================================================================
 
+    private static final int[] OCTANT_FORWARD = {1, 1, 0, -1, -1, -1, 0, 1};
+    private static final int[] OCTANT_RIGHT = {0, 1, 1, 1, 0, -1, -1, -1};
+
     private void apply() {
         if (!entity.isValid()) return;
         Object h = handle();
@@ -385,8 +589,23 @@ public final class Body {
         boolean was = sprintingAtTickStart;
         boolean shallow = entity.isInWater() && !entity.isUnderWater();
         boolean hardCollision = (boolean) horizontalCollision.get(h) && !minorCollision;
+        // Keys are WASD relative to the view. While the head is still turning
+        // toward the yaw the controller asked for, hold the keys nearest the
+        // direction it meant (W toward a point to the right becomes W+D, or D).
+        int forward = this.forward, right = this.right;
+        if (remap && (forward != 0 || right != 0)) {
+            float off = wrap(keyYaw - entity.getLocation().getYaw());
+            if (Math.abs(off) > 22.5F) {
+                double angle = Math.toDegrees(Math.atan2(right, forward)) + off;
+                int octant = Math.floorMod((int) Math.round(angle / 45.0), 8);
+                forward = OCTANT_FORWARD[octant];
+                right = OCTANT_RIGHT[octant];
+            }
+        }
         int effectiveForward = forward;
         if (was && !sprint && forward > 0) effectiveForward = 0;   // w-tap to stop
+        heldForward = effectiveForward;
+        heldRight = right;
         boolean sprinting = was;
         boolean blocked = sprintBlockedTick == Bukkit.getCurrentTick();
         // LocalPlayer.hasEnoughFoodToStartSprinting: a hungry player can't start.

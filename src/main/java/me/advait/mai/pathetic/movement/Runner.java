@@ -159,7 +159,9 @@ public final class Runner {
      * or null if no candidate is valid. {@code stopAtEnd}: the walk stops on
      * the route's last point, so the run must leave room to stop before it.
      */
-    public static Step plan(RunSim.State start, RunSim.Terrain terrain, MovementConfig c, Route route, boolean stopAtEnd) {
+    public static Step plan(RunSim.State start, RunSim.Terrain terrain, MovementConfig c, Route route, boolean stopAtEnd,
+                            float wander) {
+        noise0 = wander;
         route.project(start.x, start.z, Double.NEGATIVE_INFINITY);
         double along0 = route.along;
         if (route.off > CORRIDOR + 0.5) return reject(String.format("far_from_route %.2f", route.off));
@@ -167,6 +169,7 @@ public final class Runner {
         // Ice is the walk executor's: every candidate here holds W and sprint, and on ice a run can't
         // be turned or stopped inside the horizon (it jumped along an ice walkway and slid off its corner).
         if (start.onGround && RunSim.frictionUnder(start, terrain) > SLIPPERY) return reject("slippery");
+        java.util.ArrayList<Step> all = new java.util.ArrayList<>(64);
         // The best candidate overall, and the best of those that jump this tick.
         Step best = null, bestJump = null;
         String why = "";
@@ -180,6 +183,7 @@ public final class Runner {
                         why = lastReject;
                         continue;
                     }
+                    all.add(s);
                     if (best == null || s.score() > best.score() + 1e-6) best = s;
                     if (s.jump() && (bestJump == null || s.score() > bestJump.score() + 1e-6)) bestJump = s;
                 }
@@ -192,6 +196,7 @@ public final class Runner {
                         Step s = traced(rollout(start, terrain, c, route, along0, stopAtEnd, ahead, after, true, side),
                                 ahead, after, true, side, along0);
                         if (s == null) continue;
+                        all.add(s);
                         // A sidestep has to beat running straight by a margin, or the bot weaves.
                         if (best == null || s.score() > best.score() + (best.bumped() && !s.bumped() ? 1e-6 : 0.25)) best = s;
                         if (s.jump() && (bestJump == null || s.score() > bestJump.score() + 1e-6)) bestJump = s;
@@ -211,7 +216,36 @@ public final class Runner {
         // again next tick (it is re-planned from scratch), and the body dawdles into the step it has to jump.
         if (!best.jump() && bestJump != null && bestJump.score() >= best.score() - JUMP_NOW_BIAS) best = bestJump;
         if (best.score() - along0 < MIN_PROGRESS) return reject(String.format("no_progress %.2f", best.score() - along0));
-        return best;
+        // Of the candidates that get about as far, the one that turns the head most like it was already
+        // turning. Picking the top score alone, the aim point changed every tick and the head twitched
+        // left and right (25 to 55 reversals a course; a person's run has none).
+        boolean side = best.label().contains(" side=");
+        float turn = wrap(best.yaw() - start.yaw) - start.turned;
+        Step smooth = best;
+        for (Step s : all) {
+            if (s.jump() != best.jump() || s.bumped() != best.bumped() || s.label().contains(" side=") != side) continue;
+            if (s.score() < best.score() - SMOOTH_SLACK) continue;
+            if (!s.jump() && start.onGround && Math.hypot(s.next().x - start.x, s.next().z - start.z) < STALL_STEP) continue;
+            float t = wrap(s.yaw() - start.yaw) - start.turned;
+            if (Math.abs(t) < Math.abs(turn) - 1e-4) {
+                turn = t;
+                smooth = s;
+            }
+        }
+        return smooth;
+    }
+
+    /** This tick's wander of the body's aim (degrees of yaw): the first tick of every candidate turns toward its heading plus this, as the body will. */
+    private static float noise0;
+
+    /** How much less far (blocks over the horizon) a candidate may get and still be taken for turning the head more evenly. */
+    private static final double SMOOTH_SLACK = 0.15;
+
+    private static float wrap(float degrees) {
+        float d = degrees % 360F;
+        if (d >= 180F) d -= 360F;
+        if (d < -180F) d += 360F;
+        return d;
     }
 
     private static Step reject(String why) {
@@ -272,7 +306,9 @@ public final class Runner {
                 }
                 groundTicks++;
             }
-            float heading = t < SIDESTEP_TICKS ? yaw + side : yaw;
+            // The head turns toward the heading at the rate a body's does; W pushes where it points meanwhile.
+            float heading = Body.turnStep(s.yaw, (t < SIDESTEP_TICKS ? yaw + side : yaw) + (t == 0 ? noise0 : 0), Body.view());
+            s.yaw = heading;
             RunSim.step(s, terrain, c, heading, true, true, jump);
             if (s.hardCollision) bumped = true;
             if (s.dead) {

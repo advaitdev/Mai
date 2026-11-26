@@ -89,6 +89,23 @@ movement:
     sprint_jump_flat: true
     sprint_jump_flat_min_distance: 5.0
 
+  # How the head moves. A turn covers `turn_gain` of the angle left each tick,
+  # at least `min_turn` and at most `max_turn` degrees, so the view sweeps
+  # round like a mouse instead of snapping; while it is coming round the body
+  # holds the WASD keys nearest the way it wants to go. The noise is a slow
+  # wander of the aim point in degrees. Walking, the pitch rests on the ground
+  # `gaze_distance` blocks ahead. Clicks that must land on a block face
+  # (placing, buckets) and the fall reflexes always aim exactly.
+  # max_turn 180, turn_gain 1 and both noises 0 give an instant, exact view.
+  view:
+    max_turn: 45.0
+    turn_gain: 0.5
+    min_turn: 4.0
+    noise_yaw: 0.5
+    noise_pitch: 1.5
+    natural_pitch: true
+    gaze_distance: 4.0
+
 # Named overrides for the movement section, applied with `/mai tune profile <name>`
 # or MovementTuning.applyProfile(name). Keys are paths under `movement:`.
 movement_profiles:

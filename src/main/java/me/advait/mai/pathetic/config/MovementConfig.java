@@ -143,8 +143,20 @@ public final class MovementConfig {
         this.sprintJumpFlat = nav.getBoolean("sprint_jump_flat", true);
         this.sprintJumpFlatMinDistance = nav.getDouble("sprint_jump_flat_min_distance", 5.0);
 
+        ConfigurationSection look = section(config, "movement.view");
+        this.view = new me.advait.mai.body.Body.View(
+                (float) look.getDouble("max_turn", 45.0), (float) look.getDouble("turn_gain", 0.5),
+                (float) look.getDouble("min_turn", 4.0), (float) look.getDouble("noise_yaw", 0.5),
+                (float) look.getDouble("noise_pitch", 1.5), look.getBoolean("natural_pitch", true),
+                look.getDouble("gaze_distance", 4.0));
+
         this.fallTickCosts = computeFallCosts(maxFallHeight + 1);
     }
+
+    private final me.advait.mai.body.Body.View view;
+
+    /** How the head turns (see {@code Body.View}). */
+    public me.advait.mai.body.Body.View getView() { return view; }
 
     /**
      * Pre-computes fall duration in ticks for each fall distance (0..maxBlocks).

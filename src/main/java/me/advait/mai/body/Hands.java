@@ -59,7 +59,7 @@ public final class Hands {
         Location eye = e.getEyeLocation();
         double dx = point.getX() - eye.getX(), dy = point.getY() - eye.getY(), dz = point.getZ() - eye.getZ();
         double h = Math.sqrt(dx * dx + dz * dz);
-        Body.of(e).look(Body.yawOf(dx, dz), (float) -Math.toDegrees(Math.atan2(dy, h)));
+        Body.of(e).aim(Body.yawOf(dx, dz), (float) -Math.toDegrees(Math.atan2(dy, h)));
     }
 
     /** What the eyes see along the current view, within reach. */

@@ -101,7 +101,7 @@ public record PillarUp() implements MovementType {
         // cell (vanilla won't place a block into the bot's own hitbox),
         // click the top of the block below.
         if (!placed && !ctx.onGround()) {
-            ctx.body().look(ctx.entity().getLocation().getYaw(), 90f);
+            ctx.body().aim(ctx.entity().getLocation().getYaw(), 90f);
             if (ctx.current.getY() >= by + 0.001) {
                 if (BridgePlace.ensurePlaceableInHand(ctx.humanoid) == null) {
                     PathDebugLog.event("PILLAR_FAILED no placeable block at (%d,%d,%d)", bx, by - 1, bz);

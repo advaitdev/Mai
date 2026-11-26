@@ -670,7 +670,7 @@ public final class CourseManager {
         Player p = s.player;
         s.tick++;
         s.log.tick(s.tick, loc, loc.getX() - s.last.getX(), loc.getY() - s.last.getY(), loc.getZ() - s.last.getZ(),
-                p.isOnGround(), keys(p) + String.format(" hp=%.1f", p.getHealth()));
+                p.isOnGround(), keys(p) + String.format(" hp=%.1f %s", p.getHealth(), Body.surface(p)));
         s.last = loc;
         p.sendActionBar(Component.text(time(s.tick), Messages.HIGHLIGHT)
                 .append(Component.text("   finish " + toGoal(loc, s.arena.end()), Messages.TEXT)));
@@ -755,6 +755,173 @@ public final class CourseManager {
             return true;
         }
         return false;
+    }
+
+    // =========================================================================
+    // Hunts: the bot chases a replay of a person's best run
+    // =========================================================================
+
+    private static final java.util.regex.Pattern REPLAY =
+            java.util.regex.Pattern.compile("^t=\\d+ x=(\\S+) y=(\\S+) z=(\\S+) .*? yaw=(\\S+) pitch=(\\S+)");
+
+    /** Positions and view of the fastest finished human run, one entry per tick; null if there is none. */
+    private List<double[]> bestHumanRun(Course c) {
+        CourseResults.Attempt best = null;
+        for (CourseResults.Attempt a : results(c).all()) {
+            if (a.finished() && a.kind().equals("human") && !a.log().isEmpty() && (best == null || a.ticks() < best.ticks())) best = a;
+        }
+        if (best == null) return null;
+        List<double[]> out = new ArrayList<>();
+        try {
+            for (String line : java.nio.file.Files.readAllLines(new File(new File(runsDir, c.name()), best.log()).toPath())) {
+                java.util.regex.Matcher m = REPLAY.matcher(line);
+                if (!m.find()) continue;
+                out.add(new double[]{Double.parseDouble(m.group(1)), Double.parseDouble(m.group(2)), Double.parseDouble(m.group(3)),
+                        Double.parseDouble(m.group(4)), Double.parseDouble(m.group(5))});
+            }
+        } catch (java.io.IOException | NumberFormatException e) {
+            return null;
+        }
+        return out.size() < 20 ? null : out;
+    }
+
+    public void hunt(CommandSender sender, String name, int lead) {
+        Course c = find(sender, name);
+        if (c == null) return;
+        leaveOwnCourse(sender);
+        if (busy(sender)) return;
+        runHunts(sender, List.of(c), lead);
+    }
+
+    public void huntAll(CommandSender sender, int lead) {
+        leaveOwnCourse(sender);
+        if (busy(sender)) return;
+        runHunts(sender, new ArrayList<>(courses.values()), lead);
+    }
+
+    private void runHunts(CommandSender sender, List<Course> runs, int lead) {
+        botBusy = true;
+        cancelBots = false;
+        Player watcher = sender instanceof Player p ? p : null;
+        SavedState saved = watcher != null ? new SavedState(watcher) : null;
+        if (watcher != null) watcher.setGameMode(GameMode.SPECTATOR);
+        int[] caught = {0}, total = {0};
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+        for (Course c : runs) {
+            chain = chain.thenCompose(v -> cancelBots ? CompletableFuture.completedFuture(null)
+                    : later(5).thenCompose(x -> runHunt(sender, c, lead, watcher)).thenAccept(r -> {
+                        if (r != null) total[0]++;
+                        if (Boolean.TRUE.equals(r)) caught[0]++;
+                    }));
+        }
+        chain.whenComplete((v, ex) -> later(watcher != null ? 30 : 0).thenRun(() -> {
+            botBusy = false;
+            if (ex != null) Mai.getInstance().getLogger().log(java.util.logging.Level.WARNING, "Course hunts aborted", ex);
+            Mai.getInstance().getLogger().info(String.format("[Course] HUNT_BATCH caught=%d total=%d lead=%d", caught[0], total[0], lead));
+            if (watcher != null && watcher.isOnline()) saved.restore(watcher);
+        }));
+    }
+
+    /**
+     * A Ghost replays the fastest human run of the course tick for tick (a
+     * player body moved to the recorded positions; nothing drives it), and
+     * {@code lead} ticks after its first step a Hunter spawns at the start
+     * and goes after it with the attack behavior. Caught once in swing
+     * reach; escaped if the Ghost finishes first. Completes with true
+     * (caught), false (escaped or failed) or null (no human run to replay).
+     */
+    private CompletableFuture<Boolean> runHunt(CommandSender sender, Course c, int lead, Player watcher) {
+        List<double[]> run = bestHumanRun(c);
+        if (run == null) {
+            Mai.getInstance().getLogger().info("[Course] HUNT name=" + c.name() + " status=SKIPPED reason=no_human_run");
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<String> outcome = new CompletableFuture<>();
+        CompletableFuture<Boolean> done = new CompletableFuture<>();
+        CourseArena arena = arena(c);
+        Location start = arena.start();
+        World world = start.getWorld();
+        if (watcher != null && watcher.isOnline()) {
+            Location eye = start.clone().add(start.getDirection().multiply(-4)).add(0, 3, 0);
+            eye.setPitch(25);
+            watcher.teleport(eye);
+        }
+        Player ghost = me.advait.mai.body.fake.FakePlayers.spawn("Ghost", UUID.randomUUID(), start);
+        ghost.setGravity(false);
+        ghost.setInvulnerable(true);
+        Humanoid[] hunter = {null};
+        CourseLog log = new CourseLog(logFile(c, "hunt"));
+        log.header(c, "hunt lead=" + lead, start, arena.end(), true);
+        int[] tick = {0}, hunterTicks = {0};
+        double[] gap = {Double.NaN, Double.MAX_VALUE};
+        Location[] last = {start};
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(Mai.getInstance(), () -> {
+            if (outcome.isDone()) return;
+            int i = tick[0]++;
+            if (!ghost.isValid()) {
+                if (i > 40) outcome.complete("ghost_gone");
+                return;
+            }
+            if (i >= run.size()) {
+                outcome.complete("ESCAPED");
+                return;
+            }
+            double[] r = run.get(i);
+            ghost.teleport(new Location(world, r[0], r[1], r[2], (float) r[3], (float) r[4]));
+            if (hunter[0] == null && i >= lead) {
+                Humanoid h = Catalog.getInstance().registerTemporary("Hunter", start);
+                hunter[0] = h;
+                h.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.IRON_SWORD));
+                me.advait.mai.assistant.Assistant.of(h).setBehavior(new me.advait.mai.assistant.CombatBehavior(
+                        h, ghost, me.advait.mai.assistant.CombatBehavior.Style.SMART));
+                return;
+            }
+            if (hunter[0] == null) return;
+            LivingEntity e = hunter[0].peekEntity();
+            if (e == null || (!e.isValid() && hunterTicks[0] < 40)) return;
+            if (e.isDead() || !e.isValid()) {
+                outcome.complete("hunter_died");
+                return;
+            }
+            int t = ++hunterTicks[0];
+            Location loc = e.getLocation();
+            Body b = Body.of(e);
+            gap[0] = loc.distance(ghost.getLocation());
+            gap[1] = Math.min(gap[1], gap[0]);
+            log.tick(t, loc, loc.getX() - last[0].getX(), loc.getY() - last[0].getY(), loc.getZ() - last[0].getZ(), e.isOnGround(),
+                    b.lastTick() + String.format(" hp=%.1f hc=%s %s gap=%.2f %s", e.getHealth(), b.collision(), Body.surface(e), gap[0],
+                            me.advait.mai.assistant.Assistant.of(hunter[0]).activity()));
+            last[0] = loc;
+            String out = arena.outOfBounds(loc);
+            if (out != null) outcome.complete("hunter_" + out);
+            else if (me.advait.mai.assistant.Motor.reachDistance(e, ghost) <= 3.0) outcome.complete("CAUGHT");
+        }, 1L, 1L);
+        outcome.whenComplete((r, ex) -> Bukkit.getScheduler().runTask(Mai.getInstance(), () -> {
+            task.cancel();
+            boolean caught = "CAUGHT".equals(r);
+            try {
+                if (hunter[0] != null) {
+                    me.advait.mai.assistant.Assistant.of(hunter[0]).stopAll();
+                    me.advait.mai.assistant.Assistant.forget(hunter[0].getUuid());
+                    hunter[0].getActionAgent().cancelAll();
+                    Catalog.getInstance().unregister(hunter[0]);
+                }
+                me.advait.mai.body.fake.FakePlayers.remove(ghost);
+            } catch (Exception ignored) {
+            }
+            String status = caught ? "CAUGHT" : "ESCAPED".equals(r) ? "ESCAPED" : "FAILED";
+            log.finish(status, r == null ? "error" : r.toLowerCase(Locale.ROOT), hunterTicks[0]);
+            String line = String.format("[Course] HUNT name=%s status=%s ticks=%d lead=%d human_ticks=%d gap=%.1f closest=%.1f reason=%s",
+                    c.name(), status, hunterTicks[0], lead, run.size(), gap[0], gap[1], r == null ? "error" : r.toLowerCase(Locale.ROOT));
+            Mai.getInstance().getLogger().info(line);
+            if (sender instanceof Player) {
+                sender.sendMessage(Component.text(c.name() + " ", Messages.HIGHLIGHT)
+                        .append(caught ? Component.text("caught your best run after " + time(hunterTicks[0]), Messages.SUCCESS)
+                                : Component.text("your best run got away (" + String.format("%.1f", gap[0]) + " blocks ahead)", Messages.ERROR)));
+            }
+            done.complete(caught);
+        }));
+        return done;
     }
 
     // =========================================================================
@@ -861,7 +1028,7 @@ public final class CourseManager {
             int t = tick[0] - moved[0] + 1;
             Body b = Body.of(e);
             log.tick(t, loc, loc.getX() - last[0].getX(), loc.getY() - last[0].getY(), loc.getZ() - last[0].getZ(),
-                    e.isOnGround(), b.lastTick() + String.format(" hp=%.1f hc=%s", e.getHealth(), b.collision()));
+                    e.isOnGround(), b.lastTick() + String.format(" hp=%.1f hc=%s %s", e.getHealth(), b.collision(), Body.surface(e)));
             last[0] = loc;
             String out = arena.outOfBounds(loc);
             if (out != null) outcome.complete(out);

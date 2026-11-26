@@ -6,6 +6,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -22,6 +23,8 @@ import java.net.InetSocketAddress;
 final class FakeConnection extends Connection {
 
     private final Plugin plugin;
+    /** The player on this connection, which plays the client's part for the packets that carry physics. */
+    FakePlayer player;
 
     FakeConnection(Plugin plugin) {
         super(PacketFlow.SERVERBOUND);
@@ -34,7 +37,12 @@ final class FakeConnection extends Connection {
 
     @Override
     public void send(Packet<?> packet, ChannelFutureListener listener, boolean flush) {
-        // Dropped, but completion callbacks still run (a kick disconnects in one).
+        // The server moves a player it hit or shoved by telling its client
+        // the new velocity; the client takes it as its own (see FakePlayer).
+        if (player != null && packet instanceof ClientboundSetEntityMotionPacket motion && motion.id() == player.getId()) {
+            player.clientMotion = motion.movement();
+        }
+        // The rest is dropped, but completion callbacks still run (a kick disconnects in one).
         if (listener != null) {
             try {
                 listener.operationComplete(channel.newSucceededFuture());

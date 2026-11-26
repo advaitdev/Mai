@@ -77,6 +77,7 @@ public final class PatheticAgent {
      */
     public void initialize(MovementConfig config) {
         this.config = config;
+        me.advait.mai.body.Body.view(config.getView());
         this.registry = new MovementRegistry(config);
         this.annotator = new PathAnnotator(registry);
         this.neighborStrategy = new HumanoidNeighborStrategy(config);

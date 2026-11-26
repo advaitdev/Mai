@@ -91,6 +91,23 @@ public class CourseCommand extends BaseCommand {
         C.botAll(sender, times == null ? 1 : times);
     }
 
+    @Subcommand("course hunt")
+    @CommandPermission("mai.obstacle.run")
+    @CommandCompletion("@courses @nothing")
+    @Syntax("<course> [lead]")
+    @Description("A bot hunts a replay of the fastest human run, starting [lead] ticks behind it")
+    public void onHunt(CommandSender sender, String course, @Optional Integer lead) {
+        C.hunt(sender, course, lead == null ? 40 : lead);
+    }
+
+    @Subcommand("course huntall")
+    @CommandPermission("mai.obstacle.run")
+    @Syntax("[lead]")
+    @Description("A bot hunts the fastest human run of every course")
+    public void onHuntAll(CommandSender sender, @Optional Integer lead) {
+        C.huntAll(sender, lead == null ? 40 : lead);
+    }
+
     @Subcommand("course cancel")
     @CommandPermission("mai.obstacle.run")
     @Description("Stop bot runs after the current one")

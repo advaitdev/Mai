@@ -133,7 +133,7 @@ public record WaterClutch() implements MovementType {
                 // Steer turns the view toward the landing and picks keys for
                 // that yaw; keep it and only tip the view straight down.
                 AirControl.steer(ctx, ctx.waypoint.x(), ctx.waypoint.z(), ctx.waypoint.y());
-                ctx.body().look(ctx.entity().getLocation().getYaw(), 90f);
+                ctx.body().aim(ctx.entity().getLocation().getYaw(), 90f);
                 boolean landed = ctx.onGround() || ctx.entity().isInWater();
                 if (ctx.phase == FALLING && !landed && h > MIN_PLACE_HEIGHT && h <= MAX_PLACE_HEIGHT) {
                     holdBucket(ctx.humanoid);
@@ -155,7 +155,7 @@ public record WaterClutch() implements MovementType {
             default -> {
                 // Scoop the water back up: look down at it and click once
                 // the right-click delay allows.
-                ctx.body().look(ctx.entity().getLocation().getYaw(), 90f);
+                ctx.body().aim(ctx.entity().getLocation().getYaw(), 90f);
                 if (Hands.fillBucket(ctx.entity())) {
                     PathDebugLog.event("CLUTCH_PICKUP");
                     return MovementStatus.SUCCESS;

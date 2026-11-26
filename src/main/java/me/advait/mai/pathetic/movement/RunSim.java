@@ -99,6 +99,10 @@ public final class RunSim {
     /** A body between two ticks: what the driver reads from the entity before pressing keys. */
     public static final class State {
         public double x, y, z, vx, vy, vz;
+        /** Where the view points (the last tick's yaw): a turn starts from here. */
+        public float yaw;
+        /** How far the view turned last tick (signed degrees): the runner prefers to keep turning as it was. */
+        public float turned;
         /** Vanilla fall distance: descent since last standing, not counting the landing tick. */
         public double fall;
         public boolean onGround;
@@ -120,7 +124,7 @@ public final class RunSim {
 
         public State copy() {
             State s = new State();
-            s.x = x; s.y = y; s.z = z; s.vx = vx; s.vy = vy; s.vz = vz;
+            s.x = x; s.y = y; s.z = z; s.vx = vx; s.vy = vy; s.vz = vz; s.yaw = yaw; s.turned = turned;
             s.fall = fall; s.onGround = onGround; s.sprinting = sprinting; s.hardCollision = hardCollision;
             s.canSprint = canSprint; s.player = player; s.damage = damage; s.collided = collided; s.dead = dead; s.why = why;
             return s;
