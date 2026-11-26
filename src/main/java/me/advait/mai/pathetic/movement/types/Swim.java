@@ -39,7 +39,12 @@ public record Swim() implements MovementType {
         int dx = current.getFlooredX() - previous.getFlooredX();
         int dz = current.getFlooredZ() - previous.getFlooredZ();
         double horiz = (dx != 0 && dz != 0) ? Math.sqrt(2) : 1.0;
-        return ctx.config().getSwim() * horiz * submerged;
+        // Water two deep is sprint-swum, at nearly twice the speed. Priced as
+        // paddling, a river was something to get out of: the route left the
+        // direct line for the bank and ran round.
+        Material below = ctx.materials().getMaterial(current.getFlooredX(), current.getFlooredY() - 1, current.getFlooredZ());
+        boolean deep = head == Material.WATER || below == Material.WATER;
+        return (deep ? ctx.config().getSwimSprint() : ctx.config().getSwim()) * horiz * submerged;
     }
 
     private static final double SUBMERGED_MULTIPLIER = 1.5;
@@ -78,11 +83,21 @@ public record Swim() implements MovementType {
         // Sprint-swimming needs the head under water, so it needs water two
         // deep. In a shallow stream holding shift to duck under never gets
         // the head wet: the bot crept at sneak speed and lost to the current.
+        // Two deep is water over the feet's block (standing on the bed) or
+        // under it (floating at the surface, which is where a swim across a
+        // river starts: without this it paddled across at half the speed).
         var loc = ctx.current;
-        boolean deep = ctx.entity().isUnderWater() || loc.getWorld().getBlockAt(
-                loc.getBlockX(), (int) Math.floor(loc.getY()) + 1, loc.getBlockZ()).getType() == Material.WATER;
+        int feetY = (int) Math.floor(loc.getY());
+        boolean deep = ctx.entity().isUnderWater()
+                || loc.getWorld().getBlockAt(loc.getBlockX(), feetY + 1, loc.getBlockZ()).getType() == Material.WATER
+                || (loc.getWorld().getBlockAt(loc.getBlockX(), feetY, loc.getBlockZ()).getType() == Material.WATER
+                && loc.getWorld().getBlockAt(loc.getBlockX(), feetY - 1, loc.getBlockZ()).getType() == Material.WATER);
 
-        if (moreWater && !centered && !deep) {
+        // Standing (on the bed, or on the lip of the bank with deep water
+        // ahead) it walks: shift there is sneaking, which won't step off an
+        // edge, and the bot stood on the bank holding it.
+        boolean standing = ctx.onGround() && !ctx.entity().isUnderWater();
+        if (moreWater && !centered && (!deep || standing)) {
             // Wading: walk with jump held, like walking through any water.
             MovementExecutors.walk(ctx, false);
         } else if (moreWater && !centered) {

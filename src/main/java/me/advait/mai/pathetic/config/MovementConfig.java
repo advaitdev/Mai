@@ -42,6 +42,7 @@ public final class MovementConfig {
     private final double ladderUp;
     private final double ladderDown;
     private final double swim;
+    private final double swimSprint;
     private final double lavaMultiplier;
     private final double soulSandMultiplier;
     private final double iceMultiplier;
@@ -111,6 +112,7 @@ public final class MovementConfig {
         this.ladderUp = costs.getDouble("ladder_up", 8.51);
         this.ladderDown = costs.getDouble("ladder_down", 6.67);
         this.swim = costs.getDouble("swim", 9.09);
+        this.swimSprint = costs.getDouble("swim_sprint", 5.26);
         this.lavaMultiplier = costs.getDouble("lava_multiplier", 4.0);
         this.soulSandMultiplier = costs.getDouble("soul_sand_multiplier", 2.0);
         this.iceMultiplier = costs.getDouble("ice_multiplier", 0.8);
@@ -229,6 +231,7 @@ public final class MovementConfig {
     public double getLadderUp() { return ladderUp; }
     public double getLadderDown() { return ladderDown; }
     public double getSwim() { return swim; }
+    public double getSwimSprint() { return swimSprint; }
     public double getLavaMultiplier() { return lavaMultiplier; }
     public double getSoulSandMultiplier() { return soulSandMultiplier; }
     public double getIceMultiplier() { return iceMultiplier; }

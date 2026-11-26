@@ -52,7 +52,8 @@ movement:
     hunger_sprint_cost: 0.1     # extra cost per block when sprinting (hunger drain)
     ladder_up: 8.51             # 20 / 2.35 b/s
     ladder_down: 6.67           # 20 / 3.0 b/s
-    swim: 9.09                  # 20 / 2.2 b/s
+    swim: 9.09                  # 20 / 2.2 b/s (surface paddling, shallow water)
+    swim_sprint: 5.26           # 20 / 3.8 b/s (sprint-swimming, water two deep)
     lava_multiplier: 4.0
     soul_sand_multiplier: 2.0
     ice_multiplier: 0.8

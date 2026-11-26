@@ -35,6 +35,20 @@ final class FakePlayer extends ServerPlayer {
         return false;
     }
 
+    /**
+     * A real player's sprint-jump boost is added by its client on every
+     * jump. The server's copy of the jump (run for statistics and hunger
+     * when a client reports one) only adds the boost if 250 ms of real time
+     * have passed since the last, so that a client can't stack boosts. Here
+     * the server's copy is the only one: without this, quick repeat jumps
+     * (under a two-high ceiling) lost the boost, depending on the wall clock.
+     */
+    @Override
+    public void jumpFromGround() {
+        lastJumpTime = 0L;
+        super.jumpFromGround();
+    }
+
     @Override
     public void tick() {
         super.tick();

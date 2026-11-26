@@ -66,7 +66,7 @@ public record WalkFlat() implements MovementType {
                     ctx.current.getX(), ctx.current.getY(), ctx.current.getZ(), dir[0], dir[1]);
             MovementExecutors.jump(ctx);
         }
-        // Run-jumps are the driver's (RunJump): it sees the route past this waypoint.
+        // Jumping along a run is the driver's (Runner): it sees the route past this waypoint.
 
         MovementExecutors.walk(ctx, sprinting);
         return MovementExecutors.walkArrived(ctx) ? MovementStatus.SUCCESS : MovementStatus.RUNNING;

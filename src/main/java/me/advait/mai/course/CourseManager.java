@@ -63,6 +63,8 @@ public final class CourseManager {
 
     private static final CourseManager INSTANCE = new CourseManager();
     private static final String BOT_NAME = "course-bot";
+    /** How near the finish block's center the bot's walk ends (inside {@link CourseArena#finished}'s 0.8). */
+    private static final double FINISH_RADIUS = 0.7;
     /** Ticks a finished or failed attempt waits before putting the player back at the start. */
     private static final int RESET_DELAY = 40;
     /** No human attempt runs longer than this (5 minutes). */
@@ -866,7 +868,9 @@ public final class CourseManager {
             else if (arena.finished(loc, e.isOnGround())) outcome.complete("FINISHED:" + t);
             else if (t >= c.timeoutTicks()) outcome.complete("timeout");
         }, 1L, 1L);
-        h.getActionAgent().addActions(new HumanoidWalkToAction(h, arena.end())).whenComplete((res, ex) -> {
+        // The clock stops on the first tick the feet are over the finish block, for a person and the bot
+        // alike, so the bot runs onto it like a person does instead of braking to stand on its center.
+        h.getActionAgent().addActions(new HumanoidWalkToAction(h, arena.end(), FINISH_RADIUS)).whenComplete((res, ex) -> {
             if (ex != null) outcome.complete("no_path");
             else if (res != null && !res.success()) {
                 String msg = res.message() == null ? "" : res.message().toLowerCase(Locale.ROOT);

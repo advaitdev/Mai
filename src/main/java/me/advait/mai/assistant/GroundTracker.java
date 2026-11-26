@@ -15,13 +15,31 @@ final class GroundTracker {
 
     Location resolve(Location at) {
         Location spot = FollowBehavior.landingSpot(at);
-        if (spot != null) {
+        if (spot != null && at.getY() - spot.getY() < HIGH) {
             last = spot;
             return spot;
         }
-        if (last != null && last.getWorld() == at.getWorld()) return last;
-        // Never saw it stand: the nearest standable cell beside or below it
-        // (the takeoff or landing of the jump it is in).
+        if (spot == null && last != null && last.getWorld() == at.getWorld()) return last;
+        Location near = nearestStandable(at);
+        if (spot == null) return near != null ? near : at;
+        // Well above the ground under it: jumping between raised blocks, or
+        // falling. A block beside it that is nearer than the ground is the
+        // takeoff or landing of its jump; chasing the ground below sent the
+        // hunter along the floor under a pillar course (64 ticks late).
+        if (near != null && near.clone().add(0.5, 0, 0.5).distanceSquared(at)
+                < spot.clone().add(0.5, 0, 0.5).distanceSquared(at)) return near;
+        last = spot;
+        return spot;
+    }
+
+    /** Height above the ground below from which a target counts as in the air over it, not jumping on it. */
+    private static final double HIGH = 1.75;
+
+    /**
+     * The nearest standable cell beside or below a target in the air (the
+     * takeoff or landing of the jump it is in).
+     */
+    private static Location nearestStandable(Location at) {
         Location feet = me.advait.mai.pathetic.PatheticAgent.feetCell(at);
         Location best = null;
         double bestD = Double.MAX_VALUE;
@@ -36,6 +54,6 @@ final class GroundTracker {
                 }
             }
         }
-        return best != null ? best : at;
+        return best;
     }
 }
